@@ -39,9 +39,10 @@ test('suppression propagée et identifiant attribué si absent', () => {
   assert.deepEqual(s.getDoc('pilot').data.chantiers.map(c => c.id), [sansId.id]);
 });
 
-test('horloge hybride croissante et application à distance « la plus récente gagne »', () => {
+test('horloge hybride croissante et application à distance « la plus récente gagne »', async () => {
   const a = new Store(':memory:', { deviceId: 'aaa' }), b = new Store(':memory:', { deviceId: 'bbb' });
   a.putDoc('pilot', pilot([{ id: 'x', v: 'a' }]), 0);
+  await new Promise(r => setTimeout(r, 3));
   b.putDoc('pilot', pilot([{ id: 'x', v: 'b' }]), 0);   // plus récente
   const fromB = b.changesSince(0);
   a.applyRemote(fromB, { pendingAfter: 0 });
