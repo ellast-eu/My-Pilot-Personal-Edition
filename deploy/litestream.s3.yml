@@ -1,0 +1,16 @@
+# Réplication vers un stockage compatible S3 (AWS, Backblaze B2, Scaleway, OVH, MinIO…).
+# Copier en deploy/litestream.yml. Les ${VARIABLES} viennent du fichier .env.
+snapshot:
+  interval: 24h
+  retention: 720h        # 30 jours de retour arrière possible
+
+dbs:
+  - path: /data/pilot.db
+    replica:
+      type: s3
+      bucket: ${LITESTREAM_BUCKET}
+      path: ${LITESTREAM_PATH}
+      endpoint: ${LITESTREAM_ENDPOINT}     # vide pour AWS
+      region: ${LITESTREAM_REGION}
+      access-key-id: ${LITESTREAM_ACCESS_KEY_ID}
+      secret-access-key: ${LITESTREAM_SECRET_ACCESS_KEY}

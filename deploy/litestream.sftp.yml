@@ -1,0 +1,16 @@
+# Réplication vers un serveur à vous, en SFTP (NAS, VPS, Raspberry Pi…).
+# Copier en deploy/litestream.yml et déposer la clé privée dans deploy/keys/id_ed25519.
+# Empreinte du serveur : ssh-keyscan -t ed25519 mon-serveur  → SFTP_HOST_KEY dans .env
+snapshot:
+  interval: 24h
+  retention: 720h
+
+dbs:
+  - path: /data/pilot.db
+    replica:
+      type: sftp
+      host: ${SFTP_HOST}               # hote:port, ex. backup.example.net:22
+      user: ${SFTP_USER}
+      key-path: /keys/id_ed25519
+      path: ${SFTP_PATH}               # ex. /srv/backups/pilot-perso
+      host-key: ${SFTP_HOST_KEY}       # vérification de l'identité du serveur

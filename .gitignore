@@ -5,3 +5,6 @@ data/
 .env
 node_modules/
 .DS_Store
+deploy/litestream.yml
+deploy/keys/*
+!deploy/keys/.gitkeep
