@@ -13,7 +13,7 @@ before(async () => {
   fs.mkdirSync(path.join(tmp, 'web'));
   fs.writeFileSync(path.join(tmp, 'web', 'index.html'), '<p>ok</p>');
   process.env.CLAUDE_BIN = path.join(tmp, 'absent-claude');
-  app = createApp({ dataDir: tmp, webDir: path.join(tmp, 'web'), autoSnapshot: false });
+  app = createApp({ dataDir: tmp, webDir: path.join(tmp, 'web'), autoSnapshot: false, syncEngine: false });
   await new Promise(r => app.server.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${app.server.address().port}`;
 });
@@ -34,10 +34,14 @@ test('document : création, lecture, conflit', async () => {
   assert.equal(a.status, 200); assert.equal(a.body.rev, 1);
   const b = await j('/api/docs/pilot', { method: 'PUT', body: JSON.stringify({ data: { n: 2 }, baseRev: 1 }) });
   assert.equal(b.body.rev, 2);
+  // version de départ dépassée : fusion ; la même valeur modifiée des deux côtés → la saisie l'emporte, conflit journalisé
   const c = await j('/api/docs/pilot', { method: 'PUT', body: JSON.stringify({ data: { n: 3 }, baseRev: 1 }) });
-  assert.equal(c.status, 409); assert.equal(c.body.rev, 2);
+  assert.equal(c.status, 200); assert.equal(c.body.conflicts, 1);
   const g = await j('/api/docs/pilot');
-  assert.deepEqual(g.body.data, { n: 2 });
+  assert.equal(g.body.data.n, 3);
+  // version de départ inconnue : refus explicite
+  const d = await j('/api/docs/pilot', { method: 'PUT', body: JSON.stringify({ data: { n: 4 }, baseRev: 999 }) });
+  assert.equal(d.status, 409);
 });
 
 test('identifiant invalide refusé', async () => {
@@ -52,7 +56,7 @@ test('révisions et restauration', async () => {
   const first = list.body[list.body.length - 1].rev;
   const r = await j(`/api/docs/ideas/restore/${first}`, { method: 'POST' });
   assert.equal(r.status, 200);
-  assert.deepEqual((await j('/api/docs/ideas')).body.data, { v: 'a' });
+  assert.equal((await j('/api/docs/ideas')).body.data.v, 'a');
 });
 
 test('instantané de la base', async () => {

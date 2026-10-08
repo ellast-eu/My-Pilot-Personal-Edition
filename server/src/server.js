@@ -6,6 +6,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { Store } from './db.js';
 import * as claude from './claude.js';
+import { SyncEngine, hubExchange } from './sync.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(here, '../..');
@@ -67,8 +68,20 @@ export function createApp(opts = {}) {
   const keepSnaps = +(process.env.KEEP_SNAPSHOTS ?? 30);
   const user = opts.user ?? process.env.APP_USER;
   const pass = opts.password ?? process.env.APP_PASSWORD;
+  const syncToken = opts.syncToken ?? process.env.SYNC_TOKEN ?? '';
+  const localToken = opts.localToken || '';            // application de bureau : jeton propre à la session
+  const sync = opts.syncEngine === false ? null : new SyncEngine(store, { log: m => console.log(m) }).start();
 
-  function authorized(req) {
+  function cookie(req, name) {
+    const m = new RegExp('(?:^|;\\s*)' + name + '=([^;]+)').exec(req.headers.cookie || '');
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+  function authorized(req, url) {
+    if (localToken) return safeEqual(cookie(req, 'mppe_local') || req.headers['x-local-token'] || '', localToken);
+    if (url.pathname === '/api/sync' && syncToken) {
+      const h = req.headers.authorization || '';
+      return h.startsWith('Bearer ') && safeEqual(h.slice(7), syncToken);
+    }
     if (!pass) return true;
     const h = req.headers.authorization || '';
     if (!h.startsWith('Basic ')) return false;
@@ -81,7 +94,7 @@ export function createApp(opts = {}) {
     const m = req.method;
 
     if (parts[0] === 'health' && m === 'GET') {
-      return send(res, 200, { ok: true, version: VERSION, schema: store.schemaVersion, auth: !!pass });
+      return send(res, 200, { ok: true, version: VERSION, schema: store.schemaVersion, auth: !!pass, mode: opts.mode || 'serveur', device: store.deviceId });
     }
 
     if (parts[0] === 'docs') {
@@ -89,6 +102,11 @@ export function createApp(opts = {}) {
       if (!id && m === 'GET') return send(res, 200, store.listDocs());
       if (!DOC_ID.test(id || '')) throw new HttpError(400, 'bad_id', 'Identifiant de document invalide');
 
+      if (parts[2] === 'rev' && m === 'GET') {
+        const r = store.docRev(id);
+        if (!r) throw new HttpError(404, 'not_found', 'Document absent');
+        return send(res, 200, r);
+      }
       if (parts.length === 2 && m === 'GET') {
         const d = store.getDoc(id);
         if (!d) throw new HttpError(404, 'not_found', 'Document absent');
@@ -101,7 +119,7 @@ export function createApp(opts = {}) {
         }
         const r = store.putDoc(id, body.data, body.baseRev ?? null, body.reason === 'manual' ? 'manual' : 'auto');
         if (!r.ok) return send(res, 409, { error: 'conflict', message: 'Modifié ailleurs entre-temps', rev: r.rev, updated_at: r.updated_at });
-        return send(res, 200, { rev: r.rev, updated_at: r.updated_at });
+        return send(res, 200, { rev: r.rev, updated_at: r.updated_at, conflicts: r.conflicts, ...(r.data ? { data: r.data } : {}) });
       }
       if (parts[2] === 'revisions' && m === 'GET') {
         if (parts[3]) {
@@ -118,6 +136,25 @@ export function createApp(opts = {}) {
       }
     }
 
+    if (parts[0] === 'sync') {
+      // rôle hub : un appareil envoie ses fiches et reçoit celles des autres
+      if (!parts[1] && m === 'POST') {
+        const body = await readJson(req);
+        try { return send(res, 200, hubExchange(store, body)); }
+        catch (e) { throw new HttpError(400, e.code || 'bad_request', e.message); }
+      }
+      // rôle appareil : réglages et état de la synchronisation vers un hub
+      if (!sync) throw new HttpError(404, 'not_found', 'Synchronisation désactivée');
+      if (parts[1] === 'status' && m === 'GET') return send(res, 200, sync.status());
+      if (parts[1] === 'config' && m === 'PUT') {
+        const body = await readJson(req);
+        try { return send(res, 200, sync.setConfig(body)); }
+        catch (e) { throw new HttpError(400, e.code || 'bad_request', e.message); }
+      }
+      if (parts[1] === 'now' && m === 'POST') { await sync.run('manuel'); return send(res, 200, sync.status()); }
+      if (parts[1] === 'conflicts' && m === 'GET') return send(res, 200, store.listConflicts(+url.searchParams.get('limit') || 50));
+      if (parts[1] === 'conflicts' && parts[2] === 'seen' && m === 'POST') { store.markConflictsSeen(); return send(res, 200, { ok: true }); }
+    }
     if (parts[0] === 'changelog' && m === 'GET') {
       let t = '';
       try { t = fs.readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf8'); } catch {}
@@ -173,10 +210,11 @@ export function createApp(opts = {}) {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
-    if (!authorized(req)) {
-      return send(res, 401, 'Authentification requise', { 'WWW-Authenticate': 'Basic realm="My Pilot Personal Edition", charset="UTF-8"' });
-    }
     const url = new URL(req.url, 'http://local');
+    if (!authorized(req, url)) {
+      if (localToken) return send(res, 403, 'Accès réservé à l\'application');
+      return send(res, 401, 'Authentification requise', url.pathname === '/api/sync' ? {} : { 'WWW-Authenticate': 'Basic realm="My Pilot Personal Edition", charset="UTF-8"' });
+    }
     try {
       if (url.pathname === '/api' || url.pathname.startsWith('/api/')) return await api(req, res, url);
       if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, 'Méthode non permise');
@@ -198,8 +236,8 @@ export function createApp(opts = {}) {
     }, every * 3600 * 1000);
     timer.unref();
   }
-  server.on('close', () => { if (timer) clearInterval(timer); });
-  return { server, store };
+  server.on('close', () => { if (timer) clearInterval(timer); if (sync) sync.stop(); });
+  return { server, store, sync };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
