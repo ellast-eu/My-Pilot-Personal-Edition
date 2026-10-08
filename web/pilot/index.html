@@ -1439,7 +1439,7 @@ function appliquerTexte(texte,mode){
   var o;
   try{ o=JSON.parse(t) }catch(e){ toast("Fichier illisible : ce n'est pas du JSON valide",true); return }
   if(!estObjet(o) || o.chantiers===undefined || o.notes===undefined){
-    toast("Fichier non reconnu : structure PST Pilot absente",true); return;
+    toast("Fichier non reconnu : ce n'est pas un export de données du pilotage",true); return;
   }
   var pb=validerDonnees(o);
   if(pb){ toast("Fichier refusé — "+pb+" Vos données actuelles sont intactes.",true); return }
@@ -1897,7 +1897,7 @@ var MENU_SECTIONS=[
   ["accomp","Accompagnements","Pendant une tâche fastidieuse"],
   ["plat","Plats principaux","Du temps devant soi"],
   ["specialite","Spécialités","Rares, à préparer, à attendre"],
-  ["dessert","Desserts","Faciles — jamais proposés en session"]
+  ["dessert","Desserts","Faciles — jamais proposés d'office"]
 ];
 var CLE_M="pst-pilot-menu-v1";        /* ancien tampon, relu une fois pour migration */
 var M=viergeMenu();
@@ -1947,7 +1947,7 @@ function exporterCarte(){
 function importerCarte(){ $("#fichierCarte").click() }
 function appliquerCarte(txt){
   var a=analyserMenu(txt);
-  if(!a.ok){ toast("Ce fichier ne contient pas de carte PST Pilot",true); return }
+  if(!a.ok){ toast("Ce fichier ne contient pas de carte de pause",true); return }
   if(!menuVide() && !confirm("La carte actuelle sera remplacée par le contenu du fichier. Continuer ?")) return;
   poserCarte(a.data); modifie(); ouvrirPause(); toast("Carte importée");
 }
@@ -2082,11 +2082,11 @@ function ouvrirPause(){
       +'<span><b>Activer les propositions automatiques</b><em>Si décoché, plus aucune fenêtre ne s\'ouvre d\'elle-même.</em></span></label>'
     +'<div class="opt"><span style="padding-left:22px"><b>Toutes les '
       +'<input type="number" id="sugJour" min="0" step="15" value="'+(M.reglages.rappel_jour||0)+'"> minutes</b>'
-      +'<em>Le rappel principal, tant que PST Pilot est ouvert. 0 pour ne jamais être interrompue. '
+      +'<em>Le rappel principal, tant que l\'application est ouverte. 0 pour ne jamais être interrompue. '
       +'Le compte à rebours est visible en haut de l\'écran.</em></span></div>'
     +'<label class="opt"><input type="checkbox" id="sugClo" '+(M.reglages.sur_cloture!==false?"checked":"")+'>'
-      +'<span><b>Quand je clôture une déshérence, une convocation ou une animation</b>'
-      +'<em>Au moment où vous passez une activité en « Réalisé ».</em></span></label>'
+      +'<span><b>Quand je termine une activité</b>'
+      +'<em>Au moment où une activité passe à son statut de clôture (Réalisé, Terminé…).</em></span></label>'
     +'<label class="opt"><input type="checkbox" id="sugEpr" '+(M.reglages.sur_eprouvante!==false?"checked":"")+'>'
       +'<span><b>Après une activité cochée « éprouvante »</b>'
       +'<em>Proposition plus généreuse : la contrainte de temps est ignorée.</em></span></label>'
@@ -2096,9 +2096,8 @@ function ouvrirPause(){
       +'<em>N\'affiche que ce qui tient avant votre prochaine activité de la journée.</em></span></label>'
     +'</div>'
     +'<div class="ligne" style="margin-top:12px"><button class="b creux" data-act="pause-essai">Voir à quoi ça ressemble</button></div>'
-    +'<div class="note-aide">Cette carte est enregistrée avec vos données, dans '
-      +'<span class="mono">'+esc(nomFichier)+'</span> : rien de plus à ouvrir le matin. '
-      +'Elle reste absente de tous les exports d\'activité, et le bouton Exporter permet de la sortir à part.</div>';
+    +'<div class="note-aide">Cette carte est enregistrée avec vos données sur le serveur. '
+      +'Elle n\'apparaît dans aucun export d\'activité ; le bouton Exporter permet de la sauvegarder à part.</div>';
   ouvrirModale("Pause",alerte+corps+reg,[
     {txt:"Importer une carte",classe:"creux",fn:importerCarte},
     {txt:"Exporter",classe:"creux",fn:exporterCarte},
@@ -3248,7 +3247,7 @@ function vueDonnees(){
     +'</div>'
     +'<hr class="sep">'
     +'<div class="grille" style="margin-bottom:10px">'
-      +'<label class="champ">Nom de l\'application<input type="text" id="nomApp" value="'+esc(D.parametres.nom_app||"PST Pilot")+'"></label>'
+      +'<label class="champ">Nom de l\'application<input type="text" id="nomApp" value="'+esc(D.parametres.nom_app||NOM_DEFAUT)+'"></label>'
     +'</div>'
     +'<div class="ligne" style="margin-bottom:8px">'
       +'<label style="font-size:13.5px;display:flex;gap:6px;align-items:center">'
@@ -3827,7 +3826,7 @@ function appliquerConfig(txt){
   var o;
   try{ o=JSON.parse(String(txt)) }catch(e){ toast("Fichier de configuration illisible",true); return }
   if(!estObjet(o) || o.type!=="pst-pilot-config" || !estTableau(o.categories)){
-    toast("Ce fichier n'est pas une configuration PST Pilot",true); return;
+    toast("Ce fichier n'est pas une configuration de catégories",true); return;
   }
   if(!o.categories.length){ toast("Cette configuration ne contient aucune catégorie",true); return }
   var n=o.categories.length;

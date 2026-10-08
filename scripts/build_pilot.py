@@ -103,6 +103,30 @@ PATCHES = [
     ("vue Données : rapports de période et compte-rendu retirés",
      r"    \+'<hr class=\"sep\" style=\"margin:14px 0 10px\">'\n    \+'<div class=\"ligne\">'\n      \+'<span class=\"puce-lbl\">Rapport de période</span>'.*?Vos données sont conservées dans le fichier lié\. Aucun autre fichier n\\'est lu au démarrage\.</div>'\n",
      "", True),
+    # --- menu Pause ---
+    ("pause : desserts, sans référence aux sessions de traitement",
+     '["dessert","Desserts","Faciles — jamais proposés en session"]', '["dessert","Desserts","Faciles — jamais proposés d\'office"]', False),
+    ("pause : rappel principal",
+     "Le rappel principal, tant que PST Pilot est ouvert.", "Le rappel principal, tant que l\\'application est ouverte.", False),
+    ("pause : proposition à la fin de n'importe quelle activité",
+     "'<span><b>Quand je clôture une déshérence, une convocation ou une animation</b>'\n"
+     "      +'<em>Au moment où vous passez une activité en « Réalisé ».</em></span></label>'",
+     "'<span><b>Quand je termine une activité</b>'\n"
+     "      +'<em>Au moment où une activité passe à son statut de clôture (Réalisé, Terminé…).</em></span></label>'", False),
+    ("pause : la carte vit sur le serveur",
+     "'<div class=\"note-aide\">Cette carte est enregistrée avec vos données, dans '\n"
+     "      +'<span class=\"mono\">'+esc(nomFichier)+'</span> : rien de plus à ouvrir le matin. '\n"
+     "      +'Elle reste absente de tous les exports d\\'activité, et le bouton Exporter permet de la sortir à part.</div>'",
+     "'<div class=\"note-aide\">Cette carte est enregistrée avec vos données sur le serveur. '\n"
+     "      +'Elle n\\'apparaît dans aucun export d\\'activité ; le bouton Exporter permet de la sauvegarder à part.</div>'", False),
+    ("pause : import d'une carte",
+     'toast("Ce fichier ne contient pas de carte PST Pilot",true)', 'toast("Ce fichier ne contient pas de carte de pause",true)', False),
+    ("paramètres : nom par défaut",
+     'esc(D.parametres.nom_app||"PST Pilot")', 'esc(D.parametres.nom_app||NOM_DEFAUT)', False),
+    ("catégories : import de configuration",
+     "toast(\"Ce fichier n'est pas une configuration PST Pilot\",true)", "toast(\"Ce fichier n'est pas une configuration de catégories\",true)", False),
+    ("import : format reconnu",
+     'toast("Fichier non reconnu : structure PST Pilot absente",true)', 'toast("Fichier non reconnu : ce n\'est pas un export de données du pilotage",true)', False),
     ("couche perso chargée après le script principal",
      '</body>', '<script src="perso.js"></script>\n</body>', False),
 ]
