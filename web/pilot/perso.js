@@ -108,6 +108,7 @@ serialise=function(format){
 
 /* ================= 2. persistance serveur ================= */
 var Sync={rev:0,etat:"init",envoi:false,encore:false,dernier:null,erreur:"",version:""};
+window.__pilotSync=Sync;            /* diagnostic : état de la synchronisation */
 
 function api(chemin,opts){
   opts=opts||{};
@@ -428,14 +429,17 @@ api("health").then(function(h){
 });
 function lireLocal0Safe(){ try{ return lireLocal() }catch(e){ return null } }
 
-/* nouvelles tentatives tant que le serveur est injoignable */
-setInterval(function(){
+/* nouvelles tentatives tant que le serveur est injoignable (toutes les 30 s, et au retour sur l'onglet) */
+function reessayer(){
   if(Sync.etat==="horsligne" && !Sync.envoi){
     api("docs/"+DOC).then(function(r){
       if(r.status===404 || (r.ok && r.body.rev===Sync.rev)){ Sync.etat="ok"; if(sale||lireSync()) envoyer("manual"); else majEtat() }
       else if(r.ok){ Sync.etat="conflit"; conflit({rev:r.body.rev,updated_at:r.body.updated_at}) }
     }).catch(function(){});
   }
-},30000);
+}
+setInterval(reessayer,30000);
+window.addEventListener("online",reessayer);
+window.addEventListener("focus",reessayer);
 
 })();
