@@ -4,6 +4,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+## [0.5.2] - 2026-10-08
+
 ### Modifications
 - Menu Pause sans référence professionnelle : proposition à la fin de n'importe quelle activité, rappel « tant que l'application est ouverte », desserts « jamais proposés d'office », carte enregistrée sur le serveur.
 - Derniers libellés « PST Pilot » visibles remplacés (nom par défaut dans les paramètres, imports de fichier et de configuration).
