@@ -4,7 +4,8 @@ Pilotage des activités personnelles, dérivé de PST·PILOT, avec le Cristallis
 
 - **Pilotage** : la journée, le prochain jour, les activités, le journal, les contacts — le moteur de PST·PILOT 3.13.1, réglé pour la vie hors travail (catégories Projet, Maison, Formation, Démarche, Loisir ; modules professionnels désactivés).
 - **Idées** : boîte à idées en bulles ou en tableau, regroupement automatique en méta-idées, cristallisation par Claude, puis conversion en activité du pilotage avec ses tâches.
-- **Données** : une base SQLite sur le serveur, avec un historique des versions, des instantanés quotidiens et une réplication continue vers un serveur distant.
+- **Application de bureau** (.deb, .exe) : fonctionne seule, sans navigateur ni réseau, avec sa propre base ; elle se synchronise fiche par fiche avec le serveur.
+- **Données** : une base SQLite, avec un historique des versions, des instantanés quotidiens et une réplication continue vers un stockage distant.
 - **Claude** : via Claude Code connecté à votre compte claude.ai, donc décompté de l'abonnement Pro, sans compte API.
 
 ## Démarrer
@@ -22,6 +23,24 @@ Pour reprendre des données PST·PILOT existantes : onglet **Données**, « Impo
 
 Sans Docker, pour développer : `cd server && npm start` (Node 22.13 ou plus récent), puis http://localhost:8080.
 
+## Application de bureau et synchronisation
+
+L'application de bureau embarque le même serveur et sa propre base SQLite : elle fonctionne sans connexion. Le serveur Docker sert de point de synchronisation entre les appareils (2 ou 3 machines) et garde la sauvegarde distante.
+
+**Installer**
+- Linux (Debian, Ubuntu, Mint…) : `sudo apt install ./my-pilot-personal-edition_X.Y.Z_amd64.deb`
+- Windows : lancer `my-pilot-personal-edition-X.Y.Z-setup.exe`. L'installateur n'est pas signé : Windows SmartScreen demande une confirmation (« Informations complémentaires », puis « Exécuter quand même »).
+
+Les données restent dans le dossier de l'utilisateur (`~/.config/My Pilot Personal Edition/data` sous Linux, `%APPDATA%\My Pilot Personal Edition\data` sous Windows) ; menu **Fichier → Ouvrir le dossier des données**. Désinstaller l'application ne les supprime pas.
+
+**Relier une application au serveur**
+1. Sur le serveur : définir `SYNC_TOKEN` dans `.env` (par exemple `openssl rand -hex 32`), puis `docker compose up -d`. Le serveur doit être joignable en HTTPS depuis les appareils (proxy ou VPN, voir plus bas).
+2. Dans l'application : **Données → Synchronisation → Configurer**, saisir l'adresse du serveur et le jeton, puis « Enregistrer et synchroniser ».
+
+**Comment ça fusionne** : chaque activité, note, contact, point de vigilance, idée… est une fiche avec sa date de modification. Deux appareils qui modifient des fiches différentes, même hors ligne, retrouvent les deux changements. Si la même fiche a changé des deux côtés, la plus récente l'emporte et l'autre version va dans le **journal des conflits** (onglet Données), d'où on peut la remettre en place. Les réglages globaux (paramètres, carte Pause, réglages des idées) sont chacun une fiche.
+
+**Construire les paquets** (Node 22 ou plus récent) : `cd desktop && npm ci && npm run dist`. Le .deb et le .exe arrivent dans `dist/desktop/`. Depuis Linux, l'installateur Windows est construit sans wine.
+
 ## Claude Code et l'abonnement claude.ai
 
 Le serveur appelle `claude -p` (Claude Code en mode non interactif). Connecté à un compte claude.ai Pro ou Max, l'usage est décompté des mêmes limites que claude.ai, sans facturation à part.
@@ -33,6 +52,8 @@ Le serveur appelle `claude -p` (Claude Code en mode non interactif). Connecté �
 Autre possibilité : se connecter directement dans le conteneur avec `docker compose exec -it app claude`, puis `/login`. La connexion est gardée dans le volume `claude-config`.
 
 Le pont retire toujours `ANTHROPIC_API_KEY` de l'environnement de Claude Code, pour ne jamais basculer sur la facturation API par accident. Les demandes passent une par une, sans outils (Claude ne peut ni lire ni modifier de fichiers sur le serveur).
+
+Dans l'application de bureau, c'est le Claude Code de la machine qui est utilisé : l'installer et s'y connecter une fois (`claude`, puis `/login`) suffit.
 
 Si Claude Code n'est pas disponible, le mode copier-coller via une conversation claude.ai reste utilisable.
 
@@ -58,6 +79,7 @@ Le projet suit le [versionnage sémantique](https://semver.org/lang/fr/) ; voir 
 
 ```
 server/        API et stockage (Node, node:sqlite, aucune dépendance)
+desktop/       application de bureau (Electron) et construction des paquets
 web/pilot/     PST·PILOT adapté : index.html généré + perso.js (couche personnelle)
 web/cristallisoir/  le Cristallisoir (onglet Idées)
 vendor/        PST·PILOT d'origine, non modifié

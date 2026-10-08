@@ -13,13 +13,33 @@ navigateur                                   conteneur app                     v
 
 ## Données
 
-Chaque module est un **document JSON** dans la table `documents` : `pilot` (l'objet de données de PST·PILOT, même format que `pstp-data.json`) et `ideas` (l'état du Cristallisoir). Ce choix garde intacte la logique de PST·PILOT, qui travaille sur un objet complet en mémoire.
+La base SQLite range chaque document (`pilot`, `ideas`) **fiche par fiche** : une ligne par activité, note, contact, organisation, point de vigilance, idée, idée unifiée, et une ligne par réglage global (paramètres, carte Pause…). Chaque ligne porte :
 
-- Écriture : `PUT /api/docs/:id` avec `baseRev` ; un écart renvoie `409` (modifié ailleurs) et l'interface demande quoi garder.
-- Historique : table `revisions`, alimentée avec un pas minimal de 5 minutes et à chaque enregistrement manuel.
-- Hors ligne : chaque page garde une copie dans le navigateur et la renvoie au retour du serveur, si personne n'a modifié la version du serveur entre-temps.
+- une **horloge hybride** (HLC : millisecondes, compteur, identifiant d'appareil), comparable d'un appareil à l'autre ;
+- un **numéro de séquence** local, qui dit ce qui a changé depuis le dernier échange ;
+- l'**origine** (l'appareil qui a fait la dernière modification).
 
-Évolution possible : éclater `pilot` en tables (activités, notes, contacts) le jour où des requêtes côté serveur deviennent utiles (statistiques, recherche, synchronisation fine entre appareils).
+Les pages continuent de lire et d'écrire un document entier (`GET/PUT /api/docs/:id`) : le serveur le découpe et le réassemble. Si une page envoie un document construit sur une version dépassée (autre onglet, fiches arrivées par synchronisation), le serveur fait une **fusion à trois voies** à partir de la version de départ, conservée dans la table `bases`, et renvoie la version fusionnée, que la page reprend dès qu'aucune saisie n'est en cours.
+
+La clé `meta` du pilotage reste propre à chaque appareil et n'est jamais synchronisée.
+
+## Synchronisation
+
+```
+appareil                                   hub (serveur Docker)
+changesSince(envoyé, origine = moi) ──────▶ applyRemote : la fiche la plus récente (HLC) gagne
+applyRemote ◀───────────────────────────── changesSince(curseur, origine ≠ appareil)
+curseurs « envoyé » et « reçu » mis à jour
+```
+
+- Échange toutes les 30 s, 2,5 s après une modification, et à la demande (onglet Données).
+- Une fiche locale envoyée ou en attente, remplacée par une version plus récente venue d'ailleurs, est copiée dans le **journal des conflits** avant d'être écrasée.
+- Les suppressions voyagent comme des fiches marquées supprimées.
+- Le hub authentifie les appareils par le jeton `SYNC_TOKEN`.
+
+## Application de bureau
+
+`desktop/main.cjs` démarre le serveur dans le processus Electron, sur `127.0.0.1` et un port libre, avec un jeton de session déposé en cookie : aucune autre application de la machine ne peut lire les données par ce port. Les fichiers du serveur et des pages sont copiés tels quels dans les ressources de l'application.
 
 ## API
 
@@ -27,10 +47,15 @@ Chaque module est un **document JSON** dans la table `documents` : `pilot` (l'ob
 |---|---|---|
 | GET | `/api/health` | version, schéma |
 | GET | `/api/docs` | liste des documents |
-| GET / PUT | `/api/docs/:id` | lire / écrire (verrou optimiste) |
+| GET / PUT | `/api/docs/:id` | lire / écrire (fusion à trois voies si la version de départ est dépassée) |
+| GET | `/api/docs/:id/rev` | numéro de version, pour suivre les changements |
 | GET | `/api/docs/:id/revisions[/:rev]` | historique |
 | POST | `/api/docs/:id/restore/:rev` | restaurer une version |
 | GET / POST | `/api/backup` | lister / créer un instantané |
+| POST | `/api/sync` | échange avec un appareil (rôle hub, jeton `SYNC_TOKEN`) |
+| GET / PUT | `/api/sync/status`, `/api/sync/config` | état et réglages de la synchronisation de cet appareil |
+| POST | `/api/sync/now` | lancer un échange |
+| GET / POST | `/api/sync/conflicts`, `/api/sync/conflicts/seen` | journal des conflits |
 | GET | `/api/claude/status` | Claude Code disponible ? |
 | POST | `/api/claude` | `{prompt, json, model}` → `{json}` ou `{text}` |
 

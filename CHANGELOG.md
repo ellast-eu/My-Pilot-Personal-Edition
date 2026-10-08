@@ -4,6 +4,16 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+### Ajouts
+- Application de bureau autonome (Electron) : serveur et base SQLite embarqués, fonctionne sans navigateur ni réseau. Paquets .deb (Linux) et installateur .exe (Windows).
+- Synchronisation fiche par fiche entre les applications et le serveur Docker (jeton `SYNC_TOKEN`) : fusion automatique des modifications de fiches différentes, « la plus récente gagne » sur une même fiche, journal des conflits avec remise en place de la version écartée.
+- Fusion à trois voies côté serveur quand une page envoie des données construites sur une version dépassée (deux onglets, fiches arrivées par synchronisation).
+- Onglet Données : bloc Synchronisation (adresse, jeton, état, fiches en attente, conflits).
+
+### Modifications
+- Base de données au schéma v2 (fiches) ; les bases existantes sont migrées automatiquement au démarrage.
+- L'état de sauvegarde affiche « Enregistré » ; l'onglet Idées n'a plus de barre de défilement parasite.
+
 ## [0.5.2] - 2026-10-08
 
 ### Modifications

@@ -31,6 +31,10 @@
         "to": "server/src"
       },
       {
+        "from": "../server/package.json",
+        "to": "server/package.json"
+      },
+      {
         "from": "../web",
         "to": "web"
       },
