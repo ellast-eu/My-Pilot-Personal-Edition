@@ -5,6 +5,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 ## [Non publié]
 
 ### Ajouts
+- Réglages modifiables depuis l'application (Données → Réglages) : mot de passe et identifiant, jeton de synchronisation (avec génération), jeton Claude Code, rythmes des sauvegardes. Appliqués sans redémarrage, prioritaires sur le `.env`, secrets jamais réaffichés.
+- Premier accès à un serveur sans mot de passe : choix d'un mot de passe demandé avant toute chose.
 - Onglet Données : emplacement des instantanés affiché, et bouton « Ouvrir le dossier des instantanés » dans l'application de bureau.
 
 ### Modifications

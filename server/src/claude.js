@@ -10,8 +10,14 @@ let queue = Promise.resolve();
 let versionCache = null;
 
 /** Environnement de l'enfant : sans ANTHROPIC_API_KEY, pour ne jamais basculer sur la facturation API. */
+let oauthToken = null;               // jeton saisi dans les réglages (null : celui de l'environnement)
+export function setToken(t) { oauthToken = t; versionCache = null; }
+
 function childEnv() {
   const env = { ...process.env };
+  if (oauthToken !== null) {
+    if (oauthToken) env.CLAUDE_CODE_OAUTH_TOKEN = oauthToken; else delete env.CLAUDE_CODE_OAUTH_TOKEN;
+  }
   if (process.env.CLAUDE_ALLOW_API_KEY !== '1') delete env.ANTHROPIC_API_KEY;
   return env;
 }

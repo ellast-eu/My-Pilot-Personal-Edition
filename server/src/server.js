@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { Store } from './db.js';
 import * as claude from './claude.js';
 import { SyncEngine, hubExchange } from './sync.js';
+import { Settings, baseFromEnv } from './settings.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(here, '../..');
@@ -60,16 +61,26 @@ function safeEqual(a, b) {
 export function createApp(opts = {}) {
   const dataDir = opts.dataDir ?? process.env.DATA_DIR ?? path.join(ROOT, 'data');
   const webDir = opts.webDir ?? path.join(ROOT, 'web');
-  const store = opts.store ?? new Store(opts.dbFile ?? path.join(dataDir, 'pilot.db'), {
-    revisionInterval: +(process.env.REVISION_INTERVAL ?? 300),
-    keepRevisions: +(process.env.KEEP_REVISIONS ?? 300),
-  });
+  const store = opts.store ?? new Store(opts.dbFile ?? path.join(dataDir, 'pilot.db'));
   const snapDir = opts.snapshotDir ?? process.env.SNAPSHOT_DIR ?? path.join(dataDir, 'snapshots');
-  const keepSnaps = +(process.env.KEEP_SNAPSHOTS ?? 30);
-  const user = opts.user ?? process.env.APP_USER;
-  const pass = opts.password ?? process.env.APP_PASSWORD;
-  const syncToken = opts.syncToken ?? process.env.SYNC_TOKEN ?? '';
+  const mode = opts.mode || 'serveur';
+  // Réglages : valeurs de départ = .env (ou options), modifiables ensuite depuis l'onglet Données
+  const base = { ...baseFromEnv() };
+  if (opts.user !== undefined) base.app_user = opts.user;
+  if (opts.password !== undefined) base.app_password = opts.password;
+  if (opts.syncToken !== undefined) base.sync_token = opts.syncToken;
+  const settings = new Settings(store, { mode, base });
+  const keepSnaps = () => settings.get('keep_snapshots');
+  const user = () => settings.get('app_user');
+  const pass = () => (mode === 'application' ? '' : settings.get('app_password'));
+  const syncToken = () => (mode === 'application' ? '' : settings.get('sync_token'));
   const localToken = opts.localToken || '';            // application de bureau : jeton propre à la session
+  function appliquerReglages() {
+    store.revisionInterval = settings.get('revision_interval');
+    store.keepRevisions = settings.get('keep_revisions');
+    claude.setToken(settings.source('claude_token') === 'défaut' ? null : settings.get('claude_token'));
+    planifierInstantanes();
+  }
   const sync = opts.syncEngine === false ? null : new SyncEngine(store, { log: m => console.log(m) }).start();
 
   function cookie(req, name) {
@@ -78,15 +89,16 @@ export function createApp(opts = {}) {
   }
   function authorized(req, url) {
     if (localToken) return safeEqual(cookie(req, 'mppe_local') || req.headers['x-local-token'] || '', localToken);
-    if (url.pathname === '/api/sync' && syncToken) {
+    const jeton = syncToken(), mdp = pass();
+    if (url.pathname === '/api/sync' && jeton) {
       const h = req.headers.authorization || '';
-      return h.startsWith('Bearer ') && safeEqual(h.slice(7), syncToken);
+      return h.startsWith('Bearer ') && safeEqual(h.slice(7), jeton);
     }
-    if (!pass) return true;
+    if (!mdp) return true;
     const h = req.headers.authorization || '';
     if (!h.startsWith('Basic ')) return false;
     const [u, p] = Buffer.from(h.slice(6), 'base64').toString('utf8').split(/:(.*)/s);
-    return safeEqual(u, user || 'pilot') && safeEqual(p ?? '', pass);
+    return safeEqual(u, user() || 'pilot') && safeEqual(p ?? '', mdp);
   }
 
   async function api(req, res, url) {
@@ -94,7 +106,8 @@ export function createApp(opts = {}) {
     const m = req.method;
 
     if (parts[0] === 'health' && m === 'GET') {
-      return send(res, 200, { ok: true, version: VERSION, schema: store.schemaVersion, auth: !!pass, mode: opts.mode || 'serveur', device: store.deviceId });
+      return send(res, 200, { ok: true, version: VERSION, schema: store.schemaVersion, auth: !!pass(), mode, device: store.deviceId,
+        firstRun: mode !== 'application' && !pass() });
     }
 
     if (parts[0] === 'docs') {
@@ -155,17 +168,41 @@ export function createApp(opts = {}) {
       if (parts[1] === 'conflicts' && m === 'GET') return send(res, 200, store.listConflicts(+url.searchParams.get('limit') || 50));
       if (parts[1] === 'conflicts' && parts[2] === 'seen' && m === 'POST') { store.markConflictsSeen(); return send(res, 200, { ok: true }); }
     }
+    if (parts[0] === 'settings') {
+      if (!parts[1] && m === 'GET') {
+        const st = await claude.status();
+        return send(res, 200, {
+          mode, items: settings.describe(),
+          readonly: [
+            { label: 'Dossier des données', value: dataDir },
+            { label: 'Dossier des instantanés', value: snapDir },
+            { label: 'Claude Code', value: st.available ? 'installé' + (st.version ? ' (' + st.version + ')' : '') : 'non disponible' },
+            ...(mode === 'application' ? [] : [
+              { label: 'Port et adresse d\'écoute', value: 'PORT et BIND_ADDR du fichier .env (Docker)' },
+              { label: 'Installation de Claude Code dans l\'image', value: 'INSTALL_CLAUDE du fichier .env' },
+              { label: 'Réplication distante (Litestream)', value: 'LITESTREAM_* / SFTP_* du .env et deploy/litestream.yml' },
+            ]),
+          ],
+        });
+      }
+      if (!parts[1] && m === 'PUT') {
+        const body = await readJson(req);
+        try { settings.update(body); }
+        catch (e) { throw new HttpError(400, e.code || 'bad_request', e.message); }
+        return send(res, 200, { items: settings.describe(), auth: !!pass() });
+      }
+    }
     if (parts[0] === 'changelog' && m === 'GET') {
       let t = '';
       try { t = fs.readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf8'); } catch {}
       return send(res, 200, t, { 'Content-Type': 'text/markdown; charset=utf-8' });
     }
     if (parts[0] === 'backup' && !parts[1] && m === 'POST') {
-      const file = store.snapshot(snapDir, keepSnaps);
+      const file = store.snapshot(snapDir, keepSnaps());
       return send(res, 200, { file: path.basename(file) });
     }
     if (parts[0] === 'backup' && parts[1] === 'info' && m === 'GET') {
-      return send(res, 200, { dir: opts.mode === 'application' ? snapDir : null, canOpen: typeof opts.openPath === 'function', keep: keepSnaps });
+      return send(res, 200, { dir: opts.mode === 'application' ? snapDir : null, canOpen: typeof opts.openPath === 'function', keep: keepSnaps() });
     }
     if (parts[0] === 'backup' && parts[1] === 'open' && m === 'POST') {
       // seulement dans l'application de bureau : ouvre le dossier des instantanés dans le gestionnaire de fichiers
@@ -237,18 +274,23 @@ export function createApp(opts = {}) {
     }
   });
 
-  // Instantané automatique (en plus de la réplication continue Litestream).
-  const every = +(process.env.SNAPSHOT_HOURS ?? 24);
+  // Instantané automatique (en plus de la réplication continue Litestream), replanifié si le réglage change.
   let timer = null;
-  if (every > 0 && opts.autoSnapshot !== false) {
-    timer = setInterval(() => {
-      try { console.log('Instantané :', store.snapshot(snapDir, keepSnaps)); }
-      catch (e) { console.error('Instantané impossible', e); }
-    }, every * 3600 * 1000);
-    timer.unref();
+  function planifierInstantanes() {
+    clearInterval(timer); timer = null;
+    const every = settings.get('snapshot_hours');
+    if (every > 0 && opts.autoSnapshot !== false) {
+      timer = setInterval(() => {
+        try { console.log('Instantané :', store.snapshot(snapDir, keepSnaps())); }
+        catch (e) { console.error('Instantané impossible', e); }
+      }, every * 3600 * 1000);
+      timer.unref();
+    }
   }
+  appliquerReglages();
+  settings.on(appliquerReglages);
   server.on('close', () => { if (timer) clearInterval(timer); if (sync) sync.stop(); });
-  return { server, store, sync };
+  return { server, store, sync, settings };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

@@ -41,6 +41,15 @@ Les données restent dans le dossier de l'utilisateur (`~/.config/My Pilot Perso
 
 **Construire les paquets** (Node 22 ou plus récent) : `cd desktop && npm ci && npm run dist`. Le .deb et le .exe arrivent dans `dist/desktop/`. Depuis Linux, l'installateur Windows est construit sans wine.
 
+## Réglages depuis l'application
+
+Onglet **Données → Réglages du serveur** (ou **Réglages de l'application** dans l'application de bureau) : mot de passe et identifiant de l'interface web, jeton de synchronisation (avec un bouton pour en générer un), jeton Claude Code, et rythmes des sauvegardes. Les changements s'appliquent sans redémarrage.
+
+- Une valeur saisie dans l'application est enregistrée dans la base de cette machine (jamais synchronisée) et l'emporte sur le fichier `.env` ; la case « Revenir à la valeur du fichier .env » annule la saisie.
+- Les secrets ne sont jamais réaffichés. Un jeton de synchronisation généré s'affiche une seule fois : le copier aussitôt pour le saisir dans les applications.
+- Au premier accès à un serveur sans mot de passe, l'application demande d'en choisir un avant d'aller plus loin (on peut remettre à plus tard seulement depuis `localhost`).
+- Restent dans `.env`, car Docker les lit avant le démarrage : `PORT`, `BIND_ADDR`, `INSTALL_CLAUDE` et la réplication Litestream.
+
 ## Claude Code et l'abonnement claude.ai
 
 Les cristallisations d'idées passent par Claude Code (`claude -p`, mode non interactif). Connecté à un compte claude.ai Pro ou Max, son usage est décompté des mêmes limites que claude.ai, sans facturation à part. La mise en place dépend de l'endroit où tourne My Pilot Personal Edition.
@@ -68,6 +77,8 @@ Le conteneur n'a pas de navigateur pour se connecter : on lui donne un jeton lon
    CLAUDE_CODE_OAUTH_TOKEN=le_jeton_copié
    ```
 4. Appliquer : `docker compose up -d` (le conteneur redémarre avec le jeton).
+
+   Plus simple : coller le jeton dans **Données → Réglages du serveur → Modifier les réglages**, champ « Jeton Claude Code ». Pas de fichier à éditer ni de redémarrage.
 5. Dans l'interface web du serveur : **Données → Idées et Claude → Connexion à Claude**, puis « Tester la connexion ».
 
 Le jeton donne accès à votre abonnement : comme `SYNC_TOKEN` et `APP_PASSWORD`, il reste dans `.env`, qui n'est jamais versionné ni inclus dans les archives du projet.

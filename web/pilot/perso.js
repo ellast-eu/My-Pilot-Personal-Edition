@@ -363,6 +363,135 @@ listesDispo=function(){ return listesDispo0().filter(function(x){ return !LISTES
   document.head.appendChild(st);
 })();
 
+/* ---- réglages (valeurs du .env modifiables depuis l'application) ---- */
+var Reglages={data:null,charge:false};
+function chargerReglages(){
+  return api("settings").then(function(r){
+    if(!r.ok) return;
+    Reglages.data=r.body;
+    if(vueActive==="donnees") rendreDonneesSiCalme();
+  }).catch(function(){});
+}
+var SOURCE_LIB={application:"saisi ici",".env":"fichier .env","défaut":"par défaut"};
+window.persoBlocReglages=function(){
+  if(!Reglages.charge){ Reglages.charge=true; chargerReglages() }
+  var d=Reglages.data, app=SyncDist.mode==="application";
+  var titre=app?"Réglages de l'application":"Réglages du serveur";
+  if(!d) return '<div class="bloc" style="margin-top:18px"><div class="bloc-tete"><h2>'+titre+'</h2></div><div class="bloc-corps"><div class="note-aide" style="margin:0">Chargement…</div></div></div>';
+  var groupes={},ordre=[];
+  d.items.forEach(function(it){ if(!groupes[it.group]){ groupes[it.group]=[]; ordre.push(it.group) } groupes[it.group].push(it) });
+  var val=function(it){
+    if(it.type==="secret") return it.set?'<b class="ok">renseigné</b>':'<b>non renseigné</b>';
+    return '<b>'+esc(String(it.value))+'</b>';
+  };
+  return '<div class="bloc" style="margin-top:18px"><div class="bloc-tete"><h2>'+titre+'</h2></div><div class="bloc-corps">'
+    +ordre.map(function(g){
+      return '<div class="puce-lbl" style="margin:8px 0 4px">'+esc(g)+'</div><div class="diag">'
+        +groupes[g].map(function(it){
+          return '<div>'+esc(it.label)+' <span class="mono" style="font-size:11px;color:var(--encre-3)">'+esc(SOURCE_LIB[it.source]||it.source)+'</span>'+val(it)+'</div>';
+        }).join("")+'</div>';
+    }).join("")
+    +'<div class="ligne" style="margin-top:12px"><button class="b" data-pp="reglages">Modifier les réglages</button></div>'
+    +'<div class="puce-lbl" style="margin:14px 0 4px">'+"Informations"+'</div><div class="diag">'
+      +d.readonly.map(function(x){ return '<div>'+esc(x.label)+'<b style="font-weight:400">'+esc(x.value)+'</b></div>' }).join("")
+    +'</div>'
+    +'<div class="note-aide">Une valeur saisie ici est enregistrée sur '+(app?"cet appareil":"ce serveur")+' et l\'emporte sur le fichier .env ; '
+      +'elle n\'est pas synchronisée. Les secrets ne sont jamais réaffichés.'+(app?"":" Les réglages du fichier .env lus par Docker au démarrage restent à modifier dans ce fichier.")+'</div>'
+  +'</div></div>';
+};
+function champReglage(it){
+  var id="rg_"+it.key, h='<label class="champ" style="margin-top:10px">'+esc(it.label);
+  if(it.type==="int"){
+    h+='<input type="number" id="'+id+'" min="'+it.min+'" max="'+it.max+'" step="1" value="'+esc(String(it.value))+'"></label>'
+      +'<div class="note-aide" style="margin-top:2px">Par défaut : '+esc(String(it.def))+'.</div>';
+  }else if(it.type==="text"){
+    h+='<input type="text" id="'+id+'" value="'+esc(String(it.value))+'" autocomplete="off"></label>';
+  }else{
+    h+='<input type="password" id="'+id+'" autocomplete="new-password" style="padding:6px 8px;border:1px solid var(--trait);border-radius:2px;background:#fff" '
+      +'placeholder="'+(it.set?"renseigné : laisser vide pour le garder":"non renseigné")+'"></label>';
+    if(it.key==="sync_token") h+='<div class="ligne" style="margin-top:4px"><button class="b mini creux" data-pp="rg-generer">Générer un jeton</button>'
+      +'<span class="note-aide" id="rg_gen_note" style="margin:0"></span></div>';
+    if(it.set) h+='<label style="font-size:13px;display:flex;gap:6px;align-items:center;margin-top:4px;text-transform:none;letter-spacing:0;font-family:var(--corps)">'
+      +'<input type="checkbox" id="'+id+'_eff"> Effacer'+(it.key==="app_password"?" (l'interface ne sera plus protégée)":"")+'</label>';
+  }
+  if(it.source==="application") h+='<label style="font-size:13px;display:flex;gap:6px;align-items:center;margin-top:4px;text-transform:none;letter-spacing:0;font-family:var(--corps)">'
+    +'<input type="checkbox" id="'+id+'_raz"> Revenir à la valeur '+(it.envSet?"du fichier .env":"par défaut")+'</label>';
+  return h;
+}
+function modaleReglages(){
+  var d=Reglages.data; if(!d) return;
+  var groupes={},ordre=[];
+  d.items.forEach(function(it){ if(!groupes[it.group]){ groupes[it.group]=[]; ordre.push(it.group) } groupes[it.group].push(it) });
+  ouvrirModale(SyncDist.mode==="application"?"Réglages de l'application":"Réglages du serveur",
+    ordre.map(function(g){ return '<div class="puce-lbl" style="margin:12px 0 0">'+esc(g)+'</div>'+groupes[g].map(champReglage).join("") }).join("")
+    +'<div id="rgRes" class="note-aide" style="margin-top:12px;font-size:13.5px" role="status"></div>',
+    [{txt:"Annuler",classe:"creux",fn:fermerModale},
+     {txt:"Enregistrer",droite:true,fn:enregistrerReglages}]);
+}
+function enregistrerReglages(){
+  var d=Reglages.data, ch={}, mdp=false;
+  d.items.forEach(function(it){
+    var id="rg_"+it.key, e=$("#"+id), raz=$("#"+id+"_raz"), eff=$("#"+id+"_eff");
+    if(raz && raz.checked){ ch[it.key]=null; return }
+    if(eff && eff.checked){ ch[it.key]=""; if(it.key==="app_password") mdp=true; return }
+    if(!e) return;
+    var v=e.value.trim();
+    if(it.type==="int"){ if(v!=="" && +v!==it.value) ch[it.key]=+v }
+    else if(it.type==="text"){ if(v!=="" && v!==it.value) ch[it.key]=v }
+    else if(v!==""){ ch[it.key]=v; if(it.key==="app_password"||it.key==="app_user") mdp=true }
+    if(it.key==="app_user" && v!==it.value) mdp=true;
+  });
+  var z=$("#rgRes");
+  if(!Object.keys(ch).length){ fermerModale(); return }
+  if(ch.app_password && ch.app_password.length<8){ z.textContent="Mot de passe : 8 caractères au moins."; z.style.color="var(--rouge)"; return }
+  api("settings",{method:"PUT",body:ch}).then(function(r){
+    if(!r.ok) throw new Error((r.body&&r.body.message)||"réglages refusés");
+    Reglages.data.items=r.body.items;
+    fermerModale(); rendre();
+    if(mdp && r.body.auth){
+      toast("Accès modifié : le navigateur va demander l'identifiant et le mot de passe");
+      setTimeout(function(){ location.reload() },1800);
+    } else toast("Réglages enregistrés");
+    chargerReglages();
+  }).catch(function(e){ z.textContent=e.message; z.style.color="var(--rouge)" });
+}
+function genererJeton(){
+  var a=new Uint8Array(32); crypto.getRandomValues(a);
+  var t=Array.prototype.map.call(a,function(x){ return ("0"+x.toString(16)).slice(-2) }).join("");
+  var e=$("#rg_sync_token"); if(!e) return;
+  e.type="text"; e.value=t; e.select();
+  var n=$("#rg_gen_note");
+  if(n) n.textContent="Copiez ce jeton maintenant : il ne sera plus affiché. Saisissez-le ensuite dans chaque application (Données → Synchronisation).";
+  try{ navigator.clipboard.writeText(t).then(function(){ if(n) n.textContent="Jeton copié dans le presse-papiers. "+n.textContent },function(){}) }catch(x){}
+}
+/* premier accès à un serveur sans mot de passe : on le fait choisir avant tout */
+function premierAcces(){
+  var local=/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+  ouvrirModale("Protéger l'accès au serveur",
+    '<p style="margin:0 0 10px;font-size:14px">Ce serveur n\'a pas encore de mot de passe : toute personne qui l\'atteint peut lire et modifier vos données. '
+    +'Choisissez un identifiant et un mot de passe ; le navigateur les demandera ensuite.</p>'
+    +'<div class="grille">'
+      +'<label class="champ">Identifiant<input type="text" id="paUser" value="pilot" autocomplete="username"></label>'
+      +'<label class="champ">Mot de passe (8 caractères au moins)<input type="password" id="paMdp" autocomplete="new-password" style="padding:6px 8px;border:1px solid var(--trait);border-radius:2px;background:#fff"></label>'
+      +'<label class="champ">Confirmation<input type="password" id="paMdp2" autocomplete="new-password" style="padding:6px 8px;border:1px solid var(--trait);border-radius:2px;background:#fff"></label>'
+    +'</div><div id="paRes" class="note-aide" style="margin-top:10px;font-size:13.5px" role="status"></div>',
+    (local?[{txt:"Plus tard",classe:"creux",fn:fermerModale}]:[]).concat([{txt:"Protéger l'accès",droite:true,fn:function(){
+      var u=$("#paUser").value.trim()||"pilot", p=$("#paMdp").value, p2=$("#paMdp2").value, z=$("#paRes");
+      if(p.length<8){ z.textContent="Le mot de passe doit faire 8 caractères au moins."; z.style.color="var(--rouge)"; return }
+      if(p!==p2){ z.textContent="Les deux saisies ne correspondent pas."; z.style.color="var(--rouge)"; return }
+      api("settings",{method:"PUT",body:{app_user:u,app_password:p}}).then(function(r){
+        if(!r.ok) throw new Error((r.body&&r.body.message)||"refusé");
+        z.textContent="Accès protégé. Le navigateur va maintenant demander l'identifiant et le mot de passe."; z.style.color="var(--vert)";
+        setTimeout(function(){ location.reload() },1800);
+      }).catch(function(e){ z.textContent=e.message; z.style.color="var(--rouge)" });
+    }}]));
+  if(!local){
+    var x=$("#modX"), dlg=$("#modale");
+    if(x) x.style.display="none";
+    if(dlg) dlg.addEventListener("cancel",function(e){ e.preventDefault() });   /* pas d'échappement avant protection */
+  }
+}
+
 /* ---- synchronisation entre appareils ---- */
 var SyncDist={st:null,mode:"",charge:false};
 function majSyncDist(rendu){
@@ -480,6 +609,8 @@ document.addEventListener("click",function(e){
   if(a==="sync-config") modaleSync();
   else if(a==="sync-now") syncMaintenant();
   else if(a==="sync-conflits") journalConflits();
+  else if(a==="reglages") modaleReglages();
+  else if(a==="rg-generer") genererJeton();
   else if(a==="conflit-remettre") remettreConflit(+el.dataset.i);
 });
 
@@ -628,7 +759,7 @@ rendre=function(){
     var blocs=v.querySelectorAll(".bloc"),i;
     for(i=0;i<blocs.length;i++){
       var h=blocs[i].querySelector(".bloc-tete h2");
-      if(h && h.textContent==="Données et sauvegardes"){ blocs[i].insertAdjacentHTML("afterend",window.persoBlocSync()+window.persoBlocIdees()); break }
+      if(h && h.textContent==="Données et sauvegardes"){ blocs[i].insertAdjacentHTML("afterend",window.persoBlocSync()+window.persoBlocReglages()+window.persoBlocIdees()); break }
     }
   }
 };
@@ -838,7 +969,8 @@ function demarrer(donnees,rev,etat){
   majEtat();
 }
 api("health").then(function(h){
-  if(h.ok){ Sync.version=h.body.version; Sync.schema=h.body.schema; APP_VERSION=h.body.version; SyncDist.mode=h.body.mode||"" }
+  if(h.ok){ Sync.version=h.body.version; Sync.schema=h.body.schema; APP_VERSION=h.body.version; SyncDist.mode=h.body.mode||"";
+    if(h.body.firstRun) setTimeout(premierAcces,1200) }
   return api("docs/"+DOC);
 }).then(function(r){
   var tampon=lireLocal0Safe(),attente=lireSync();
