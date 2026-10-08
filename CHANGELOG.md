@@ -4,6 +4,9 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+### Documentation
+- Conception du partage et du travail à plusieurs (`docs/PARTAGE.md`) : installations séparées, fiches vivantes, chiffrement de bout en bout par défaut.
+
 ## [0.7.0] - 2026-10-08
 
 ### Ajouts
