@@ -2,9 +2,9 @@
   "name": "my-pilot-personal-edition",
   "productName": "My Pilot Personal Edition",
   "version": "0.6.0",
-  "description": "Pilotage personnel, dérivé de PST·PILOT, avec synchronisation fiche par fiche",
+  "description": "Pilotage de vie personnel, avec gestionnaire d'activités, d'idées, de contacts, journal...",
   "author": "Stella Caltagirone <stella.caltagirone@proton.me>",
-  "homepage": "https://my-pilot.local",
+  "homepage": "https://ellast.eu",
   "license": "UNLICENSED",
   "private": true,
   "main": "main.cjs",
@@ -64,7 +64,7 @@
       ],
       "category": "Office",
       "icon": "build/icon.png",
-      "synopsis": "Pilotage personnel avec idées et synchronisation",
+      "synopsis": "Pilotage de vie personnel, avec gestionnaire d'activités, d'idées, de contacts, journal...",
       "maintainer": "Stella Caltagirone <stella.caltagirone@proton.me>",
       "desktop": {
         "entry": {

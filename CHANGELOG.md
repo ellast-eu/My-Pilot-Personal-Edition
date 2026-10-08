@@ -4,6 +4,9 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+### Modifications
+- Paquets de bureau : description, résumé et page d'accueil (https://ellast.eu) mis à jour.
+
 ## [0.6.0] - 2026-10-08
 
 ### Ajouts
