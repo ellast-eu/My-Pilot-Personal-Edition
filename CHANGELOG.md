@@ -4,6 +4,17 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+### Retraits
+- Restes du cadre professionnel : filtre gestionnaire de l'import Excel, colonne Excel des champs, modèle de catégories Enedis, listes métier (états d'affaire, statuts de déshérence, segments, motifs de convocation…), tuiles compteur et permanence du rapport.
+
+### Modifications
+- Bloc Diagnostic propre à Pilot Perso : serveur, version des données, tampon hors ligne, Claude, versions de l'application, du schéma et de la base PST·PILOT.
+- Journal des versions lu dans le CHANGELOG du projet (route `/api/changelog`).
+- Listes modifiables limitées à celles des catégories actives et aux listes communes (types de note, organisations, civilités, relations).
+- « Rétablir les catégories personnelles » remplace le chargement du modèle Enedis.
+- Export CSV des activités : colonnes communes puis champs propres de chaque catégorie.
+- Vocabulaire générique dans les fiches et le rapport (référence, activités suivies, nature des activités).
+
 ## [0.2.0] - 2026-10-08
 
 ### Retraits

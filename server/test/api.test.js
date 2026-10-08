@@ -79,3 +79,9 @@ test('extraction JSON', () => {
   assert.deepEqual(extractJson('Voici\n```json\n{"a":1}\n```'), { a: 1 });
   assert.throws(() => extractJson('rien'));
 });
+
+test('journal des versions servi', async () => {
+  const r = await fetch(base + '/api/changelog');
+  assert.equal(r.status, 200);
+  assert.match(await r.text(), /## \[/);
+});

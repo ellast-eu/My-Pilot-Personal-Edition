@@ -66,6 +66,10 @@ function categoriesPerso(){
      place:"Ex : Stage du week-end"}
   ].map(normaliserCat);
 }
+modeleCategories=function(){
+  for(var k in LISTES_PERSO) if(!estTableau(D.parametres[k])) D.parametres[k]=LISTES_PERSO[k].slice();
+  return categoriesPerso();
+};
 function appliquerProfil(v,p){
   /* première ouverture d'un jeu de données sans profil : réglages personnels */
   var P=v.parametres;
@@ -106,6 +110,8 @@ function sansModulesPro(v){
   v.parametres.mod_permanence=false;
   v.parametres.rubriques=(v.parametres.rubriques||[]).filter(function(r){ return r.auto!=="appels" && r.auto!=="dtdict" });
   v.permanence.actif=false; v.permanence.rappels=[];
+  v.parametres.gestionnaire="";
+  (v.parametres.categories||[]).forEach(function(K){ K["import"]=false; K.filtre=""; K.regle_lib="" });
 }
 tickPermanence=function(){};
 tickCompteur=function(){};
@@ -117,7 +123,8 @@ serialise=function(format){
 };
 
 /* ================= 2. persistance serveur ================= */
-var Sync={rev:0,etat:"init",envoi:false,encore:false,dernier:null,erreur:"",version:""};
+var Sync={rev:0,etat:"init",envoi:false,encore:false,dernier:null,erreur:"",version:"",schema:""};
+var BASE_PST=APP_VERSION;            /* version de PST·PILOT dont dérive le pilotage */
 window.__pilotSync=Sync;            /* diagnostic : état de la synchronisation */
 
 function api(chemin,opts){
@@ -224,6 +231,89 @@ majEtat=function(){
 };
 
 /* bloc de la vue Données */
+/* ---- vue Données : diagnostic, journal des versions et listes du pilotage personnel ---- */
+window.persoDiagnostic=function(){
+  var etat={ok:["ok","synchronisé"],horsligne:["ko","hors ligne"],conflit:["ko","en conflit"],init:["","connexion…"]}[Sync.etat]||["",""];
+  var loc=localDispo(), ko=Math.round(JSON.stringify(D).length/1024);
+  var ligne=function(l,v,c){ return '<div>'+l+'<b class="'+(c||"")+'">'+v+'</b></div>' };
+  return '<div class="bloc" style="margin-top:18px"><div class="bloc-tete"><h2>Diagnostic</h2></div><div class="bloc-corps diag">'
+    +ligne("Serveur",etat[1],etat[0])
+    +ligne("Version des données","n°"+Sync.rev+(Sync.dernier?" · "+esc(Sync.dernier.toLocaleString("fr-FR")):""))
+    +ligne("Tampon hors ligne",loc?"actif":"indisponible",loc?"ok":"ko")
+    +ligne("Claude",esc(Idees.claude||"…"),/indisponible|non renseignée/.test(Idees.claude||"")?"ko":"ok")
+    +ligne("Version de l'application","Pilot Perso v"+esc(Sync.version||"?"))
+    +ligne("Schéma de la base",Sync.schema?"v"+esc(String(Sync.schema)):"?")
+    +ligne("Base","PST·PILOT v"+esc(BASE_PST))
+    +ligne("Volume",D.chantiers.length+" activités · "+D.notes.length+" notes · "+(D.contacts||[]).length+" contacts · "+ko+" Ko")
+  +'</div></div>';
+};
+var journalTexte=null;
+function chargerJournal(){
+  fetch(API+"changelog",{credentials:"same-origin"}).then(function(r){ return r.ok?r.text():"" })
+    .then(function(t){ journalTexte=t||""; if(vueActive==="donnees") rendreDonneesSiCalme() })
+    .catch(function(){ journalTexte="" });
+}
+window.persoJournal=function(){
+  if(journalTexte===null){ chargerJournal(); journalTexte="" }
+  var h="",courant=null;
+  journalTexte.split("\n").forEach(function(l){
+    var m=/^## \[([^\]]+)\](?: - (\S+))?/.exec(l);
+    if(m){
+      if(m[1]==="Non publié"){ courant=null; return }
+      if(courant!==null) h+='</div>';
+      courant=m[1];
+      h+='<div style="display:block;padding:6px 0"><b style="float:none;margin:0;color:var(--encre)">v'+esc(m[1])+'</b>'
+        +(m[2]?' <span class="mono" style="font-size:12px;color:var(--encre-3)">'+esc(m[2])+'</span>':"");
+      return;
+    }
+    if(courant===null) return;
+    if(/^### /.test(l)) h+='<div class="puce-lbl" style="margin-top:6px">'+esc(l.slice(4))+'</div>';
+    else if(/^- /.test(l)) h+='<div style="font-family:var(--corps);font-size:13px;color:var(--encre-2);margin-top:2px">'+esc(l.slice(2))+'</div>';
+  });
+  if(courant!==null) h+='</div>';
+  return '<div class="bloc" style="margin-top:18px"><div class="bloc-tete"><h2>Journal des versions</h2>'
+    +'<span class="compte">v'+esc(Sync.version||"")+'</span></div><div class="bloc-corps diag">'
+    +(h||'<div class="note-aide">Journal indisponible.</div>')
+    +'<div class="note-aide">Pilot Perso dérive de PST·PILOT v'+esc(BASE_PST)+'.</div></div></div>';
+};
+/* listes modifiables : celles des catégories actives, plus les listes communes */
+var LISTES_PRO={types_intervention:1,motifs_appel:1,motifs_convocation:1,themes_animation:1,types_transverse:1,
+  etats_affaire:1,statuts_desherence:1,segments:1,types_dossier:1,marqueurs_fait:1,actes_prevention:1,ouvrages:1};
+window.persoListes=function(){
+  var l=[],vus={};
+  categories().forEach(function(K){
+    if(K.liste && !vus[K.liste]){ vus[K.liste]=1; l.push([K.liste,K.champ+" ("+K.plur+")"]) }
+    (K.champs||[]).forEach(function(f){
+      if(f.type==="liste" && f.liste && !vus[f.liste]){ vus[f.liste]=1; l.push([f.liste,f.lib+" ("+K.plur+")"]) }
+    });
+  });
+  [["types_note","Types de note (journal)"],["categories_org","Catégories d'organisation"],["civilites","Civilités"],
+   ["types_relation","Types de relation (libellé|réciproque)"]].forEach(function(x){ if(!vus[x[0]]){ vus[x[0]]=1; l.push(x) } });
+  return l;
+};
+/* export CSV des activités : colonnes communes, puis les champs propres de chaque catégorie */
+exportChantiersCSV=function(){
+  var extra=[];
+  categories().forEach(function(K){ (K.champs||[]).forEach(function(f){ extra.push({cat:K.cle,cle:f.cle,lib:f.lib+" ("+K.lib+")"}) }) });
+  var e=["Date","Heure","Durée (min)","Catégorie","Référence","Libellé","Type","Personne / structure","Contact","Téléphone",
+    "Commune","Lieu","Statut","Priorité","Commentaire"].concat(extra.map(function(x){ return x.lib }));
+  var l=D.chantiers.filter(function(c){ return dansPeriode(c.date) })
+    .sort(function(a,b){ return (a.date||"").localeCompare(b.date||"") })
+    .map(function(c){
+      return [c.date,c.heure,c.duree,catDe(c).lib,c.reference,c.libelle,c.type,c.tiers,c.contact_nom,c.contact_tel,
+        c.commune,c.adresse,libStatut(c.statut),c.priorite,c.commentaire]
+        .concat(extra.map(function(x){ return c.categorie===x.cat ? (c[x.cle]||"") : "" }));
+    });
+  telecharger("pilot-perso-activites-"+suffixePeriode()+".csv",csv(e,l),"text/csv;charset=utf-8");
+};
+var listesDispo0=listesDispo;
+listesDispo=function(){ return listesDispo0().filter(function(x){ return !LISTES_PRO[x[0]] && x[0]!=="contacts_ecartes" && x[0]!=="orgs_ecartees" }) };
+(function(){
+  var st=document.createElement("style");
+  st.textContent='[data-k="col"]{display:none}';      /* colonne Excel des champs : sans objet ici */
+  document.head.appendChild(st);
+})();
+
 window.persoBlocIdees=function(){
   var st=Idees.claude;
   return '<div class="bloc" style="margin-top:18px"><div class="bloc-tete"><h2>Idées et Claude</h2></div><div class="bloc-corps">'
@@ -549,7 +639,7 @@ function demarrer(donnees,rev,etat){
   majEtat();
 }
 api("health").then(function(h){
-  if(h.ok){ Sync.version=h.body.version; APP_VERSION=h.body.version }
+  if(h.ok){ Sync.version=h.body.version; Sync.schema=h.body.schema; APP_VERSION=h.body.version }
   return api("docs/"+DOC);
 }).then(function(r){
   var tampon=lireLocal0Safe(),attente=lireSync();

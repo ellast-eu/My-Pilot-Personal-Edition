@@ -13,7 +13,7 @@ ENV NODE_ENV=production \
     CLAUDE_CONFIG_DIR=/home/node/.claude
 
 WORKDIR /app
-COPY VERSION ./
+COPY VERSION CHANGELOG.md ./
 COPY server ./server
 COPY web ./web
 RUN mkdir -p /data /home/node/.claude && chown -R node:node /data /home/node/.claude

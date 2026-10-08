@@ -2172,7 +2172,7 @@ function formChantier(c){
   return ''
   +'<div class="grille">'
   +'<label class="champ">Libellé<input type="text" name="libelle" value="'+esc(c.libelle)+'" placeholder="'+esc(K.place)+'"></label>'
-  +'<label class="champ">Référence / n° dossier<input type="text" name="reference" value="'+esc(c.reference)+'" placeholder="'+(cat==="convocation"?"N° de constat":"DT-DICT, n° affaire…")+'"></label>'
+  +'<label class="champ">Référence<input type="text" name="reference" value="'+esc(c.reference)+'" placeholder="Ex. : n° de commande, de contrat…"></label>'
   +'<label class="champ">Date<input type="date" name="date" value="'+esc(c.date!=null?c.date:auj())+'"></label>'
   +'<label class="champ">Heure<input type="time" name="heure" value="'+esc(c.heure||"08:30")+'"></label>'
   +'<label class="champ">Durée (min)<input type="number" name="duree" min="0" step="15" value="'+esc(c.duree||60)+'"></label>'
@@ -2917,7 +2917,7 @@ function fragSaisie(date){
   return '<div class="saisie">'
    +'<textarea id="noteRapide" placeholder="Ce que vous venez de faire, de dire, de constater…"></textarea>'
    +'<div class="ligne" style="margin-top:8px">'
-     +'<input type="search" id="lienQ" placeholder="Filtrer la liste (poste, PRM, commune…)" value="'+esc(filtreLienQ)+'" style="flex:1;min-width:150px">'
+     +'<input type="search" id="lienQ" placeholder="Filtrer la liste (libellé, commune…)" value="'+esc(filtreLienQ)+'" style="flex:1;min-width:150px">'
      +'<select id="lienCat"><option value="">Toutes catégories</option>'
        +selOpts(categories().map(function(K){return [K.cle,K.plur||K.lib]}),filtreLienCat)
      +'</select>'
@@ -3154,7 +3154,7 @@ function vueChantiers(){
     +'<select id="fperiode">'+selOpts([["futur","À venir"],["passe","Passés"],["sansdate","Sans date"],["tous","Tous"]],filtreCh.periode)+'</select>'
     +(function(){ var n=aQualifier().length;
         return n?'<button class="b mini" data-act="qa-arch">Qualifier les archives ('+n+')</button>':"" })()
-    +'<select id="farch">'+selOpts([["actifs","Dossiers actifs"],["archives","Archivés ("+nbArchives()+")"],["tous","Actifs et archivés"]],filtreCh.arch)+'</select>'
+    +'<select id="farch">'+selOpts([["actifs","Activités en cours"],["archives","Archivés ("+nbArchives()+")"],["tous","Actifs et archivés"]],filtreCh.arch)+'</select>'
   +'</div>'
   +boutonsNeuf(auj(),true)
   +'<div class="ligne" style="display:none">'
@@ -3256,14 +3256,14 @@ function vueDonnees(){
     +'</div>'
     +'<label class="champ" style="margin-top:8px">Faits marquants — repris dans le rapport PDF'
       +'<textarea id="rapFaits" style="width:100%;min-height:64px;padding:8px;border:1px solid var(--trait);border-radius:2px" '
-      +'placeholder="Ce que les chiffres ne disent pas : reprises de portefeuille, appuis apportés, initiatives…">'+esc(D.parametres.rap_faits||"")+'</textarea></label>'
+      +'placeholder="Ce que les chiffres ne disent pas : moments marquants, réussites, imprévus…">'+esc(D.parametres.rap_faits||"")+'</textarea></label>'
     +'<label class="champ" style="margin-top:8px">Objectifs et besoins'
       +'<textarea id="rapObj" style="width:100%;min-height:52px;padding:8px;border:1px solid var(--trait);border-radius:2px" '
-      +'placeholder="Formations souhaitées, évolution de poste, moyens nécessaires…">'+esc(D.parametres.rap_objectifs||"")+'</textarea></label>'
+      +'placeholder="Ce que vous visez pour la période suivante, ce dont vous avez besoin…">'+esc(D.parametres.rap_objectifs||"")+'</textarea></label>'
     +'<div class="note-aide">Le rapport PDF s\'ouvre dans le dialogue d\'impression : choisissez '
       +'« Enregistrer au format PDF » et décochez « En-têtes et pieds de page ».</div>'
     +'<div class="note-aide">Sans le détail, le rapport ne contient que des volumes et des libellés '
-      +'issus de vos listes : ni nom, ni référence de dossier, ni PRM. Avec le détail, vos saisies sont '
+      +'issus de vos listes : ni nom, ni référence. Avec le détail, vos saisies sont '
       +'reprises telles quelles et doivent être relues avant diffusion.</div>'
     +'<hr class="sep" style="margin:14px 0 10px">'
     +'<div class="ligne">'
@@ -3274,120 +3274,8 @@ function vueDonnees(){
     +'</div>'
     +'<div class="note-aide">Vos données sont enregistrées sur le serveur, avec leur historique de versions.</div>'
   +'</div></div>'
-  +'<div class="bloc" style="margin-top:18px"><div class="bloc-tete"><h2>Diagnostic du poste</h2></div><div class="bloc-corps diag">'
-    +'<div>Écriture directe du fichier<b class="'+(fsa?"ok":"ko")+'">'+(fsa?"disponible":"indisponible")+'</b></div>'
-    +(fsa?"":'<div style="display:block;padding:6px 0"><span style="font-family:var(--corps);font-size:12.5px;color:var(--encre-2)">'
-      +'Ce navigateur bloque l\'écriture directe : chaque enregistrement produira un fichier dans vos téléchargements, '
-      +'et l\'enregistrement automatique reste inactif. Sur Brave, l\'option se réactive dans '
-      +'<span class="mono">brave://flags</span> → <span class="mono">File System Access API</span>. '
-      +'Edge et Chrome l\'acceptent nativement.</span></div>')
-    +'<div>Enregistrement automatique<b class="'+(autoActif()?"ok":"")+'">'+(autoActif()?"actif":"en attente de liaison au fichier")+'</b></div>'
-    +'<div>Tampon local automatique<b class="'+(loc?"ok":"ko")+'">'+(loc?"actif":"indisponible — mémoire volatile")+'</b></div>'
-    +'<div style="display:block;padding:6px 0"><span style="font-family:var(--corps);font-size:12.5px;color:var(--encre-2)">'
-      +'Le tampon du navigateur assure la continuité en cours de session ; il ne constitue pas une sauvegarde. De nombreux postes professionnels l\'effacent quotidiennement. '
-      +'Seul le fichier lié conserve durablement vos données.</span></div>'
-    +'<div>Version de l\'application<b>PST Pilot v'+APP_VERSION+'</b></div>'
-    +'<div>Origine<b>'+esc(location.protocol)+'</b></div>'
-    +'<div>Volume<b>'+D.chantiers.length+' activités · '+D.notes.length+' notes · '+(D.appels||[]).length+' appels · '+Math.round(JSON.stringify(D).length/1024)+' Ko</b></div>'
-  +'</div></div>'
-  +'<div class="bloc" style="margin-top:18px"><div class="bloc-tete"><h2>Journal des versions</h2>'
-    +'<span class="compte">v'+APP_VERSION+'</span></div><div class="bloc-corps diag">'
-    +[["3.13.1","Nom d'application par defaut : My Pilot."],
-     ["3.13.0","Planning du jour : « Noter » remplace « Clore » — compte rendu prefixe du motif, temps pre-rempli, statut au choix."],
-     ["3.12.0","Note : traitement de l'action depuis la fiche. Permanence : entreprise et commune a la saisie. Correctif du rattachement perdu."],
-     ["3.11.4","Rapport : trois pages equilibrees, le journal rejoint la production."],
-     ["3.11.3","Rapport : avancement detaille en tete de page 3, plus de ligne orpheline."],
-     ["3.11.2","Rapport : le temps trace passe en page 2 (charge), la page 1 ne deborde plus."],
-     ["3.11.1","Impression : les longs tableaux se coupent entre deux lignes, plus de demi-page blanche."],
-     ["3.11.0","Rapport : « Nature des affaires » et bloc separe pour le compteur et la permanence."],
-     ["3.10.1","Rapport : chaque categorie indique ce qu'elle porte hors periode."],
-     ["3.10.0","Rapport : section Prevention et reduction du risque a la place de la couverture territoriale ; categorie sans activite rendue visible."],
-     ["3.9.1","Rapport : l'archivage rattache le dossier a sa periode ; couverture territoriale et jours ouvres corriges."],
-     ["3.9.0","Archivage qualifie : un dossier traite compte parmi les affaires menees a terme, une sortie de perimetre est comptee a part."],
-     ["3.8.1","Rubriques d'activite : ordre reglable par fleches, respecte partout."],
-     ["3.8.0","Rapport : un dossier sans date de planification est rattache a la periode par sa derniere action ou ses notes."],
-     ["3.7.2","Rapport : une categorie a statut unique n'est plus omise de l'avancement detaille."],
-     ["3.7.1","Contacts : civilite dans un champ dedie, detectee a la saisie, a l'import et sur l'existant."],
-     ["3.7.0","Les relations peuvent viser une organisation ; fiche organisation enrichie, graphe distinguant les formes."],
-     ["3.6.2","Correctif : la recherche Contacts perdait le focus a chaque caractere."],
-     ["3.6.1","En attente : filtre « Aujourd'hui » (echeances du jour et en retard) avec compteur permanent."],
-     ["3.6.0","Detection des organisations et rattachement automatique des contacts ; nature du tiers par categorie."],
-     ["3.5.0","Contacts : detection depuis les activites et les appels, graphe egocentre des relations."],
-     ["3.4.0","Archivage des dossiers : sortie des vues courantes sans perte de notes, taches ni rattachements."],
-     ["3.3.1","Import : un marqueur de realisation en colonne date retire la fiche du planning."],
-     ["3.3.0","Import : cellule vide non destructrice, suppression proposee au cas par cas, dates non exploitables signalees."],
-     ["3.2.5","Import Excel : le filtre gestionnaire non applique est signale et bloque l'application."],
-     ["3.2.4","Correctif : la feuille de style de la 3.2.2 ecrasait les barres de « Ou passe le temps »."],
-     ["3.2.3","Categorie inconnue au chargement : signalee au lieu d'etre rattachee en silence."],
-     ["3.2.2","Correction des categories : choix de la destination lot par lot quand le statut ne la designe pas seul."],
-     ["3.2.1","Rapport PDF : aplats conserves a l'impression, avancement ventile par categorie, listes plafonnees, pagination."],
-      ["3.2.0","Rapport d'activite en PDF : trois pages, comparaison avec la periode precedente, sections redigees."],
-      ["3.1.0","Rapport d'activite sur une periode, sans donnee nominative ni reference de dossier."],
-      ["3.0.0","Module Contacts : fiches, organisations, relations typees, historique reconstitue, import et export CSV."],
-      ["2.9.0","Rappels de permanence parametrables, trace des verifications dans le journal des appels, textes revus."],
-      ["2.8.4","L'animation affiche toujours le nom, y compris au premier demarrage sur un poste."],
-      ["2.8.3","Nom de poste modifiable en tete de fichier, et messages ne presentant plus le tampon comme une sauvegarde."],
-      ["2.8.2","Au tout premier demarrage sur un poste, l'animation n'affiche plus de nom par defaut."],
-      ["2.8.1","Navigateurs sans ecriture directe (Brave, Firefox) : etat signale dans le bandeau et rappel de sauvegarde."],
-      ["2.8.0","Animation d'ouverture : le nom se compose depuis une suite de 0 et 1, desactivable dans Donnees."],
-      ["2.7.1","Le chargement d'un fichier bascule directement sur la vue du jour."],
-      ["2.7.0","Portabilite : demarrage verrouille sans fichier, aucune categorie imposee, blocs desactivables, nom et titre personnalisables."],
-      ["2.6.2","Retrait du chargement automatique de fichiers .js : plus aucun fichier executable n'est lu au demarrage."],
-      ["2.6.1","Robustesse : validation des fichiers importes avant chargement, cle de categorie assainie, plafond de taille."],
-      ["2.6.0","Navigation entre note et activite, duree libre dans le journal, correction des creneaux DT/DICT."],
-      ["2.5.1","Compte-rendu : le rattachement apparait dans la section A suivre, et les rubriques dans le journal."],
-      ["2.5.0","Bloc En attente : filtre par horizon (1 a 3 semaines, 1 mois, tout), une semaine par defaut."],
-      ["2.4.0","Depuis la fiche d'une activite : ajout direct d'une note ou d'une tache rattachee."],
-      ["2.3.1","La date d'un point de vigilance devient une echeance : le point reste visible jusqu'a ce jour, et au-dela."],
-      ["2.3.0","Marquer une action faite propose d'enregistrer une note de tracabilite sur le dossier concerne."],
-      ["2.2.1","Correctif : code JavaScript affiche en haut de page, et champ d'avancement desormais pilote par la configuration."],
-      ["2.2.0","Les appels de permanence sont consultables dans le journal, avec filtre et recherche."],
-      ["2.1.0","Les comportements specifiques (import Excel, miroir de statut, regle de libelle, apercu) sont pilotes par la configuration, non plus par la cle."],
-      ["2.0.0","Categories d'activite entierement configurables : apparence, champs, statuts, import et export de configuration."],
-      ["1.24.1","La duree d'une activite close est desormais comptee dans la repartition du temps."],
-      ["1.24.0","Journal : recherche et filtre par categorie sur la liste de rattachement."],
-      ["1.23.0","Les desherences prennent l'Etat affaire comme statut, avec le cycle de vie metier complet."],
-      ["1.22.1","Import : avertissement et protection des libelles modifies a la main."],
-      ["1.22.0","Sous-ligne de contexte dans la liste et regle de libelle a l'import selon le segment."],
-      ["1.21.2","Liste des activites a hauteur d'ecran avec en-tete fixe ; correction des dates invalides issues de l'import."],
-      ["1.21.1","Import Excel limite aux lignes du gestionnaire configure."],
-      ["1.21.0","Import Excel des desherences avec detection des doublons par PRM et apercu des differences."],
-      ["1.20.1","Desherences : champ Interlocuteur et liste de types alignee sur l'usage."],
-      ["1.20.0","La categorie Dossier devient Desherence, conformement a son usage reel."],
-      ["1.19.0","Report de pause a la duree choisie : 5, 15, 30 ou 60 minutes."],
-      ["1.18.1","Le bloc des entrees datees devient Planning du jour, dans l'application comme dans le compte-rendu."],
-      ["1.18.0","Compte-rendu etablissable a n'importe quelle date, exports CSV filtrables par periode."],
-      ["1.17.0","Cycle de vie propre aux convocations et animations, tirage de pause plus varie."],
-      ["1.16.1","Correctif : les listes de valeurs s'enregistrent des la sortie du champ, sans bouton de validation separe."],
-      ["1.16.0","Duree par appel de permanence, imputee a la rubrique Permanence telephonique."],
-      ["1.15.2","Permanence : champ telephone dans la saisie rapide, avec reconnaissance des numeros deja croises."],
-      ["1.15.1","Correctif : les champs de saisie se vident bien apres l'ajout d'une note ou d'un point de vigilance."],
-      ["1.15.0","Nouvelle categorie Transverse pour tout ce qui n'entre pas dans les trois autres."],
-      ["1.14.1","Retrait de l'ancienne banniere de pause qui subsistait dans le bloc DT/DICT."],
-      ["1.14.0","Les points de vigilance dont la date est passee ne disparaissent plus : ils restent affiches et signales comme depasses."],
-      ["1.13.0","Un seul rappel de pause, avec compte a rebours dans le bandeau. Le minuteur lie aux sessions DT/DICT est supprime."],
-      ["1.12.0","Rappel de pause regulier, independant du chronometre et de la cloture : la fenetre s'ouvre meme sans les utiliser."],
-      ["1.11.1","Les propositions de pause ne peuvent plus echouer en silence : repli entre sections, avertissement si les sections cles sont vides, apercu a la demande, reglages reformules."],
-      ["1.11.0","Fenetre de pause centree avec devoilement, creation des trois categories depuis Activites, origine du temps chronometre affichee."],
-      ["1.10.0","La carte Pause est desormais enregistree avec les donnees : un seul fichier a lier le matin."],
-      ["1.9.1","Correctifs : le temps impute sur les dossiers apparait dans la repartition, et lier le fichier de la carte ne peut plus l'ecraser."],
-      ["1.9.0","Rubriques d'activite : rattachement des notes hors dossier, imputation en un clic, repartition du temps."],
-      ["1.8.3","Nouveau logo : dossier et engrenage, en remplacement de la croix."],
-      ["1.8.1","Correctif important : lier un fichier ne peut plus l'écraser. Ouverture et création sont désormais distinctes."],
-      ["1.8.0","Les chantiers deviennent des dossiers : renommage de la catégorie dans toute l'interface."],
-      ["1.7.0","Icône d'onglet et logo, qui passent au rouge quand un rappel de permanence se déclenche."],
-      ["1.6.0","Permanence d'assistance téléphonique : journal d'appels, rappels ATU et F960 réglables, alerte sonore et visuelle."],
-      ["1.5.0","Pauses proposées à la clôture d'une activité, marquage des activités éprouvantes, suggestions calibrées sur le temps disponible."],
-      ["1.4.0","Carte personnelle « Pause » dans son propre fichier, suggestions au fil des sessions DT/DICT."],
-      ["1.3.0","Convocations et animations : trois catégories d'activité, filtres, comptes-rendus et exports distincts."],
-      ["1.2.0","Chronomètre de session DT/DICT, cadence calculée sur le temps réellement travaillé, versionnage de l'application."],
-      ["1.1.0","Points de vigilance du jour, comptage DT/DICT, enregistrement automatique du fichier, listes déroulantes modifiables."],
-      ["1.0.0","Dossiers du jour et prochain jour ouvré, journal de notes, suites à donner, imports et exports."]]
-      .map(function(v){
-        return '<div style="display:block;padding:6px 0"><b style="float:none;margin:0;color:var(--encre)">v'+v[0]+'</b>'
-          +'<div style="font-family:var(--corps);font-size:13px;color:var(--encre-2);margin-top:2px">'+v[1]+'</div></div>';
-      }).join("")
-  +'</div></div>'
+  +(window.persoDiagnostic?window.persoDiagnostic():'')
+  +(window.persoJournal?window.persoJournal():'')
   +'</div><div>'
   +'<div class="bloc"><div class="bloc-tete"><h2>Paramètres</h2></div><div class="bloc-corps">'
     +'<label class="champ">Jours travaillés</label>'
@@ -3445,10 +3333,6 @@ function vueDonnees(){
       +'<button class="b" data-act="param">Configurer les catégories d\'activité</button>'
       +'<span class="note-aide" style="margin:0">apparence, champs, statuts</span></div>'
     +'<hr class="sep">'
-    +'<label class="champ">Gestionnaire retenu à l\'import Excel'
-      +'<input type="text" id="gestFiltre" value="'+esc(D.parametres.gestionnaire||"")+'" placeholder="vide = toutes les lignes"></label>'
-    +'<div class="note-aide">Seules les lignes dont la colonne Gestionnaire correspond seront importées.</div>'
-    +'<hr class="sep">'
     +'<label class="champ">Rubriques d\'activité</label>'
     +'<div style="margin-top:4px">'
     +(rubriques().length? rubriques().map(function(r,i,t){
@@ -3466,8 +3350,7 @@ function vueDonnees(){
       +'<select id="rubFam">'+selOpts(FAMILLES,"support")+'</select>'
       +'<button class="b mini creux" data-act="rub-add">Ajouter</button></div>'
     +'<div class="note-aide">Les flèches fixent l\'ordre d\'affichage, partout où les rubriques sont proposées. '
-      +'Les rubriques servent à rattacher les notes qui ne relèvent d\'aucun dossier daté. '
-      +'La rubrique DT-DICT récupère automatiquement le temps chronométré des sessions.</div>'
+      +'Les rubriques servent à rattacher les notes qui ne relèvent d\'aucune activité datée.</div>'
     +'<hr class="sep">'
     +'<label class="champ">Absences (congés, formations)</label>'
     +'<div class="ligne" style="margin-top:4px"><input type="date" id="absDate"><button class="b mini" data-act="abs-add">Ajouter</button></div>'
@@ -3478,22 +3361,7 @@ function vueDonnees(){
     +'</div>'
     +'<div class="note-aide">Les week-ends, jours fériés et absences sont exclus du calcul du prochain jour ouvré.</div>'
     +'<hr class="sep">'
-    +[["types_intervention","Types d'intervention (déshérences)"],
-      ["motifs_appel","Motifs d'appel (assistance)"],
-      ["motifs_convocation","Motifs de convocation"],
-      ["themes_animation","Thèmes d'animation"],
-      ["types_transverse","Natures d'activité transverse"],
-      ["etats_affaire","États d'affaire (déshérence)"],
-      ["statuts_desherence","Statuts de déshérence"],
-      ["civilites","Civilités"],
-      ["actes_prevention","Actes de prévention (rapport) — vide = détection automatique"],
-      ["segments","Segments"],
-      ["marqueurs_fait","Marqueurs de réalisation (colonne date de l'import)"],
-      ["types_dossier","Types de dossier"],
-      ["categories_org","Catégories d'organisation"],
-      ["types_relation","Types de relation (libellé|réciproque)"],
-      ["types_note","Types de note (journal)"],
-      ["ouvrages","Ouvrages"]].map(function(x){
+    +(window.persoListes?window.persoListes():[]).map(function(x){
       return '<label class="champ" style="margin-top:10px">'+esc(x[1])+' — une valeur par ligne</label>'
        +'<textarea data-liste-txt="'+x[0]+'" style="width:100%;min-height:96px;padding:8px;border:1px solid var(--trait);border-radius:2px;font-family:var(--data);font-size:13px">'
        +esc((D.parametres[x[0]]||[]).join("\n"))+'</textarea>';
@@ -4228,7 +4096,7 @@ function vueParam(){
       +'<button class="b" data-act="cat-new">+ Nouvelle catégorie</button>'
       +'<button class="b creux" data-act="cfg-exp">Exporter la configuration</button>'
       +'<button class="b creux" data-act="cfg-imp">Importer une configuration</button>'
-      +'<button class="lien" data-act="cat-defaut">charger le modèle Enedis (déshérence, convocation, animation, transverse)</button>'
+      +'<button class="lien" data-act="cat-defaut">rétablir les catégories personnelles (projet, maison, formation, démarche, loisir)</button>'
     +'</div>'
     +'<div class="note-aide">Le fichier de configuration ne contient aucune donnée d\'activité : il se fusionne avec vos données actuelles.</div>'
     +'</div></div>';
@@ -5833,16 +5701,14 @@ function construireRapportPDF(a,b){
   h+='<div class="rp-page">'+rpTete("Rapport d\u2019activité",a,b,"Synthèse \u00b7 document non nominatif");
   h+='<h2>Indicateurs de la période</h2>';
   h+='<p class="rp-i">Évolution mesurée sur la période précédente de même durée ('
-    +esc(libJour(pa[0]))+' au '+esc(libJour(pa[1]))+'). Un dossier est rattaché à la période '
-    +'dès qu\'il y porte une trace d\'activité : date planifiée, archivage, dernière action, ou note datée.'
+    +esc(libJour(pa[0]))+' au '+esc(libJour(pa[1]))+'). Une activité est rattachée à la période '
+    +'dès qu\'elle y porte une trace : date planifiée, archivage, dernière action, ou note datée.'
     +((o.parAction||o.parNote||o.parArch)?' Sur '+o.acts.length+' dossiers, '+o.parDate+' par date planifiée, '
        +(o.parArch?o.parArch+' par archivage, ':"")
        +o.parAction+' par dernière action, '+o.parNote+' par note.':"")+'</p>';
   h+='<div class="rp-cles">'
-    +'<div class="rp-cle"><div class="v">'+o.acts.length+'</div><div class="l">dossiers suivis sur la période</div><div class="e">'+ecart(o.acts.length,q.acts.length)+'</div></div>'
+    +'<div class="rp-cle"><div class="v">'+o.acts.length+'</div><div class="l">activités suivies sur la période</div><div class="e">'+ecart(o.acts.length,q.acts.length)+'</div></div>'
     +'<div class="rp-cle"><div class="v">'+o.clos+'</div><div class="l">menées à terme \u00b7 '+o.tauxClos+' %</div><div class="e">'+ecart(o.clos,q.clos)+'</div></div>'
-    +'<div class="rp-cle"><div class="v">'+o.dt.traites+'</div><div class="l">dossiers traités au compteur</div><div class="e">'+ecart(o.dt.traites,q.dt.traites)+'</div></div>'
-    +'<div class="rp-cle"><div class="v">'+o.perm.appels+'</div><div class="l">appels de permanence</div><div class="e">'+ecart(o.perm.appels,q.perm.appels)+'</div></div>'
     +'<div class="rp-cle"><div class="v">'+Math.round(o.totTemps/60)+'</div><div class="l">heures de temps tracé</div><div class="e">'+ecart(Math.round(o.totTemps/60),Math.round(q.totTemps/60))+'</div></div>'
   +'</div>';
   /* d'ou vient le compte des affaires menees a terme : verifiable sans ouvrir l'outil */
@@ -5865,7 +5731,7 @@ function construireRapportPDF(a,b){
       +'Trait discontinu : moyenne mobile sur trois mois.</p>'+rpCourbe(o.mois);
   }
   var pc=plafonner(o.parCat,7,"autres natures");
-  h+='<div class="rp-duo"><div><h2>Nature des affaires</h2>'
+  h+='<div class="rp-duo"><div><h2>Nature des activités</h2>'
     +rpBarres(pc.l,o.acts.length,false,pc.agrege)
     +rpFlux(o)+'</div>'
     +'<div><h2>État d\u2019avancement</h2>'+rpAvancement(o)+'</div></div>';
@@ -5939,8 +5805,7 @@ function construireRapportPDF(a,b){
     +'<div class="rp-saisie'+(P.rap_objectifs?"":" vide")+'">'
     +esc(P.rap_objectifs||"Section à renseigner dans l\u2019onglet Données.")+'</div>';
   h+='<div class="rp-mention">Ce rapport est établi à partir des données saisies dans l\u2019outil de pilotage '
-    +'d\u2019activité. Il ne contient aucune donnée nominative, aucune référence de dossier et aucun '
-    +'identifiant de point de livraison. Édité le '+esc(libDate(auj()))+'.</div></div>';
+    +'d\u2019activité. Il ne contient aucune donnée nominative, ni aucune référence. Édité le '+esc(libDate(auj()))+'.</div></div>';
   h+='</div>';
   return h;
 }
@@ -5963,7 +5828,7 @@ function ouvrirRapport(){
     +'padding:10px;border:1px solid var(--trait);border-radius:2px">'+esc(txt)+'</textarea>'
     +'<div class="note-aide">'+(rapTexte
         ? 'La section en texte libre reprend vos saisies : relisez-la avant toute diffusion.'
-        : 'Aucune donnée nominative, aucune référence de dossier, aucun PRM.')+'</div>',
+        : 'Aucune donnée nominative ni référence.')+'</div>',
     [{txt:"Copier",classe:"creux",fn:function(){
         var e=$("#rapTxt"); e.select(); e.setSelectionRange(0,999999);
         try{ document.execCommand("copy"); toast("Rapport copié") }catch(x){ toast("Copie impossible",true) }
@@ -6364,8 +6229,8 @@ document.addEventListener("click",function(e){
       modifie(); rendre(); editerCat(cle);
     }
     else if(a==="cat-defaut"){
-      if(confirm("Rétablir les 4 catégories d'origine ?\n\nVos activités ne sont pas touchées, mais vos personnalisations de catégories seront perdues.")){
-        D.parametres.categories=modeleCategories(); modifie(); rendre(); toast("Modèle Enedis chargé");
+      if(confirm("Rétablir les 5 catégories personnelles ?\n\nVos activités ne sont pas touchées, mais vos personnalisations de catégories seront perdues.")){
+        D.parametres.categories=modeleCategories(); modifie(); rendre(); toast("Catégories personnelles rétablies");
       }
     }
     else if(a==="champ-new"){

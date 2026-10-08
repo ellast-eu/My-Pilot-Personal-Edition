@@ -118,6 +118,11 @@ export function createApp(opts = {}) {
       }
     }
 
+    if (parts[0] === 'changelog' && m === 'GET') {
+      let t = '';
+      try { t = fs.readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf8'); } catch {}
+      return send(res, 200, t, { 'Content-Type': 'text/markdown; charset=utf-8' });
+    }
     if (parts[0] === 'backup' && m === 'POST') {
       const file = store.snapshot(snapDir, keepSnaps);
       return send(res, 200, { file: path.basename(file) });
