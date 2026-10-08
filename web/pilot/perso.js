@@ -497,19 +497,24 @@ window.persoBlocIdees=function(){
     +'</div></div></div>';
 };
 window.persoBlocDonnees=function(){
-  var etat={ok:"synchronisées",horsligne:"hors ligne (gardées dans ce navigateur)",conflit:"en conflit",init:"en cours de chargement"}[Sync.etat]||"";
+  var etat={ok:"enregistrées",horsligne:"hors ligne (gardées dans ce navigateur)",conflit:"en conflit",init:"en cours de chargement"}[Sync.etat]||"";
   return '<div class="ligne">'
       +'<button class="b" data-act="enr">Enregistrer maintenant</button>'
       +'<button class="b creux" data-pp="historique">Historique des versions</button>'
       +'<button class="b creux" data-pp="instantane">Instantané de la base</button>'
+      +(InfoInst.canOpen?'<button class="b creux" data-pp="instantanes-ouvrir">Ouvrir le dossier des instantanés</button>':"")
     +'</div>'
+    +'<div class="note-aide">Instantanés : '+(InfoInst.dir
+        ?'<span class="mono">'+esc(InfoInst.dir)+'</span>'
+        :'dossier <span class="mono">/data/snapshots</span> du serveur (volume Docker <span class="mono">pilot-data</span>)')
+      +', les '+(InfoInst.keep||30)+' plus récents sont gardés.</div>'
     +'<div class="ligne" style="margin-top:10px">'
       +'<button class="b creux" data-act="ouvrir">Importer un fichier (remplacer)</button>'
       +'<button class="b creux" data-act="fusion">Importer et fusionner</button>'
     +'</div>'
     +'<div class="ligne" style="margin-top:10px"><label style="font-size:13.5px;display:flex;gap:6px;align-items:center">'
       +'<input type="checkbox" id="autoEnr" '+(D.parametres.auto!==false?"checked":"")+'>'
-      +'Enregistrer automatiquement sur le serveur à chaque modification</label></div>'
+      +'Enregistrer automatiquement à chaque modification</label></div>'
     +'<div class="note-aide">Données '+etat+' — version n°'+Sync.rev
       +(Sync.dernier?', '+esc(Sync.dernier.toLocaleString("fr-FR")):"")
       +'. Elles vivent dans la base du serveur, qui garde un historique des versions et peut être '
@@ -544,10 +549,17 @@ function restaurer(rev){
   .then(function(){ toast("Version n°"+rev+" restaurée") })
   .catch(function(){ toast("Restauration impossible",true) });
 }
+var InfoInst={dir:null,canOpen:false,keep:30};
+api("backup/info").then(function(r){ if(r.ok){ InfoInst=r.body; if(vueActive==="donnees") rendreDonneesSiCalme() } }).catch(function(){});
+function ouvrirInstantanes(){
+  api("backup/open",{method:"POST"}).then(function(r){
+    if(!r.ok) throw new Error((r.body&&r.body.message)||"");
+  }).catch(function(e){ toast("Ouverture du dossier impossible"+(e.message?" : "+e.message:""),true) });
+}
 function instantane(){
   api("backup",{method:"POST"}).then(function(r){
     if(!r.ok) throw new Error();
-    toast("Instantané créé : "+r.body.file);
+    toast("Instantané créé : "+r.body.file+(InfoInst.canOpen?" (bouton « Ouvrir le dossier des instantanés » pour le retrouver)":""));
   }).catch(function(){ toast("Instantané impossible : serveur injoignable",true) });
 }
 document.addEventListener("click",function(e){
@@ -556,6 +568,7 @@ document.addEventListener("click",function(e){
   var a=el.dataset.pp;
   if(a==="historique") historique();
   else if(a==="instantane") instantane();
+  else if(a==="instantanes-ouvrir") ouvrirInstantanes();
   else if(a==="restaurer") restaurer(+el.dataset.rev);
 });
 window.addEventListener("beforeunload",function(e){

@@ -32,7 +32,8 @@ async function demarrer() {
   const { createApp } = await import(pathToFileURL(path.join(RES, 'server', 'src', 'server.js')).href);
   const token = crypto.randomBytes(24).toString('hex');
   const dataDir = path.join(app.getPath('userData'), 'data');
-  srv = createApp({ dataDir, webDir: path.join(RES, 'web'), localToken: token, mode: 'application' });
+  srv = createApp({ dataDir, webDir: path.join(RES, 'web'), localToken: token, mode: 'application',
+    openPath: dir => shell.openPath(dir) });   // renvoie '' si tout va bien, sinon le message d'erreur
   await new Promise((ok, ko) => { srv.server.once('error', ko); srv.server.listen(0, '127.0.0.1', ok); });
   const base = `http://127.0.0.1:${srv.server.address().port}`;
   await session.defaultSession.cookies.set({ url: base, name: 'mppe_local', value: token, httpOnly: true, sameSite: 'strict' });

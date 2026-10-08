@@ -89,3 +89,21 @@ test('journal des versions servi', async () => {
   assert.equal(r.status, 200);
   assert.match(await r.text(), /## \[/);
 });
+
+test('dossier des instantanés : ouverture réservée à l\'application de bureau', async () => {
+  const info = await j('/api/backup/info');
+  assert.equal(info.body.canOpen, false);
+  assert.equal(info.body.dir, null);
+  assert.equal((await j('/api/backup/open', { method: 'POST' })).status, 404);
+  const opened = [];
+  const tmp2 = fs.mkdtempSync(path.join(os.tmpdir(), 'app-'));
+  const app2 = createApp({ dataDir: tmp2, webDir: tmp2, autoSnapshot: false, syncEngine: false, mode: 'application', openPath: d => { opened.push(d); return ''; } });
+  await new Promise(r => app2.server.listen(0, '127.0.0.1', r));
+  const b2 = `http://127.0.0.1:${app2.server.address().port}`;
+  const i2 = await (await fetch(b2 + '/api/backup/info')).json();
+  assert.equal(i2.canOpen, true);
+  assert.equal(i2.dir, path.join(tmp2, 'snapshots'));
+  assert.equal((await fetch(b2 + '/api/backup/open', { method: 'POST' })).status, 200);
+  assert.deepEqual(opened, [path.join(tmp2, 'snapshots')]);
+  app2.server.close(); app2.store.close(); fs.rmSync(tmp2, { recursive: true, force: true });
+});

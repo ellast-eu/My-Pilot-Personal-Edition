@@ -160,11 +160,22 @@ export function createApp(opts = {}) {
       try { t = fs.readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf8'); } catch {}
       return send(res, 200, t, { 'Content-Type': 'text/markdown; charset=utf-8' });
     }
-    if (parts[0] === 'backup' && m === 'POST') {
+    if (parts[0] === 'backup' && !parts[1] && m === 'POST') {
       const file = store.snapshot(snapDir, keepSnaps);
       return send(res, 200, { file: path.basename(file) });
     }
-    if (parts[0] === 'backup' && m === 'GET') {
+    if (parts[0] === 'backup' && parts[1] === 'info' && m === 'GET') {
+      return send(res, 200, { dir: opts.mode === 'application' ? snapDir : null, canOpen: typeof opts.openPath === 'function', keep: keepSnaps });
+    }
+    if (parts[0] === 'backup' && parts[1] === 'open' && m === 'POST') {
+      // seulement dans l'application de bureau : ouvre le dossier des instantanés dans le gestionnaire de fichiers
+      if (typeof opts.openPath !== 'function') throw new HttpError(404, 'not_found', 'Ouverture du dossier indisponible ici');
+      fs.mkdirSync(snapDir, { recursive: true });
+      const err = await opts.openPath(snapDir);
+      if (err) throw new HttpError(500, 'open_failed', String(err));
+      return send(res, 200, { ok: true });
+    }
+    if (parts[0] === 'backup' && !parts[1] && m === 'GET') {
       let files = [];
       try { files = fs.readdirSync(snapDir).filter(f => f.endsWith('.db')).sort().reverse(); } catch {}
       return send(res, 200, files.map(f => ({ file: f, size: fs.statSync(path.join(snapDir, f)).size })));
