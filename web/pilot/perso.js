@@ -406,6 +406,20 @@ function boite(){
   ajuster();
   return boiteIdees;
 }
+/* quand une fenêtre s'ouvre dans l'onglet Idées, le reste du pilotage s'assombrit comme pour ses propres fenêtres */
+var voile=null;
+function voilePilote(on){
+  if(!voile){
+    voile=document.createElement("div");
+    voile.style.cssText="position:fixed;inset:0;background:rgba(25,28,27,.45);z-index:60;display:none";
+    voile.addEventListener("click",function(){
+      var w=fenetreIdees(); if(w) w.postMessage({src:"pilot",type:"fermer-fenetre"},location.origin);
+    });
+    document.body.appendChild(voile);
+  }
+  voile.style.display=on?"block":"none";
+  var b=boite(); b.style.position="relative"; b.style.zIndex=on?"61":"";
+}
 function ajuster(){
   if(!boiteIdees) return;
   var f=boiteIdees.querySelector("iframe"),top=boiteIdees.getBoundingClientRect().top;
@@ -604,6 +618,7 @@ window.addEventListener("message",function(e){
     return;
   }
   if(m.type==="ouvrir-categories"){ vueActive="param"; rendre(); return }
+  if(m.type==="voile"){ voilePilote(!!m.on); return }
   if(m.type==="creer-activite"){
     try{
       var c=creerActivite(m.payload||{});

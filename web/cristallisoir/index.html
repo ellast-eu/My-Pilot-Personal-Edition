@@ -183,12 +183,38 @@ body.embed th{font-family:var(--display);font-weight:600;letter-spacing:.05em;te
 body.embed tr.group td{background:#F3F3F0}
 body.embed .selbar{border-radius:2px;border:1px solid var(--ink)}
 body.embed .proj{border-radius:0 2px 2px 0;box-shadow:0 0 0 1px var(--rule)}
-body.embed .drawer{border-left:1px solid var(--rule);box-shadow:-8px 0 24px rgba(25,28,27,.12)}
 body.embed .drawer h3,body.embed .drawer h4,body.embed .mbox h2{font-family:var(--display);color:var(--ink)}
 body.embed .mbox{border-radius:2px;border:1px solid var(--ink)}
 body.embed .modal{background:rgba(25,28,27,.28)}
 body.embed .legend{border-radius:2px;font-size:12px}
 body.embed .toast{border-radius:2px;background:var(--ink)}
+
+/* fiche en fenêtre centrée */
+.voile{position:fixed;inset:0;background:rgba(25,28,27,.45);z-index:19;display:none}
+.voile.open{display:block}
+.drawer{position:fixed;top:50%;left:50%;right:auto;bottom:auto;width:min(720px,calc(100% - 28px));height:auto;max-height:calc(100% - 40px);
+  transform:translate(-50%,-50%);display:none;flex-direction:column;padding:0;overflow:hidden;
+  background:var(--sheet);border:1px solid var(--ink);border-top:4px solid var(--danger);border-radius:2px;z-index:20;box-shadow:none}
+.drawer.open{display:flex;transform:translate(-50%,-50%)}
+.dtete{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--rule)}
+.dtete h3{margin:0;font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink)}
+.dfermer{appearance:none;background:none;border:0;color:#8B918C;font-size:20px;line-height:1;cursor:pointer;padding:0 4px;margin-left:auto}
+.dfermer:hover{color:var(--danger)}
+.dcorps{padding:16px;overflow:auto;min-height:0}
+.dpied{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--rule);background:#F1F2EF;flex-wrap:wrap;align-items:center}
+.dpied .droite{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.dgrille{display:grid;grid-template-columns:2fr 1fr 1fr;gap:11px;margin-bottom:11px}
+.dgrille.trois{grid-template-columns:repeat(3,minmax(0,1fr))}
+.dgrille .large{grid-column:span 1}
+.dgrille>*{min-width:0}
+.drawer label.champ{display:flex;flex-direction:column;gap:3px;margin:0 0 11px;font-size:12px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
+.drawer .dgrille label.champ{margin:0}
+.drawer label.champ .field{text-transform:none;letter-spacing:0;color:var(--text);margin:0;width:100%}
+.drawer .note{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+@media (max-width:640px){.dgrille,.dgrille.trois{grid-template-columns:1fr}}
+body.embed .drawer label.champ{font-family:var(--display)}
+body.embed .drawer h3{font-family:var(--display)}
+body.embed .drawer .btn.danger{background:transparent}
 @media (max-width:860px){body.embed .app{height:auto;padding:12px}body.embed main{min-height:64vh}}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 16px;border-radius:8px;z-index:40;max-width:90vw;font-size:14px}
 .toast.err{background:var(--danger)}
@@ -225,7 +251,7 @@ body.embed .toast{border-radius:2px;background:var(--ink)}
   aside{position:static;max-height:none;border-right:none;border-bottom:1.5px solid var(--ink);order:2}
   main{order:1;min-height:auto}
   #view{min-height:64vh}
-  .drawer{top:auto;bottom:0;width:100%;height:78vh;border-left:none;border-top:1.5px solid var(--ink);border-radius:14px 14px 0 0;transform:translateY(102%)}
+  .drawer.ancien{top:auto;bottom:0;width:100%;height:78vh;border-left:none;border-top:1.5px solid var(--ink);border-radius:14px 14px 0 0;transform:translateY(102%)}
   .topbar{padding:10px 14px;gap:10px}
   .tablewrap,.projects{padding:12px}
 }
@@ -267,7 +293,8 @@ body.embed .toast{border-radius:2px;background:var(--ink)}
   </main>
 </div>
 
-<div class="drawer" id="drawer" aria-live="polite"></div>
+<div class="voile" id="voile" data-act="close"></div>
+<div class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dTitre"></div>
 <div id="modalHost"></div>
 <input type="file" id="importFile" accept="application/json" hidden>
 
@@ -601,6 +628,7 @@ function tellPilot(o){ if(EMBED) parent.postMessage(Object.assign({src:'cristall
 async function onPilotCommand(m){
   const reply=o=>tellPilot(Object.assign({type:'reponse',requestId:m.requestId},o));
   if(m.type==='categories'){ applyPilotCats(m.liste); return; }
+  if(m.type==='fermer-fenetre'){ if(ui.drawer){ ui.drawer=null; renderDrawer(); if(ui.view==='idees'&&ui.mode==='bulles') renderBubbles(); } return; }
   if(m.type==='get-claude') return reply({cfg:Object.assign({},CC()),hasKey:!!APIKEY,keepKey:KEEPKEY,local:LOCAL_INFO,libelle:etatClaude()});
   if(m.type==='set-claude'){
     const allowed=['mode','ccModel','convUrl','consignes','model','maxTokens'];
@@ -927,51 +955,66 @@ function projectsHTML(){
 const dayOpts=d=>`<option value="" ${d==null?'selected':''}>Non planifié</option>`+DAYS_FULL.map((n,k)=>`<option value="${k}" ${d===k?'selected':''}>${n}</option>`).join('');
 const catOpts=c=>S.categories.map(x=>`<option value="${x.id}" ${x.id===c?'selected':''}>${esc(x.name)}</option>`).join('')+`<option value="" ${!c?'selected':''}>Sans catégorie</option>`;
 
-/* ---------- fiche latérale ---------- */
+/* ---------- fiche : fenêtre centrée, comme les fenêtres du pilotage ---------- */
 function renderDrawer(){
-  const d=$('#drawer'), D=ui.drawer;
-  if(!D){d.classList.remove('open');d.innerHTML='';return;}
-  const head=k=>`<div class="dhead"><span class="kind">${k}</span><button class="close" data-act="close" aria-label="Fermer la fiche">×</button></div>`;
+  const d=$('#drawer'), D=ui.drawer, v=$('#voile');
+  if(!D){
+    if(d.classList.contains('open')) tellPilot({type:'voile',on:false});
+    d.classList.remove('open'); d.innerHTML=''; v.classList.remove('open'); return;
+  }
+  const win=(titre,corps,gauche,droite)=>`<div class="dtete"><h3 id="dTitre">${titre}</h3><button class="dfermer" data-act="close" aria-label="Fermer la fenêtre">✕</button></div>
+    <div class="dcorps">${corps}</div>
+    <div class="dpied">${gauche||''}<div class="droite"><button class="btn" data-act="close">Fermer</button>${droite||''}</div></div>`;
+  const champ=(lib,html,cls)=>`<label class="champ ${cls||''}">${lib}${html}</label>`;
+  const liste=(lib,u,k)=>champ(lib+' — une par ligne',`<textarea class="field" rows="3" data-list="unified.${u.id}.${k}">${esc((u[k]||[]).join('\n'))}</textarea>`);
+  let html='';
   if(D.type==='idea'){
     const i=S.ideas.find(x=>x.id===D.id); if(!i||i.status!=='libre'){ui.drawer=null;return renderDrawer();}
     const m=computeMetas().ideaMeta.get(i.id), cf=ui.confirm==='i:'+i.id;
-    d.innerHTML=head('Idée')+`
-      <label>Titre<input class="field" data-bind="ideas.${i.id}.title" value="${esc(i.title)}"></label>
-      <label>Note<textarea class="field" rows="4" data-bind="ideas.${i.id}.note">${esc(i.note)}</textarea></label>
-      <label>Catégorie<select class="field" data-bind="ideas.${i.id}.cat">${catOpts(i.cat)}</select></label>
-      ${EMBED?'':`<label>Planifier<select class="field" data-bind="ideas.${i.id}.day">${dayOpts(i.day)}</select></label>`}
+    html=win('Idée — '+esc(trunc(i.title,50)),`
+      <div class="dgrille">
+        ${champ('Titre',`<input class="field" data-bind="ideas.${i.id}.title" value="${esc(i.title)}">`,'large')}
+        ${champ('Catégorie',`<select class="field" data-bind="ideas.${i.id}.cat">${catOpts(i.cat)}</select>`)}
+      </div>
+      ${champ('Note',`<textarea class="field" rows="4" data-bind="ideas.${i.id}.note">${esc(i.note)}</textarea>`)}
+      ${EMBED?'':champ('Planifier',`<select class="field" data-bind="ideas.${i.id}.day">${dayOpts(i.day)}</select>`)}
       <label class="check"><input type="checkbox" data-bind="ideas.${i.id}.solo" ${i.solo?'checked':''}> Exclure du regroupement automatique</label>
-      ${m?`<p>Fait partie de la méta-idée <button class="link" data-act="open-meta" data-key="${m.key}">${esc(m.title)}</button>.</p>`:''}
-      <div class="actions">
-        <button class="btn" data-act="crystal-one" data-id="${i.id}" ${ui.busy?'disabled':''}>${ui.busy===i.id?'Claude raisonne…':'Cristalliser cette idée seule'}</button>
-        ${DB?(i.shared?'<p class="muted">Idée partagée.</p>':`<input id="pseudo" class="field" placeholder="Votre pseudo pour le partage" value="${esc(S.settings.pseudo)}">
-          <button class="btn" data-act="share" data-id="${i.id}">Partager l'idée</button><p class="note">Une idée partagée est visible par toutes les personnes qui utilisent cet outil.</p>`):''}
-        <button class="btn danger" data-act="idea-del" data-id="${i.id}">${cf?'Confirmer la suppression':'Supprimer l\'idée'}</button>
-      </div>`;
+      ${m?`<p class="note">Fait partie de la méta-idée <button class="link" data-act="open-meta" data-key="${m.key}">${esc(m.title)}</button>.</p>`:''}
+      ${DB?(i.shared?'<p class="muted">Idée partagée.</p>':`<input id="pseudo" class="field" placeholder="Votre pseudo pour le partage" value="${esc(S.settings.pseudo)}">
+        <button class="btn" data-act="share" data-id="${i.id}">Partager l'idée</button>`):''}`,
+      `<button class="btn danger" data-act="idea-del" data-id="${i.id}">${cf?'Confirmer la suppression':'Supprimer'}</button>`,
+      `<button class="btn primary" data-act="crystal-one" data-id="${i.id}" ${ui.busy?'disabled':''}>${ui.busy===i.id?'Claude raisonne…':'Cristalliser seule'}</button>`);
   } else if(D.type==='meta'){
     const m=computeMetas().metas.find(x=>x.key===D.key); if(!m){ui.drawer=null;return renderDrawer();}
-    d.innerHTML=head('Méta-idée')+`<h3>${esc(m.title)}</h3>
-      <p class="muted">${m.ideas.length} idées regroupées automatiquement, dominante ${esc(catOf(m.cat).name)}.</p>
-      <ul class="members">${m.ideas.map(i=>`<li><button class="link" data-act="open-idea" data-id="${i.id}">${esc(i.title)}</button><button class="btn small" data-act="detach" data-id="${i.id}">Détacher</button></li>`).join('')}</ul>
-      <div class="actions"><button class="btn primary" data-act="crystal-meta" data-key="${m.key}" ${ui.busy?'disabled':''}>${ui.busy===m.key?'Claude raisonne…':'Cristalliser avec Claude'}</button>
-      <p class="note">Claude fusionne les idées et leur donne du corps : synthèse, objectifs, premières étapes, points de vigilance.</p></div>`;
+    html=win('Méta-idée — '+esc(trunc(m.title,50)),`
+      <p class="note" style="margin-top:0">${m.ideas.length} idées regroupées automatiquement, dominante ${esc(catOf(m.cat).name)}.
+        Claude les fusionne et leur donne du corps : synthèse, objectifs, premières étapes, points de vigilance.</p>
+      <ul class="members">${m.ideas.map(i=>`<li><button class="link" data-act="open-idea" data-id="${i.id}">${esc(i.title)}</button><button class="btn small" data-act="detach" data-id="${i.id}">Détacher</button></li>`).join('')}</ul>`,
+      '',
+      `<button class="btn primary" data-act="crystal-meta" data-key="${m.key}" ${ui.busy?'disabled':''}>${ui.busy===m.key?'Claude raisonne…':'Cristalliser avec Claude'}</button>`);
   } else if(D.type==='uni'){
     const u=S.unified.find(x=>x.id===D.id); if(!u||u.status!=='unifiee'){ui.drawer=null;return renderDrawer();}
     const src=S.ideas.filter(i=>u.sourceIds.includes(i.id));
-    const L=(t,a)=>a.length?`<h4>${t}</h4><ul>${a.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'';
-    d.innerHTML=head('Idée unifiée')+`
-      <label>Titre<input class="field" data-bind="unified.${u.id}.title" value="${esc(u.title)}" style="font-size:18px;font-weight:600"></label>
-      <label>Synthèse<textarea class="field serif" rows="6" data-bind="unified.${u.id}.synthese">${esc(u.synthese)}</textarea></label>
-      ${L('Objectifs',u.objectifs)}${L('Premières étapes',u.etapes)}${L('Points de vigilance',u.vigilance)}
-      <h4>Idées d'origine</h4><ul>${src.map(i=>`<li>${esc(i.title)}</li>`).join('')}</ul>
-      <label>Catégorie<select class="field" data-bind="unified.${u.id}.cat">${catOpts(u.cat)}</select></label>
-      ${EMBED?`<label>Date prévue de l'activité<input type="date" class="field" data-bind="unified.${u.id}.date" value="${esc(u.date||'')}"></label>
-      <p class="note">Laissez vide pour la planifier plus tard dans le pilotage.</p>`
-      :`<label>Planifier<select class="field" data-bind="unified.${u.id}.day">${dayOpts(u.day)}</select></label>`}
-      <div class="actions"><button class="btn primary" data-act="make-proj" data-id="${u.id}">${EMBED?'Créer l\'activité':'Faire un projet'}</button>
-      <button class="btn" data-act="dissolve" data-id="${u.id}">Dissoudre et rendre les idées</button></div>`;
+    html=win('Idée unifiée — '+esc(trunc(u.title,44)),`
+      <div class="dgrille">
+        ${champ('Titre',`<input class="field" data-bind="unified.${u.id}.title" value="${esc(u.title)}">`,'large')}
+        ${champ('Catégorie',`<select class="field" data-bind="unified.${u.id}.cat">${catOpts(u.cat)}</select>`)}
+        ${EMBED?champ('Date prévue',`<input type="date" class="field" data-bind="unified.${u.id}.date" value="${esc(u.date||'')}">`)
+          :champ('Planifier',`<select class="field" data-bind="unified.${u.id}.day">${dayOpts(u.day)}</select>`)}
+      </div>
+      ${champ('Synthèse',`<textarea class="field" rows="4" data-bind="unified.${u.id}.synthese">${esc(u.synthese)}</textarea>`)}
+      <div class="dgrille trois">${liste('Objectifs',u,'objectifs')}${liste('Premières étapes',u,'etapes')}${liste('Points de vigilance',u,'vigilance')}</div>
+      <p class="note">Idées d'origine : ${src.map(i=>esc(i.title)).join(', ')||'—'}.${EMBED?' Les premières étapes deviendront les tâches de l\'activité ; sans date prévue, elle sera à planifier.':''}</p>`,
+      `<button class="btn danger" data-act="dissolve" data-id="${u.id}">Dissoudre</button>`,
+      `<button class="btn primary" data-act="make-proj" data-id="${u.id}">${EMBED?'Créer l\'activité':'Faire un projet'}</button>`);
   }
-  d.classList.add('open');
+  const wasOpen=d.classList.contains('open');
+  d.innerHTML=html;
+  d.classList.add('open'); v.classList.add('open');
+  if(!wasOpen){
+    tellPilot({type:'voile',on:true});
+    d.querySelector('input,textarea,select')?.focus({preventScroll:true});
+  }
 }
 
 /* ---------- réglages : catégories et Claude ---------- */
@@ -1108,7 +1151,7 @@ document.addEventListener('click',e=>{
     case 'open-uni': ui.view='idees'; ui.drawer={type:'uni',id}; renderAll(); break;
     case 'open-meta': ui.drawer={type:'meta',key:a.dataset.key}; renderDrawer(); break;
     case 'open-proj': ui.view='projets'; ui.focusProject=id; ui.drawer=null; renderAll(); break;
-    case 'close': ui.drawer=null; renderDrawer(); if(ui.view==='idees'&&ui.mode==='bulles') renderBubbles(); break;
+    case 'close': if(a.id==='voile'&&e.target!==a) break; ui.drawer=null; renderDrawer(); if(ui.view==='idees'&&ui.mode==='bulles') renderBubbles(); break;
     case 'crystal-meta': { const m=computeMetas().metas.find(x=>x.key===a.dataset.key); if(m) crystallize(m.ideas.map(i=>i.id)); break; }
     case 'crystal-one': crystallize([id]); break;
     case 'crystal-sel': crystallize([...ui.selected]); break;
@@ -1151,6 +1194,11 @@ function onBind(el,isChange){
   else softRender();
 }
 document.addEventListener('input',e=>{
+  if(e.target.dataset.list){
+    const [coll,id,field]=e.target.dataset.list.split('.'), o=S[coll]?.find(x=>x.id===id);
+    if(o){ o[field]=e.target.value.split('\n').map(x=>x.trim()).filter(Boolean); save(); }
+    return;
+  }
   if(e.target.dataset.bind) onBind(e.target,false);
   else if(e.target.id==='thr'){S.settings.threshold=+e.target.value; softRender();}
   else if(e.target.id==='pseudo'){S.settings.pseudo=e.target.value; save();}
