@@ -162,6 +162,7 @@ ouvrirFichier=function(){
 };
 var modifie0=modifie;
 modifie=function(){
+  Sync.gen=(Sync.gen||0)+1;
   if(!lireSync()) poserSync({base:Sync.rev});
   modifie0();
 };
@@ -175,14 +176,25 @@ function envoyer(raison,forcer){
   if(Sync.envoi){ Sync.encore=true; return Promise.resolve(false) }
   if(Sync.etat==="conflit" && !forcer) return Promise.resolve(false);
   Sync.envoi=true; majEtat();
+  var genEnvoi=Sync.gen||0;
   D.meta.modifie_le=D.meta.modifie_le||new Date().toISOString();
   D.meta.app="My Pilot Personal Edition"; D.meta.app_version=Sync.version; D.meta.version=VERSION;
   return api("docs/"+DOC,{method:"PUT",body:{data:D,baseRev:Sync.rev,reason:raison}})
   .then(function(r){
     if(r.status===409){ Sync.etat="conflit"; conflit(r.body); return false }
     if(!r.ok) throw new Error((r.body&&r.body.message)||("HTTP "+r.status));
-    Sync.rev=r.body.rev; Sync.etat="ok"; Sync.erreur=""; Sync.dernier=new Date();
-    sale=false; dernierEnr="à "+hNow(); poserSync(null);
+    Sync.etat="ok"; Sync.erreur=""; Sync.dernier=new Date(); dernierEnr="à "+hNow();
+    if(r.body.data){
+      /* le serveur a fusionné nos changements avec d'autres (autre onglet, synchronisation) */
+      if((Sync.gen||0)===genEnvoi && calme()) adopter(r.body.data,r.body.rev);
+      else if((Sync.gen||0)===genEnvoi){ sale=false; poserSync(null) }
+      /* sinon (saisie en cours) : on garde l'ancienne base ; le prochain envoi refusionnera,
+         et suivreServeur() reprendra la version fusionnée dès que la saisie sera terminée */
+      if(r.body.conflicts) toast(r.body.conflicts+" fiche(s) modifiée(s) aussi ailleurs : votre saisie a été gardée (voir Données, Synchronisation)",true);
+      return true;
+    }
+    Sync.rev=r.body.rev;
+    if((Sync.gen||0)===genEnvoi){ sale=false; poserSync(null); }
     return true;
   })
   .catch(function(e){
@@ -196,6 +208,31 @@ function envoyer(raison,forcer){
     return ok;
   });
 }
+/* aucune saisie en cours : on peut remplacer les données affichées sans rien perdre */
+function calme(){
+  var mod=$("#modale"), a=document.activeElement;
+  if(mod && mod.open) return false;
+  if(a && a!==document.body && $("#vue").contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && a.value) return false;
+  return true;
+}
+function adopter(data,rev){
+  D=normaliser(data); M=D.carte;
+  Sync.rev=rev; sale=false; poserSync(null); ecrireLocal();
+  rendre();
+}
+/* changements arrivés d'ailleurs (synchronisation, autre onglet) : repris dès que la saisie le permet */
+function suivreServeur(){
+  if(Sync.etat!=="ok" || Sync.envoi || sale || !calme()) return;
+  var gen=Sync.gen||0;
+  api("docs/"+DOC+"/rev").then(function(r){
+    if(!r.ok || r.body.rev<=Sync.rev) return;
+    return api("docs/"+DOC).then(function(d){
+      if(!d.ok || (Sync.gen||0)!==gen || sale || Sync.envoi || !calme()) return;
+      adopter(d.body.data,d.body.rev);
+    });
+  }).catch(function(){});
+}
+setInterval(suivreServeur,5000);
 function rendreDonneesSiCalme(){
   var a=document.activeElement;
   if(!a || a===document.body || !$("#vue").contains(a)) rendre();
@@ -325,6 +362,126 @@ listesDispo=function(){ return listesDispo0().filter(function(x){ return !LISTES
   st.textContent='[data-k="col"]{display:none}';      /* colonne Excel des champs : sans objet ici */
   document.head.appendChild(st);
 })();
+
+/* ---- synchronisation entre appareils ---- */
+var SyncDist={st:null,mode:"",charge:false};
+function majSyncDist(rendu){
+  return api("sync/status").then(function(r){
+    if(!r.ok) return;
+    var avant=JSON.stringify(SyncDist.st); SyncDist.st=r.body;
+    if(rendu!==false && vueActive==="donnees" && avant!==JSON.stringify(r.body)) rendreDonneesSiCalme();
+  }).catch(function(){});
+}
+setInterval(function(){ if(vueActive==="donnees") majSyncDist() },10000);
+window.persoBlocSync=function(){
+  if(!SyncDist.charge){ SyncDist.charge=true; majSyncDist() }
+  var st=SyncDist.st, hub=SyncDist.mode!=="application";
+  var ligne=function(l,v,c){ return '<div>'+l+'<b class="'+(c||"")+'">'+v+'</b></div>' };
+  var corps;
+  if(!st) corps='<div class="note-aide" style="margin:0">Chargement…</div>';
+  else{
+    var etat=!st.configured?["","non configurée"]:!st.enabled?["","en pause"]:st.lastError?["ko",esc(st.lastError)]
+      :st.lastOk?["ok","à jour, "+esc(new Date(st.lastOk).toLocaleString("fr-FR"))]:["","jamais lancée"];
+    corps='<div class="diag" style="margin-bottom:10px">'
+      +ligne("Serveur",st.configured?'<span class="mono">'+esc(st.url)+'</span>':"aucun")
+      +ligne("État",etat[1],etat[0])
+      +ligne("Fiches en attente d'envoi",String(st.pending),st.pending?"":"ok")
+      +ligne("Conflits à consulter",String(st.conflicts),st.conflicts?"ko":"ok")
+      +ligne("Identifiant de cet appareil",'<span class="mono">'+esc(st.device)+'</span>')
+    +'</div>'
+    +'<div class="ligne">'
+      +'<button class="b" data-pp="sync-config">'+(st.configured?"Modifier":"Configurer")+'</button>'
+      +(st.configured?'<button class="b creux" data-pp="sync-now">Synchroniser maintenant</button>':"")
+      +'<button class="b creux" data-pp="sync-conflits">Journal des conflits</button>'
+    +'</div>'
+    +'<div class="note-aide">'+(hub
+      ?'Ce serveur sert de point de synchronisation pour les applications de bureau (jeton SYNC_TOKEN de son fichier .env). '
+       +'Il peut aussi se synchroniser lui-même avec un autre serveur.'
+      :'Les fiches se synchronisent une par une : une modification faite ici et une autre faite ailleurs sur une fiche différente '
+       +'sont toutes les deux gardées. Si la même fiche a changé des deux côtés, la plus récente l\'emporte et l\'autre version '
+       +'est conservée dans le journal des conflits.')+'</div>';
+  }
+  return '<div class="bloc" style="margin-top:18px"><div class="bloc-tete"><h2>Synchronisation</h2></div><div class="bloc-corps">'+corps+'</div></div>';
+};
+function modaleSync(){
+  var st=SyncDist.st||{};
+  ouvrirModale("Synchronisation",
+    '<label class="champ">Adresse du serveur<input type="text" id="syUrl" value="'+esc(st.url||"")+'" placeholder="https://pilot.exemple.fr"></label>'
+    +'<label class="champ" style="margin-top:10px">Jeton de synchronisation<input type="password" id="syTok" autocomplete="off" '
+      +'style="padding:6px 8px;border:1px solid var(--trait);border-radius:2px;background:#fff" '
+      +'placeholder="'+(st.hasToken?"déjà renseigné : laisser vide pour le garder":"valeur de SYNC_TOKEN sur le serveur")+'"></label>'
+    +'<div class="ligne" style="margin-top:10px"><label style="font-size:13.5px;display:flex;gap:6px;align-items:center">'
+      +'<input type="checkbox" id="syOn"'+(st.enabled||!st.configured?" checked":"")+'> Synchroniser automatiquement (toutes les 30 s et après chaque modification)</label></div>'
+    +'<div class="note-aide">Le serveur est votre installation Docker, accessible en HTTPS (proxy ou VPN). '
+      +'Le jeton est la valeur SYNC_TOKEN de son fichier .env ; il reste enregistré sur cet appareil.</div>'
+    +'<div id="syRes" class="note-aide" style="margin-top:10px;font-size:13.5px" role="status"></div>',
+    [{txt:"Fermer",classe:"creux",fn:fermerModale},
+     {txt:"Enregistrer et synchroniser",droite:true,fn:function(){
+        var z=$("#syRes"), corps={url:$("#syUrl").value.trim(),enabled:$("#syOn").checked};
+        var t=$("#syTok").value; if(t) corps.token=t;
+        z.textContent="Synchronisation en cours…"; z.style.color="";
+        api("sync/config",{method:"PUT",body:corps}).then(function(r){
+          if(!r.ok) throw new Error((r.body&&r.body.message)||"réglages refusés");
+          return api("sync/now",{method:"POST"});
+        }).then(function(r){
+          SyncDist.st=r.body;
+          if(r.body.lastError){ z.textContent=r.body.lastError; z.style.color="var(--rouge)"; return }
+          z.textContent="Synchronisation réussie."; z.style.color="var(--vert)";
+          suivreServeur();
+        }).catch(function(e){ z.textContent=e.message; z.style.color="var(--rouge)" });
+     }}]);
+}
+function syncMaintenant(){
+  api("sync/now",{method:"POST"}).then(function(r){
+    SyncDist.st=r.body;
+    if(r.body.lastError) toast(r.body.lastError,true); else toast("Synchronisation terminée");
+    suivreServeur(); rendreDonneesSiCalme();
+  }).catch(function(){ toast("Synchronisation impossible",true) });
+}
+var COLL_LIB={chantiers:"Activité",notes:"Note",vigilances:"Point de vigilance",contacts:"Contact",organisations:"Organisation",
+  ideas:"Idée",unified:"Idée unifiée",projects:"Projet",_:"Réglage"};
+function resumeFiche(o,coll,rid){
+  if(o===null || o===undefined) return "<em>supprimée</em>";
+  if(coll==="_") return esc(rid);
+  return esc(o.libelle||o.title||o.nom||o.texte||trunc(o.contenu||"",60)||rid);
+}
+function trunc(t,n){ t=String(t||""); return t.length>n?t.slice(0,n-1)+"…":t }
+function journalConflits(){
+  api("sync/conflicts?limit=60").then(function(r){
+    if(!r.ok) throw new Error();
+    var l=r.body||[];
+    ouvrirModale("Journal des conflits",
+      (l.length?'<div class="note-aide" style="margin-top:0">Une fiche modifiée sur deux appareils (ou deux onglets) avant leur synchronisation : '
+        +'la version gardée est la plus récente. La version écartée peut être remise en place pour les activités, notes et contacts.</div>'
+        +'<table style="width:100%;border-collapse:collapse;font-size:13.5px">'
+        +'<tr><th style="text-align:left">Quand</th><th style="text-align:left">Fiche</th><th style="text-align:left">Gardée</th><th style="text-align:left">Écartée</th><th></th></tr>'
+        +l.map(function(c,i){
+          var remettable=c.doc==="pilot" && c.coll!=="_" && c.lost;
+          return '<tr style="border-top:1px solid #ddd'+(c.seen?'':';background:#FFF7E0')+'"><td style="padding:6px 4px">'+esc(new Date(c.at).toLocaleString("fr-FR"))+'</td>'
+            +'<td>'+esc(COLL_LIB[c.coll]||c.coll)+'</td><td>'+resumeFiche(c.kept,c.coll,c.rid)+'</td><td>'+resumeFiche(c.lost,c.coll,c.rid)+'</td>'
+            +'<td style="text-align:right">'+(remettable?'<button class="b mini creux" data-pp="conflit-remettre" data-i="'+i+'">Remettre l\'écartée</button>':"")+'</td></tr>';
+        }).join("")+'</table>'
+      :'<p>Aucun conflit enregistré.</p>'),
+      [{txt:"Fermer",fn:function(){ fermerModale(); api("sync/conflicts/seen",{method:"POST"}).then(function(){ majSyncDist() }) }}]);
+    journalConflits.liste=l;
+  }).catch(function(){ toast("Journal indisponible",true) });
+}
+function remettreConflit(i){
+  var c=(journalConflits.liste||[])[i]; if(!c||!c.lost) return;
+  var liste=D[c.coll]; if(!estTableau(liste)) return;
+  var k=-1; liste.forEach(function(x,j){ if(x&&x.id===c.rid) k=j });
+  if(k>=0) liste[k]=c.lost; else liste.push(c.lost);
+  modifie(); fermerModale(); rendre(); toast("Version écartée remise en place");
+}
+document.addEventListener("click",function(e){
+  var el=e.target.closest&&e.target.closest("[data-pp]");
+  if(!el) return;
+  var a=el.dataset.pp;
+  if(a==="sync-config") modaleSync();
+  else if(a==="sync-now") syncMaintenant();
+  else if(a==="sync-conflits") journalConflits();
+  else if(a==="conflit-remettre") remettreConflit(+el.dataset.i);
+});
 
 window.persoBlocIdees=function(){
   var st=Idees.claude;
@@ -456,7 +613,7 @@ rendre=function(){
     var blocs=v.querySelectorAll(".bloc"),i;
     for(i=0;i<blocs.length;i++){
       var h=blocs[i].querySelector(".bloc-tete h2");
-      if(h && h.textContent==="Données et sauvegardes"){ blocs[i].insertAdjacentHTML("afterend",window.persoBlocIdees()); break }
+      if(h && h.textContent==="Données et sauvegardes"){ blocs[i].insertAdjacentHTML("afterend",window.persoBlocSync()+window.persoBlocIdees()); break }
     }
   }
 };
@@ -666,7 +823,7 @@ function demarrer(donnees,rev,etat){
   majEtat();
 }
 api("health").then(function(h){
-  if(h.ok){ Sync.version=h.body.version; Sync.schema=h.body.schema; APP_VERSION=h.body.version }
+  if(h.ok){ Sync.version=h.body.version; Sync.schema=h.body.schema; APP_VERSION=h.body.version; SyncDist.mode=h.body.mode||"" }
   return api("docs/"+DOC);
 }).then(function(r){
   var tampon=lireLocal0Safe(),attente=lireSync();

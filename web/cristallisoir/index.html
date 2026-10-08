@@ -360,11 +360,37 @@ async function push(force){
     const r=await fetch(API+'docs/ideas',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:S,baseRev:SRV.rev})});
     const b=await r.json().catch(()=>({}));
     if(r.status===409){ SRV.conflict=true; onConflict(b); }
-    else if(r.ok){ SRV.rev=b.rev; SRV.ok=true; SRV.last=json; SRV.at=new Date(); try{localStorage.removeItem(PENDING);}catch{} }
+    else if(r.ok){
+      SRV.ok=true; SRV.at=new Date(); try{localStorage.removeItem(PENDING);}catch{}
+      if(b.data){
+        /* fusion avec des changements venus d'ailleurs : repris si aucune saisie n'a eu lieu entre-temps */
+        if(JSON.stringify(S)===json && idle()){ applyState(b.data); SRV.rev=b.rev; SRV.last=JSON.stringify(S); renderAll(); }
+        else SRV.last=json;            /* ancienne base gardée : le prochain envoi refusionnera */
+        if(b.conflicts) toast(b.conflicts+' idée(s) modifiée(s) aussi ailleurs : votre saisie a été gardée.',true);
+      } else { SRV.rev=b.rev; SRV.last=json; }
+    }
     else throw new Error(b.message||'HTTP '+r.status);
   }catch(e){ SRV.ok=false; }
   finally{ SRV.sending=false; if(SRV.again){SRV.again=false; push();} renderSync(); }
 }
+function idle(){
+  if(ui.drawer||ui.manual||ui.settings||ui.sharedOpen||ui.busy) return false;
+  const a=document.activeElement;
+  return !(a&&/INPUT|TEXTAREA/.test(a.tagName)&&a.value&&a.type!=='range');
+}
+/* changements arrivés d'ailleurs (synchronisation, autre onglet) : repris quand rien n'est en cours */
+async function followServer(){
+  if(!SRV.ready||!SRV.ok||SRV.sending||SRV.conflict||!idle()||JSON.stringify(S)!==SRV.last) return;
+  try{
+    const r=await fetch(API+'docs/ideas/rev'); if(!r.ok) return;
+    const {rev}=await r.json(); if(rev<=SRV.rev) return;
+    const d=await srvGet(); if(!d||!idle()||JSON.stringify(S)!==SRV.last) return;
+    applyState(d.data); SRV.rev=d.rev; SRV.last=JSON.stringify(S); SRV.at=new Date(d.updated_at);
+    try{localStorage.setItem(KEY,SRV.last);}catch{}
+    renderAll();
+  }catch{}
+}
+setInterval(followServer,5000);
 function onConflict(b){
   if(confirm('Les idées ont été modifiées ailleurs (autre appareil ou onglet).\n\nOK : charger la version du serveur.\nAnnuler : garder la version affichée et l\'envoyer (l\'autre reste dans l\'historique du serveur).')) reloadFromServer();
   else { SRV.rev=b.rev; SRV.conflict=false; push(true); }
