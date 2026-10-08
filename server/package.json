@@ -1,5 +1,5 @@
 {
-  "name": "pilot-perso-server",
+  "name": "my-pilot-personal-edition-server",
   "private": true,
   "type": "module",
   "description": "Serveur de Pilot Perso : API JSON et stockage SQLite",

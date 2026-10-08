@@ -26,8 +26,9 @@ Trois numéros distincts coexistent :
 
 1. Ajouter les changements sous `## [Non publié]` dans `CHANGELOG.md` au fil de l'eau.
 2. `scripts/release.sh 0.2.0` : lance les tests, met à jour `VERSION`, date le CHANGELOG, commit et tag `v0.2.0`.
-3. `git push && git push --tags`.
-4. Sur le serveur : `git pull && docker compose up -d --build`. Faire un instantané avant une mise à jour majeure.
+3. L'archive `dist/my-pilot-personal-edition-v0.2.0.zip` est créée au passage ; elle s'extrait dans un dossier `my-pilot-personal-edition-v0.2.0/` qui contient tout l'historique Git. Pour la refaire seule : `scripts/package.sh`.
+4. `git push && git push --tags`.
+5. Sur le serveur : `git pull && docker compose up -d --build`. Faire un instantané avant une mise à jour majeure.
 
 ## Reprendre une nouvelle version de PST·PILOT
 

@@ -52,7 +52,7 @@ Trois niveaux, détaillés dans [docs/SAUVEGARDES.md](docs/SAUVEGARDES.md) :
 
 ## Versions
 
-Le projet suit le [versionnage sémantique](https://semver.org/lang/fr/) ; voir [CHANGELOG.md](CHANGELOG.md) et [docs/VERSIONS.md](docs/VERSIONS.md). Publier une version : `scripts/release.sh 0.2.0`.
+Le projet suit le [versionnage sémantique](https://semver.org/lang/fr/) ; voir [CHANGELOG.md](CHANGELOG.md) et [docs/VERSIONS.md](docs/VERSIONS.md). Publier une version : `scripts/release.sh 0.2.0`, qui produit aussi l'archive `dist/my-pilot-personal-edition-v0.2.0.zip` (dossier `my-pilot-personal-edition-v0.2.0/` à l'extraction).
 
 ## Organisation du dépôt
 

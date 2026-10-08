@@ -8,3 +8,4 @@ node_modules/
 deploy/litestream.yml
 deploy/keys/*
 !deploy/keys/.gitkeep
+dist/

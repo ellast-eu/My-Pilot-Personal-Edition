@@ -10,11 +10,21 @@
 
 var DOC = "pilot";
 var API = "../api/";
-var CLE_SYNC = "pilot-perso-sync";        /* { base: rev du serveur au moment de la modif locale } */
+var CLE_SYNC = "my-pilot-personal-edition-sync";        /* { base: rev du serveur au moment de la modif locale } */
 
 /* ================= 1. profil personnel ================= */
-CLE = "pilot-perso-v1";
-nomFichier = "pilot-perso-data.json";                   /* tampon distinct de celui de PST·PILOT */
+CLE = "my-pilot-personal-edition-v1";
+/* reprise des tampons enregistrés sous l'ancien préfixe (versions 0.1 à 0.5) */
+(function(){
+  try{
+    [["pilot-perso-v1",CLE],["pilot-perso-sync",CLE_SYNC]].forEach(function(x){
+      var v=localStorage.getItem(x[0]);
+      if(v!==null && localStorage.getItem(x[1])===null) localStorage.setItem(x[1],v);
+      if(v!==null) localStorage.removeItem(x[0]);
+    });
+  }catch(e){}
+})();
+nomFichier = "my-pilot-personal-edition-data.json";                   /* tampon distinct de celui de PST·PILOT */
 NOM_DEFAUT = "My Pilot Personal Edition";
 TYPES_DEFAUT = ["Rendez-vous","Atelier","Démarche","Entraînement","Achat","Autre"];
 TYPES_NOTE = ["Avancement","Idée","Appel","Démarche","Lecture","Autre"];
@@ -306,7 +316,7 @@ exportChantiersCSV=function(){
         c.commune,c.adresse,libStatut(c.statut),c.priorite,c.commentaire]
         .concat(extra.map(function(x){ return c.categorie===x.cat ? (c[x.cle]||"") : "" }));
     });
-  telecharger("pilot-perso-activites-"+suffixePeriode()+".csv",csv(e,l),"text/csv;charset=utf-8");
+  telecharger("my-pilot-personal-edition-activites-"+suffixePeriode()+".csv",csv(e,l),"text/csv;charset=utf-8");
 };
 var listesDispo0=listesDispo;
 listesDispo=function(){ return listesDispo0().filter(function(x){ return !LISTES_PRO[x[0]] && x[0]!=="contacts_ecartes" && x[0]!=="orgs_ecartees" }) };
@@ -542,7 +552,7 @@ function exporterIdees(){
   api("docs/ideas").then(function(r){
     if(r.status===404){ toast("Aucune idée enregistrée pour l'instant",true); return }
     if(!r.ok) throw new Error();
-    telecharger("pilot-perso-idees-"+auj()+".json",JSON.stringify(r.body.data,null,2));
+    telecharger("my-pilot-personal-edition-idees-"+auj()+".json",JSON.stringify(r.body.data,null,2));
   }).catch(function(){ toast("Export impossible : serveur injoignable",true) });
 }
 var entreeIdees=document.createElement("input");
@@ -683,7 +693,7 @@ api("health").then(function(h){
         +'<div class="note-aide">Téléchargez votre version locale pour la comparer ou la réimporter (Données, Importer et fusionner).</div>',
         [{txt:"Ignorer ma version locale",classe:"creux",fn:function(){ poserSync(null); fermerModale() }},
          {txt:"Télécharger ma version locale",classe:"",droite:true,fn:function(){
-           telecharger("pilot-perso-hors-ligne.json",copie); poserSync(null); fermerModale() }}]);
+           telecharger("my-pilot-personal-edition-hors-ligne.json",copie); poserSync(null); fermerModale() }}]);
     },700);
     return;
   }

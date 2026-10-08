@@ -1,6 +1,6 @@
 # Démarrage : cp .env.example .env (puis compléter) ; docker compose up -d --build
 # Réplication distante : docker compose --profile replication up -d  (voir docs/SAUVEGARDES.md)
-name: pilot-perso
+name: my-pilot-personal-edition
 
 services:
   app:
@@ -8,7 +8,7 @@ services:
       context: .
       args:
         INSTALL_CLAUDE: ${INSTALL_CLAUDE:-true}
-    image: pilot-perso:${PILOT_VERSION:-latest}
+    image: my-pilot-personal-edition:${PILOT_VERSION:-latest}
     restart: unless-stopped
     ports:
       # Lié à 127.0.0.1 : exposer via un proxy HTTPS ou un VPN (voir README), jamais en clair sur Internet.
@@ -36,7 +36,7 @@ services:
     command: replicate
     environment:
       LITESTREAM_BUCKET: ${LITESTREAM_BUCKET:-}
-      LITESTREAM_PATH: ${LITESTREAM_PATH:-pilot-perso}
+      LITESTREAM_PATH: ${LITESTREAM_PATH:-my-pilot-personal-edition}
       LITESTREAM_ENDPOINT: ${LITESTREAM_ENDPOINT:-}
       LITESTREAM_REGION: ${LITESTREAM_REGION:-}
       LITESTREAM_ACCESS_KEY_ID: ${LITESTREAM_ACCESS_KEY_ID:-}

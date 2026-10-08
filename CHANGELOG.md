@@ -4,6 +4,13 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+### Modifications
+- Préfixe technique `my-pilot-personal-edition` : projet Compose, image Docker, chemin de réplication par défaut, noms des fichiers exportés et tampons du navigateur (repris automatiquement depuis l'ancien préfixe).
+- `scripts/package.sh` : archive versionnée qui s'extrait dans `my-pilot-personal-edition-vX.Y.Z/`, historique Git compris ; appelée par `scripts/release.sh`.
+
+### À noter
+- Si une réplication Litestream tournait déjà avec le chemin par défaut `pilot-perso`, fixer `LITESTREAM_PATH=pilot-perso` dans `.env` pour continuer sur la même réplique.
+
 ## [0.5.0] - 2026-10-08
 
 ### Modifications

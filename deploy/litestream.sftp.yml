@@ -12,5 +12,5 @@ dbs:
       host: ${SFTP_HOST}               # hote:port, ex. backup.example.net:22
       user: ${SFTP_USER}
       key-path: /keys/id_ed25519
-      path: ${SFTP_PATH}               # ex. /srv/backups/pilot-perso
+      path: ${SFTP_PATH}               # ex. /srv/backups/my-pilot-personal-edition
       host-key: ${SFTP_HOST_KEY}       # vérification de l'identité du serveur
