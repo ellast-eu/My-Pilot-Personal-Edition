@@ -9,3 +9,4 @@ deploy/litestream.yml
 deploy/keys/*
 !deploy/keys/.gitkeep
 dist/
+desktop/node_modules/

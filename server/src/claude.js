@@ -16,12 +16,24 @@ function childEnv() {
   return env;
 }
 
-function run(args, input, timeout = TIMEOUT) {
+/* Sous Windows, Claude Code peut être un .exe (installateur officiel) ou un .cmd (installation npm) :
+   un .cmd ne se lance qu'à travers cmd.exe, avec des arguments correctement entourés de guillemets. */
+let winCmd = false;
+function launch(args, opts) {
+  if (process.platform === 'win32' && winCmd) {
+    const q = a => '"' + String(a).replace(/"/g, '""') + '"';
+    const line = [bin() + '.cmd', ...args].map(q).join(' ');
+    return spawn(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', '"' + line + '"'], { ...opts, windowsVerbatimArguments: true, windowsHide: true });
+  }
+  return spawn(bin(), args, { ...opts, windowsHide: true });
+}
+
+function run(args, input, timeout = TIMEOUT, retried = false) {
   return new Promise((resolve, reject) => {
     let out = '', err = '', done = false;
     let child;
     try {
-      child = spawn(bin(), args, { env: childEnv(), stdio: ['pipe', 'pipe', 'pipe'] });
+      child = launch(args, { env: childEnv(), stdio: ['pipe', 'pipe', 'pipe'] });
     } catch (e) {
       return reject(Object.assign(new Error('Claude Code introuvable'), { code: 'not_installed' }));
     }
@@ -36,6 +48,10 @@ function run(args, input, timeout = TIMEOUT) {
     child.on('error', e => {
       if (done) return;
       done = true; clearTimeout(timer);
+      if (e.code === 'ENOENT' && process.platform === 'win32' && !winCmd && !retried) {
+        winCmd = true;
+        return run(args, input, timeout, true).then(resolve, err => { winCmd = false; reject(err); });
+      }
       reject(Object.assign(new Error('Claude Code introuvable'), { code: e.code === 'ENOENT' ? 'not_installed' : 'spawn_error' }));
     });
     child.on('close', code => {

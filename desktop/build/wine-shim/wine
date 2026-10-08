@@ -1,0 +1,12 @@
+#!/usr/bin/env node
+// Substitut de wine pour construire l'installateur Windows depuis Linux.
+// electron-builder lance l'installateur « intermédiaire » sous wine pour qu'il écrive son
+// désinstallateur ; on extrait ce dernier directement, comme electron-builder le fait lui-même
+// sous macOS récent (UninstallerReader).
+const path = require('node:path');
+const file = process.argv[2];
+if (!file || file === '--version') { console.log('wine-shim-1.0'); process.exit(0); }
+const out = path.join(path.dirname(file), path.basename(file, 'exe') + '__uninstaller.exe');
+const lib = require.resolve('app-builder-lib/out/targets/nsis/nsisUtil', { paths: [path.join(__dirname, '..', '..')] });
+require(lib).UninstallerReader.exec(file, out)
+  .then(() => process.exit(0), e => { console.error('wine-shim : ' + e.message); process.exit(1); });

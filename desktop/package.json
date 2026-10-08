@@ -1,0 +1,105 @@
+{
+  "name": "my-pilot-personal-edition",
+  "productName": "My Pilot Personal Edition",
+  "version": "0.5.2",
+  "description": "Pilotage personnel, dérivé de PST·PILOT, avec synchronisation fiche par fiche",
+  "author": "Stella Caltagirone <stella.caltagirone@proton.me>",
+  "homepage": "https://my-pilot.local",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "dist": "node build/build.cjs"
+  },
+  "build": {
+    "appId": "local.mypilot.personaledition",
+    "productName": "My Pilot Personal Edition",
+    "executableName": "my-pilot-personal-edition",
+    "copyright": "Stella Caltagirone",
+    "directories": {
+      "output": "../dist/desktop",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.cjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../server/src",
+        "to": "server/src"
+      },
+      {
+        "from": "../web",
+        "to": "web"
+      },
+      {
+        "from": "../VERSION",
+        "to": "VERSION"
+      },
+      {
+        "from": "../CHANGELOG.md",
+        "to": "CHANGELOG.md"
+      },
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      }
+    ],
+    "afterPack": "build/afterPack.cjs",
+    "publish": null,
+    "linux": {
+      "target": [
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Office",
+      "icon": "build/icon.png",
+      "synopsis": "Pilotage personnel avec idées et synchronisation",
+      "maintainer": "Stella Caltagirone <stella.caltagirone@proton.me>",
+      "desktop": {
+        "entry": {
+          "Name": "My Pilot Personal Edition",
+          "Comment": "Pilotage personnel",
+          "StartupWMClass": "My Pilot Personal Edition"
+        }
+      }
+    },
+    "deb": {
+      "artifactName": "my-pilot-personal-edition_${version}_${arch}.${ext}"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "shortcutName": "My Pilot Personal Edition",
+      "uninstallDisplayName": "My Pilot Personal Edition",
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "my-pilot-personal-edition-${version}-setup.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3",
+    "resedit": "^3.1.0"
+  }
+}

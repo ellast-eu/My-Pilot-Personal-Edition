@@ -9,8 +9,9 @@ git diff --quiet && git diff --cached --quiet || { echo "Des modifications ne so
 grep -q "^## \[Non publié\]" CHANGELOG.md || { echo "Aucune section « [Non publié] » dans CHANGELOG.md." >&2; exit 1; }
 ( cd server && npm test --silent )
 echo "$v" > VERSION
+sed -i "0,/\"version\": \"[^\"]*\"/s//\"version\": \"$v\"/" desktop/package.json
 sed -i "s/^## \[Non publié\]/## [Non publié]\n\n## [$v] - $(date +%Y-%m-%d)/" CHANGELOG.md
-git add VERSION CHANGELOG.md
+git add VERSION CHANGELOG.md desktop/package.json
 git commit -m "chore(release): v$v"
 git tag -a "v$v" -m "My Pilot Personal Edition v$v"
 scripts/package.sh

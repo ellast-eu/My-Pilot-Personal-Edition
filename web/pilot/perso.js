@@ -273,7 +273,7 @@ majEtat=function(){
   else if(Sync.etat==="horsligne"){ txt="Hors ligne, gardé dans ce navigateur"; alerte=true }
   else if(Sync.envoi) txt="Enregistrement…";
   else if(sale){ txt=autoActif()?"Enregistrement…":"Modifications non enregistrées"; alerte=!autoActif() }
-  else txt="Synchronisé"+(dernierEnr?" "+dernierEnr:"");
+  else txt="Enregistré"+(dernierEnr?" "+dernierEnr:"");
   e.classList.toggle("sale",alerte); p.classList.toggle("sale",alerte);
   t.textContent=txt;
   t.title=Sync.erreur||"";
@@ -600,6 +600,7 @@ rendre=function(){
   var b=boite(),v=$("#vue");
   if(vueActive==="idees"){
     v.style.display="none"; b.style.display="";
+    document.documentElement.style.overflow="hidden";     /* la fenêtre Idées occupe toute la hauteur */
     Array.prototype.forEach.call($("#nav").children,function(x){
       x.disabled=!fichierCharge && x.dataset.vue!=="donnees";
       x.setAttribute("aria-current",x.dataset.vue==="idees"?"true":"false");
@@ -608,6 +609,7 @@ rendre=function(){
     return;
   }
   b.style.display="none"; v.style.display="";
+  document.documentElement.style.overflow="";
   rendre0();
   if(vueActive==="donnees"){
     var blocs=v.querySelectorAll(".bloc"),i;

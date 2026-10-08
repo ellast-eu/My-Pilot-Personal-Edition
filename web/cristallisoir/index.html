@@ -775,7 +775,7 @@ function renderCats(){
 }
 function renderFoot(){
   const n=unseen().length;
-  const sync=!SRV.ready?'Connexion au serveur…':SRV.conflict?'Conflit avec une autre version':SRV.ok?'Synchronisé'+(SRV.at?' à '+SRV.at.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):''):'Hors ligne, gardé dans ce navigateur';
+  const sync=!SRV.ready?'Connexion au serveur…':SRV.conflict?'Conflit avec une autre version':SRV.ok?'Enregistré'+(SRV.at?' à '+SRV.at.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):''):'Hors ligne, gardé dans ce navigateur';
   if(EMBED){
     $('#foot').innerHTML=`<h2>Regroupement</h2>
     <label class="muted" for="thr">Sensibilité : ${S.settings.threshold<.18?'large':S.settings.threshold>.3?'stricte':'moyenne'}</label>
