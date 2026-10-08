@@ -4,6 +4,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+## [0.6.0] - 2026-10-08
+
 ### Ajouts
 - Application de bureau autonome (Electron) : serveur et base SQLite embarqués, fonctionne sans navigateur ni réseau. Paquets .deb (Linux) et installateur .exe (Windows).
 - Synchronisation fiche par fiche entre les applications et le serveur Docker (jeton `SYNC_TOKEN`) : fusion automatique des modifications de fiches différentes, « la plus récente gagne » sur une même fiche, journal des conflits avec remise en place de la version écartée.
