@@ -4,6 +4,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+## [0.2.0] - 2026-10-08
+
 ### Retraits
 - Modules assistance téléphonique et compteur de traitement supprimés de la version personnelle : écran du jour, paramètres, exports CSV, journal et rapports.
 - Planning de la semaine retiré de l'onglet Idées : il n'était pas relié aux dates du pilotage.
