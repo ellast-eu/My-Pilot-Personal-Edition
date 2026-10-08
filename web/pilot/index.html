@@ -5,7 +5,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pilot Perso</title>
+<title>My Pilot Personal Edition</title>
 <link rel="icon" id="favicon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E">
 <style>
 :root{
@@ -3233,46 +3233,6 @@ function vueDonnees(){
       +((perDeb||perFin)?'<button class="lien" data-act="per-raz">tout l\'historique</button>'
         :'<span class="note-aide" style="margin:0">vide = tout l\'historique</span>')
     +'</div>'
-    +'<hr class="sep" style="margin:14px 0 10px">'
-    +'<div class="ligne">'
-      +'<span class="puce-lbl">Rapport de période</span>'
-      +'<input type="date" id="rapDeb" value="'+esc(rapDeb||moisIso(0)[0])+'">'
-      +'<span style="font-size:13px;color:var(--encre-2)">au</span>'
-      +'<input type="date" id="rapFin" value="'+esc(rapFin||moisIso(0)[1])+'">'
-      +'<button class="b creux" data-act="rapport">Rapport texte</button>'
-      +'<button class="b" data-act="rapport-pdf">Rapport PDF</button>'
-    +'</div>'
-    +'<div class="ligne" style="margin-top:6px">'
-      +'<button class="lien" data-act="rap-mois">mois en cours</button>'
-      +'<button class="lien" data-act="rap-moisp">mois précédent</button>'
-      +'<button class="lien" data-act="rap-an">année en cours</button>'
-      +'<label style="font-size:13.5px;display:flex;gap:6px;align-items:center;margin-left:auto">'
-        +'<input type="checkbox" id="rapTxtOn" '+(rapTexte?"checked":"")+'> Inclure le détail en texte libre</label>'
-    +'</div>'
-    +'<div class="grille" style="margin-top:10px">'
-      +'<label class="champ">Nom affiché sur le rapport<input type="text" id="idNom" value="'+esc(D.parametres.id_nom||"")+'" placeholder="Prénom NOM"></label>'
-      +'<label class="champ">Fonction<input type="text" id="idFonc" value="'+esc(D.parametres.id_fonction||"")+'" placeholder="Facultatif"></label>'
-      +'<label class="champ">Entité<input type="text" id="idEnt" value="'+esc(D.parametres.id_entite||"")+'" placeholder="Facultatif"></label>'
-    +'</div>'
-    +'<label class="champ" style="margin-top:8px">Faits marquants — repris dans le rapport PDF'
-      +'<textarea id="rapFaits" style="width:100%;min-height:64px;padding:8px;border:1px solid var(--trait);border-radius:2px" '
-      +'placeholder="Ce que les chiffres ne disent pas : moments marquants, réussites, imprévus…">'+esc(D.parametres.rap_faits||"")+'</textarea></label>'
-    +'<label class="champ" style="margin-top:8px">Objectifs et besoins'
-      +'<textarea id="rapObj" style="width:100%;min-height:52px;padding:8px;border:1px solid var(--trait);border-radius:2px" '
-      +'placeholder="Ce que vous visez pour la période suivante, ce dont vous avez besoin…">'+esc(D.parametres.rap_objectifs||"")+'</textarea></label>'
-    +'<div class="note-aide">Le rapport PDF s\'ouvre dans le dialogue d\'impression : choisissez '
-      +'« Enregistrer au format PDF » et décochez « En-têtes et pieds de page ».</div>'
-    +'<div class="note-aide">Sans le détail, le rapport ne contient que des volumes et des libellés '
-      +'issus de vos listes : ni nom, ni référence. Avec le détail, vos saisies sont '
-      +'reprises telles quelles et doivent être relues avant diffusion.</div>'
-    +'<hr class="sep" style="margin:14px 0 10px">'
-    +'<div class="ligne">'
-      +'<span class="puce-lbl">Compte-rendu du</span>'
-      +'<input type="date" id="expDate" value="'+esc(dateExport||auj())+'">'
-      +'<button class="b" data-act="cr">Établir le compte-rendu</button>'
-      +((dateExport&&dateExport!==auj())?'<button class="lien" data-act="cr-auj">revenir à aujourd\'hui</button>':"")
-    +'</div>'
-    +'<div class="note-aide">Vos données sont enregistrées sur le serveur, avec leur historique de versions.</div>'
   +'</div></div>'
   +(window.persoDiagnostic?window.persoDiagnostic():'')
   +(window.persoJournal?window.persoJournal():'')

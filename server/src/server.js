@@ -1,4 +1,4 @@
-// Serveur Pilot Perso : fichiers statiques + API JSON. Aucune dépendance externe.
+// Serveur My Pilot Personal Edition : fichiers statiques + API JSON. Aucune dépendance externe.
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -174,7 +174,7 @@ export function createApp(opts = {}) {
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
     if (!authorized(req)) {
-      return send(res, 401, 'Authentification requise', { 'WWW-Authenticate': 'Basic realm="Pilot Perso", charset="UTF-8"' });
+      return send(res, 401, 'Authentification requise', { 'WWW-Authenticate': 'Basic realm="My Pilot Personal Edition", charset="UTF-8"' });
     }
     const url = new URL(req.url, 'http://local');
     try {
@@ -206,7 +206,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const port = +(process.env.PORT || 8080);
   const host = process.env.HOST || '0.0.0.0';
   const { server, store } = createApp();
-  server.listen(port, host, () => console.log(`Pilot Perso ${VERSION} sur http://${host}:${port}`));
+  server.listen(port, host, () => console.log(`My Pilot Personal Edition ${VERSION} sur http://${host}:${port}`));
   const stop = () => { server.close(); store.close(); process.exit(0); };
   process.on('SIGTERM', stop); process.on('SIGINT', stop);
 }

@@ -1,4 +1,4 @@
-# Pilot Perso : serveur Node sans dépendance + Claude Code (facultatif) pour l'abonnement claude.ai
+# My Pilot Personal Edition : serveur Node sans dépendance + Claude Code (facultatif) pour l'abonnement claude.ai
 FROM node:24-slim
 
 # Mettre à false pour une image sans Claude Code (le mode copier-coller reste disponible).

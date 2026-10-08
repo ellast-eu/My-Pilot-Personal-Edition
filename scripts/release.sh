@@ -12,5 +12,5 @@ echo "$v" > VERSION
 sed -i "s/^## \[Non publié\]/## [Non publié]\n\n## [$v] - $(date +%Y-%m-%d)/" CHANGELOG.md
 git add VERSION CHANGELOG.md
 git commit -m "chore(release): v$v"
-git tag -a "v$v" -m "Pilot Perso v$v"
+git tag -a "v$v" -m "My Pilot Personal Edition v$v"
 echo "Version v$v prête. Pousser avec : git push && git push --tags"

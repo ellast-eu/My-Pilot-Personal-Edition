@@ -1,4 +1,4 @@
-# Pilot Perso
+# My Pilot Personal Edition
 
 Pilotage des activités personnelles, dérivé de PST·PILOT, avec le Cristallisoir intégré pour faire mûrir les idées jusqu'aux projets.
 

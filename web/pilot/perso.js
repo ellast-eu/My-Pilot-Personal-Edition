@@ -1,4 +1,4 @@
-/* Pilot Perso — couche personnelle posée sur PST·PILOT (non modifié, voir scripts/build_pilot.py).
+/* My Pilot Personal Edition — couche personnelle posée sur PST·PILOT (non modifié, voir scripts/build_pilot.py).
  *
  * 1. Profil personnel : listes, catégories et modules adaptés à la vie hors travail.
  * 2. Persistance serveur : les données vivent dans la base SQLite, via /api/docs/pilot.
@@ -15,7 +15,7 @@ var CLE_SYNC = "pilot-perso-sync";        /* { base: rev du serveur au moment de
 /* ================= 1. profil personnel ================= */
 CLE = "pilot-perso-v1";
 nomFichier = "pilot-perso-data.json";                   /* tampon distinct de celui de PST·PILOT */
-NOM_DEFAUT = "Pilot Perso";
+NOM_DEFAUT = "My Pilot Personal Edition";
 TYPES_DEFAUT = ["Rendez-vous","Atelier","Démarche","Entraînement","Achat","Autre"];
 TYPES_NOTE = ["Avancement","Idée","Appel","Démarche","Lecture","Autre"];
 OUVRAGES = [];
@@ -101,6 +101,8 @@ normaliser=function(o){
   if(p.profil!=="perso") appliquerProfil(v,p);
   else if(!p.mig_appels) v.parametres.rubriques=v.parametres.rubriques.filter(function(r){ return r.auto!=="appels" });
   for(k in LISTES_PERSO) if(!estTableau(v.parametres[k])) v.parametres[k]=LISTES_PERSO[k].slice();
+  /* anciens noms par défaut → nouveau nom ; un nom choisi par l'utilisatrice est conservé */
+  if(["Pilot Perso","My Pilot","PST Pilot",""].indexOf(String(v.parametres.nom_app||"").trim())!==-1) v.parametres.nom_app=NOM_DEFAUT;
   sansModulesPro(v);
   return v;
 };
@@ -118,7 +120,7 @@ tickCompteur=function(){};
 var serialise0=serialise;
 serialise=function(format){
   var t=serialise0(format);
-  D.meta.app="Pilot Perso"; D.meta.base="PST Pilot";
+  D.meta.app="My Pilot Personal Edition"; D.meta.base="PST Pilot";
   return t;
 };
 
@@ -164,7 +166,7 @@ function envoyer(raison,forcer){
   if(Sync.etat==="conflit" && !forcer) return Promise.resolve(false);
   Sync.envoi=true; majEtat();
   D.meta.modifie_le=D.meta.modifie_le||new Date().toISOString();
-  D.meta.app="Pilot Perso"; D.meta.app_version=Sync.version; D.meta.version=VERSION;
+  D.meta.app="My Pilot Personal Edition"; D.meta.app_version=Sync.version; D.meta.version=VERSION;
   return api("docs/"+DOC,{method:"PUT",body:{data:D,baseRev:Sync.rev,reason:raison}})
   .then(function(r){
     if(r.status===409){ Sync.etat="conflit"; conflit(r.body); return false }
@@ -241,7 +243,7 @@ window.persoDiagnostic=function(){
     +ligne("Version des données","n°"+Sync.rev+(Sync.dernier?" · "+esc(Sync.dernier.toLocaleString("fr-FR")):""))
     +ligne("Tampon hors ligne",loc?"actif":"indisponible",loc?"ok":"ko")
     +ligne("Claude",esc(Idees.claude||"…"),/indisponible|non renseignée/.test(Idees.claude||"")?"ko":"ok")
-    +ligne("Version de l'application","Pilot Perso v"+esc(Sync.version||"?"))
+    +ligne("Version de l'application","My Pilot Personal Edition v"+esc(Sync.version||"?"))
     +ligne("Schéma de la base",Sync.schema?"v"+esc(String(Sync.schema)):"?")
     +ligne("Base","PST·PILOT v"+esc(BASE_PST))
     +ligne("Volume",D.chantiers.length+" activités · "+D.notes.length+" notes · "+(D.contacts||[]).length+" contacts · "+ko+" Ko")
@@ -274,7 +276,7 @@ window.persoJournal=function(){
   return '<div class="bloc" style="margin-top:18px"><div class="bloc-tete"><h2>Journal des versions</h2>'
     +'<span class="compte">v'+esc(Sync.version||"")+'</span></div><div class="bloc-corps diag">'
     +(h||'<div class="note-aide">Journal indisponible.</div>')
-    +'<div class="note-aide">Pilot Perso dérive de PST·PILOT v'+esc(BASE_PST)+'.</div></div></div>';
+    +'<div class="note-aide">My Pilot Personal Edition dérive de PST·PILOT v'+esc(BASE_PST)+'.</div></div></div>';
 };
 /* listes modifiables : celles des catégories actives, plus les listes communes */
 var LISTES_PRO={types_intervention:1,motifs_appel:1,motifs_convocation:1,themes_animation:1,types_transverse:1,
@@ -513,7 +515,7 @@ function modaleClaude(){
         +'<label style="font-size:13.5px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="ccKeep"'+(r.keepKey?" checked":"")+'> Mémoriser la clé dans ce navigateur</label>'
         +(r.hasKey?'<label style="font-size:13.5px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="ccClear"> Effacer la clé</label>':"")
       +'</div>'
-      +'<div class="note-aide">La clé reste dans ce navigateur : elle n\'est jamais envoyée au serveur Pilot Perso ni incluse dans les exports.</div>'
+      +'<div class="note-aide">La clé reste dans ce navigateur : elle n\'est jamais envoyée au serveur My Pilot Personal Edition ni incluse dans les exports.</div>'
       +'<div id="ccTest" class="note-aide" style="margin-top:12px;font-size:13.5px" role="status"></div>',
       [{txt:"Fermer",classe:"creux",fn:fermerModale},
        {txt:"Tester la connexion",classe:"creux",droite:true,fn:function(){ enregistrerClaude().then(testerClaude) }},
