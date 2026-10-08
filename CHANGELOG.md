@@ -4,6 +4,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+## [0.7.1] - 2026-10-08
+
 ### Corrections
 - « ＋ Ajouter à la liste… » ne proposait aucune saisie dans l'application de bureau et enregistrait la valeur `__add__` : la saisie se fait maintenant dans une fenêtre de l'application. Les `__add__` déjà enregistrés sont effacés au chargement.
 - Listes déroulantes (rattachement d'une note, etc.) : les libellés longs sont raccourcis, le texte complet reste en info-bulle. La liste ne déborde plus de la fenêtre.
