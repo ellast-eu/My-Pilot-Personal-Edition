@@ -8,6 +8,7 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 - Onglet Données : emplacement des instantanés affiché, et bouton « Ouvrir le dossier des instantanés » dans l'application de bureau.
 
 ### Modifications
+- Documentation : mise en place de Claude Code détaillée séparément pour l'application de bureau et pour le serveur (emplacement de `CLAUDE_CODE_OAUTH_TOKEN` dans le `.env` du serveur).
 - Paquets de bureau : description, résumé et page d'accueil (https://ellast.eu) mis à jour.
 
 ## [0.6.0] - 2026-10-08

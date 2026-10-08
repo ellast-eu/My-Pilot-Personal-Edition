@@ -43,17 +43,40 @@ Les données restent dans le dossier de l'utilisateur (`~/.config/My Pilot Perso
 
 ## Claude Code et l'abonnement claude.ai
 
-Le serveur appelle `claude -p` (Claude Code en mode non interactif). Connecté à un compte claude.ai Pro ou Max, l'usage est décompté des mêmes limites que claude.ai, sans facturation à part.
+Les cristallisations d'idées passent par Claude Code (`claude -p`, mode non interactif). Connecté à un compte claude.ai Pro ou Max, son usage est décompté des mêmes limites que claude.ai, sans facturation à part. La mise en place dépend de l'endroit où tourne My Pilot Personal Edition.
 
-1. Sur votre poste, avec Claude Code installé et connecté à votre compte : `claude setup-token`.
-2. Copier le jeton obtenu dans `.env` : `CLAUDE_CODE_OAUTH_TOKEN=…`, puis `docker compose up -d`.
-3. Dans **Idées → Réglages → Connexion à Claude**, choisir « Claude Code sur le serveur » (ou « Automatique ») et cliquer « Tester la connexion ».
+### Dans l'application de bureau
 
-Autre possibilité : se connecter directement dans le conteneur avec `docker compose exec -it app claude`, puis `/login`. La connexion est gardée dans le volume `claude-config`.
+Rien à mettre dans un fichier : l'application utilise le Claude Code installé sur la même machine.
 
-Le pont retire toujours `ANTHROPIC_API_KEY` de l'environnement de Claude Code, pour ne jamais basculer sur la facturation API par accident. Les demandes passent une par une, sans outils (Claude ne peut ni lire ni modifier de fichiers sur le serveur).
+1. Installer Claude Code sur la machine (voir la documentation de Claude Code).
+2. Dans un terminal, lancer `claude`, puis `/login` et se connecter avec le compte claude.ai. À faire une seule fois.
+3. Dans l'application : **Données → Idées et Claude → Connexion à Claude**, mode « Automatique » ou « Claude Code sur le serveur », puis « Tester la connexion ».
 
-Dans l'application de bureau, c'est le Claude Code de la machine qui est utilisé : l'installer et s'y connecter une fois (`claude`, puis `/login`) suffit.
+### Sur le serveur Docker
+
+Le conteneur n'a pas de navigateur pour se connecter : on lui donne un jeton longue durée, à placer dans le fichier **`.env` du serveur**.
+
+1. **Sur un ordinateur où Claude Code est installé et connecté** (le vôtre, pas le serveur), lancer :
+   ```sh
+   claude setup-token
+   ```
+   La commande affiche un jeton (une longue chaîne). Le copier.
+2. **Sur le serveur**, dans le dossier du projet (celui qui contient `docker-compose.yml`), ouvrir le fichier `.env`. Il a été créé à l'installation par `cp .env.example .env` ; s'il n'existe pas, le créer de la même façon.
+3. Dans `.env`, la ligne existe déjà, vide, dans la section « Claude Code ». La compléter :
+   ```sh
+   CLAUDE_CODE_OAUTH_TOKEN=le_jeton_copié
+   ```
+4. Appliquer : `docker compose up -d` (le conteneur redémarre avec le jeton).
+5. Dans l'interface web du serveur : **Données → Idées et Claude → Connexion à Claude**, puis « Tester la connexion ».
+
+Le jeton donne accès à votre abonnement : comme `SYNC_TOKEN` et `APP_PASSWORD`, il reste dans `.env`, qui n'est jamais versionné ni inclus dans les archives du projet.
+
+Autre possibilité, sans jeton : se connecter directement dans le conteneur avec `docker compose exec -it app claude`, puis `/login`. La connexion est gardée dans le volume `claude-config`.
+
+### Dans les deux cas
+
+Le pont retire toujours `ANTHROPIC_API_KEY` de l'environnement de Claude Code, pour ne jamais basculer sur la facturation API par accident. Les demandes passent une par une, sans outils : Claude ne peut ni lire ni modifier de fichiers.
 
 Si Claude Code n'est pas disponible, le mode copier-coller via une conversation claude.ai reste utilisable.
 
