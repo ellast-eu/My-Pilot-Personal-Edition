@@ -37,7 +37,7 @@ test('jeton du hub obligatoire', async () => {
   const r = await fetch(nodes.hub.url + '/api/sync', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"device":"x"}' });
   assert.equal(r.status, 401);
   for (const n of ['a', 'b']) {
-    const s = await call(n, '/api/sync/config', 'PUT', { url: nodes.hub.url, token: 'mauvais', enabled: true });
+    const s = await call(n, '/api/sync/config', 'PUT', { url: nodes.hub.url, token: 'mauvais', enabled: false }); // synchro manuelle : pas de course avec l'automatique
     assert.equal(s.status, 200);
   }
   const st = await syncNow('a');
