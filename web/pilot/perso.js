@@ -114,8 +114,17 @@ normaliser=function(o){
   /* anciens noms par défaut → nouveau nom ; un nom choisi par l'utilisatrice est conservé */
   if(["Pilot Perso","My Pilot","PST Pilot",""].indexOf(String(v.parametres.nom_app||"").trim())!==-1) v.parametres.nom_app=NOM_DEFAUT;
   sansModulesPro(v);
+  sansValeurAjout(v);
   return v;
 };
+/* « ＋ Ajouter à la liste… » enregistré tel quel (bug de l'application de bureau, 0.7.0) : on l'efface */
+function sansValeurAjout(v){
+  Object.keys(v).forEach(function(k){
+    if(!estTableau(v[k])) return;
+    v[k].forEach(function(f){ if(f && typeof f==="object") for(var c in f) if(f[c]==="__add__") f[c]="" });
+  });
+  for(var k in v.parametres) if(estTableau(v.parametres[k])) v.parametres[k]=v.parametres[k].filter(function(x){ return x!=="__add__" });
+}
 /* assistance téléphonique et compteur de traitement : supprimés de la version personnelle */
 function sansModulesPro(v){
   v.parametres.mod_dtdict=false;
@@ -1023,5 +1032,43 @@ function reessayer(){
 setInterval(reessayer,30000);
 window.addEventListener("online",reessayer);
 window.addEventListener("focus",reessayer);
+
+/* ===== saisie d'une valeur (remplace window.prompt, absent de l'application de bureau) ===== */
+window.persoSaisir=function(question,defaut){
+  return new Promise(function(fin){
+    var d=document.createElement("dialog"), fait=false;
+    d.className="perso-saisie";
+    d.innerHTML='<div class="mod-tete"><h3>'+esc(question)+'</h3><button class="mod-fermer" data-s="non" title="Annuler">✕</button></div>'
+      +'<div class="mod-corps"><input type="text" style="width:100%" maxlength="200"></div>'
+      +'<div class="mod-pied"><button class="b creux" data-s="non">Annuler</button><div class="droite"><button class="b" data-s="oui">Ajouter</button></div></div>';
+    document.body.appendChild(d);
+    var e=d.querySelector("input"); e.value=defaut||"";
+    function clore(v){ if(fait) return; fait=true; try{ d.close() }catch(x){} d.remove(); fin(v) }
+    d.addEventListener("click",function(ev){ var b=ev.target.closest("[data-s]"); if(b){ ev.preventDefault(); clore(b.dataset.s==="oui"?e.value:null) } });
+    e.addEventListener("keydown",function(ev){ if(ev.key==="Enter"){ ev.preventDefault(); ev.stopPropagation(); clore(e.value) } });
+    d.addEventListener("cancel",function(ev){ ev.preventDefault(); clore(null) });
+    d.showModal(); e.focus(); e.select();
+  });
+};
+
+/* ===== listes déroulantes : libellés longs raccourcis =====
+   La liste native s'ouvre à la largeur de son option la plus longue : avec des activités aux
+   libellés longs, elle débordait de la fenêtre (jusque sur l'écran voisin). Le texte complet
+   reste en info-bulle ; la valeur enregistrée ne change pas. */
+var OPT_MAX=52;
+function raccourcirOptions(racine){
+  if(!racine || !racine.querySelectorAll) return;
+  var l=racine.tagName==="OPTION"?[racine]:racine.querySelectorAll("option");
+  for(var i=0;i<l.length;i++){
+    var o=l[i], t=o.textContent;
+    if(o.dataset.plein!==undefined || t.length<=OPT_MAX) continue;
+    o.dataset.plein=t; o.title=t;
+    o.textContent=t.slice(0,OPT_MAX-1).replace(/\s+\S*$/,"")+" …";
+  }
+}
+new MutationObserver(function(ms){
+  ms.forEach(function(m){ for(var i=0;i<m.addedNodes.length;i++) if(m.addedNodes[i].nodeType===1) raccourcirOptions(m.addedNodes[i]) });
+}).observe(document.body,{childList:true,subtree:true});
+raccourcirOptions(document.body);
 
 })();

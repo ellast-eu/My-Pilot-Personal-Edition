@@ -127,6 +127,27 @@ PATCHES = [
      "toast(\"Ce fichier n'est pas une configuration PST Pilot\",true)", "toast(\"Ce fichier n'est pas une configuration de catégories\",true)", False),
     ("import : format reconnu",
      'toast("Fichier non reconnu : structure PST Pilot absente",true)', 'toast("Fichier non reconnu : ce n\'est pas un export de données du pilotage",true)', False),
+    ("listes gérables : saisie dans une fenêtre de l'application (window.prompt n'existe pas dans Electron)",
+     """    if(t.value==="__add__"){
+      var v=(window.prompt("Nouvelle valeur à ajouter à la liste :")||"").trim();
+      if(v && l.indexOf(v)===-1){ l.push(v); modifie(); toast('« '+v+' » ajouté à la liste') }
+      var choix=v||t.dataset.prec||l[0]||"";
+      t.innerHTML=selOpts(l,choix)+'<option value="__add__">＋ Ajouter à la liste…</option>';
+      t.value=choix; t.dataset.prec=choix;
+    }else t.dataset.prec=t.value;""",
+     """    if(t.value==="__add__"){
+      var prec=t.dataset.prec||l[0]||"";
+      t.value=prec;                       /* jamais « __add__ » enregistré pendant la saisie */
+      window.persoSaisir("Nouvelle valeur à ajouter à la liste").then(function(v){
+        v=(v||"").trim();
+        var l2=D.parametres[cle]||(D.parametres[cle]=[]);
+        if(v && l2.indexOf(v)===-1){ l2.push(v); modifie(); toast('« '+v+' » ajouté à la liste') }
+        var choix=v||prec;
+        if(!t.isConnected) return;
+        t.innerHTML=selOpts(l2,choix)+'<option value="__add__">＋ Ajouter à la liste…</option>';
+        t.value=choix; t.dataset.prec=choix;
+      });
+    }else t.dataset.prec=t.value;""", False),
     ("couche perso chargée après le script principal",
      '</body>', '<script src="perso.js"></script>\n</body>', False),
 ]
