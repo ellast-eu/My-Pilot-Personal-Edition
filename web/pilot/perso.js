@@ -97,8 +97,18 @@ normaliser=function(o){
   if(p.profil!=="perso") appliquerProfil(v,p);
   else if(!p.mig_appels) v.parametres.rubriques=v.parametres.rubriques.filter(function(r){ return r.auto!=="appels" });
   for(k in LISTES_PERSO) if(!estTableau(v.parametres[k])) v.parametres[k]=LISTES_PERSO[k].slice();
+  sansModulesPro(v);
   return v;
 };
+/* assistance téléphonique et compteur de traitement : supprimés de la version personnelle */
+function sansModulesPro(v){
+  v.parametres.mod_dtdict=false;
+  v.parametres.mod_permanence=false;
+  v.parametres.rubriques=(v.parametres.rubriques||[]).filter(function(r){ return r.auto!=="appels" && r.auto!=="dtdict" });
+  v.permanence.actif=false; v.permanence.rappels=[];
+}
+tickPermanence=function(){};
+tickCompteur=function(){};
 var serialise0=serialise;
 serialise=function(format){
   var t=serialise0(format);
@@ -214,6 +224,19 @@ majEtat=function(){
 };
 
 /* bloc de la vue Données */
+window.persoBlocIdees=function(){
+  var st=Idees.claude;
+  return '<div class="bloc" style="margin-top:18px"><div class="bloc-tete"><h2>Idées et Claude</h2></div><div class="bloc-corps">'
+    +'<div class="note-aide" style="margin:0 0 10px">'
+      +(st?'Claude : <b>'+esc(st)+'</b>.':'Chargement de l\'onglet Idées…')
+      +' Les catégories des idées sont celles des activités.</div>'
+    +'<div class="ligne">'
+      +'<button class="b" data-pp="claude">Connexion à Claude</button>'
+      +'<button class="b creux" data-act="param">Catégories</button>'
+      +'<button class="b creux" data-pp="idees-export">Exporter les idées</button>'
+      +'<button class="b creux" data-pp="idees-import">Importer des idées</button>'
+    +'</div></div></div>';
+};
 window.persoBlocDonnees=function(){
   var etat={ok:"synchronisées",horsligne:"hors ligne (gardées dans ce navigateur)",conflit:"en conflit",init:"en cours de chargement"}[Sync.etat]||"";
   return '<div class="ligne">'
@@ -313,7 +336,133 @@ rendre=function(){
   }
   b.style.display="none"; v.style.display="";
   rendre0();
+  if(vueActive==="donnees"){
+    var blocs=v.querySelectorAll(".bloc"),i;
+    for(i=0;i<blocs.length;i++){
+      var h=blocs[i].querySelector(".bloc-tete h2");
+      if(h && h.textContent==="Données et sauvegardes"){ blocs[i].insertAdjacentHTML("afterend",window.persoBlocIdees()); break }
+    }
+  }
 };
+
+/* --- dialogue avec l'onglet Idées (même origine, messages vérifiés) --- */
+var Idees={claude:null,attente:{},prete:false};
+window.__pilotIdees=Idees;
+function fenetreIdees(){ var f=boite().querySelector("iframe"); return f && f.contentWindow }
+function demanderIdees(type,data,delai){
+  return new Promise(function(ok,ko){
+    var w=fenetreIdees();
+    if(!w || !Idees.prete) return ko(new Error("l'onglet Idées n'est pas encore chargé"));
+    var id=uid(); Idees.attente[id]=ok;
+    w.postMessage(Object.assign({src:"pilot",type:type,requestId:id},data||{}),location.origin);
+    setTimeout(function(){
+      if(Idees.attente[id]){ delete Idees.attente[id]; ko(new Error("l'onglet Idées ne répond pas")) }
+    },delai||10000);
+  });
+}
+function catsPourIdees(){
+  return categories().map(function(K){ return {cle:K.cle,lib:K.lib,couleur:K.couleur,desc:K.place||""} });
+}
+var dernieresCats="",minuteurCats=null;
+function pousserCats(){
+  var l=catsPourIdees(),j=JSON.stringify(l),w=fenetreIdees();
+  if(j===dernieresCats || !Idees.prete || !w) return;
+  dernieresCats=j;
+  w.postMessage({src:"pilot",type:"categories",liste:l},location.origin);
+}
+var modifie1=modifie;
+modifie=function(){
+  modifie1();
+  clearTimeout(minuteurCats); minuteurCats=setTimeout(pousserCats,300);
+};
+
+function modaleClaude(){
+  demanderIdees("get-claude").then(function(r){
+    var c=r.cfg||{},L=r.local||{};
+    var opts=function(l,v){ return l.map(function(x){ return '<option value="'+x[0]+'"'+(x[0]===v?" selected":"")+'>'+esc(x[1])+'</option>' }).join("") };
+    ouvrirModale("Connexion à Claude",
+      '<div class="note-aide" style="margin:0 0 12px">Claude Code sur le serveur : <b>'
+        +(L.available?"disponible"+(L.version?" ("+esc(L.version)+")":""):"indisponible")+'</b>'
+        +' · clé API : <b>'+(r.hasKey?"renseignée":"aucune")+'</b>'
+        +' · mode utilisé : <b>'+esc(r.libelle||"")+'</b></div>'
+      +'<div class="grille">'
+        +'<label class="champ">Mode<select id="ccMode">'+opts([["auto","Automatique"],["local","Claude Code sur le serveur"],
+            ["manuel","Copier-coller via claude.ai"],["cle","Clé API Anthropic"]],c.mode||"auto")+'</select></label>'
+        +'<label class="champ">Modèle Claude Code<select id="ccModel">'+opts([["haiku","Haiku : rapide, peu de quota"],
+            ["sonnet","Sonnet : équilibré"],["opus","Opus : approfondi, plus de quota"]],c.ccModel||"sonnet")+'</select></label>'
+      +'</div>'
+      +'<div class="note-aide">Automatique : Claude Code du serveur s\'il est prêt, sinon la clé API si elle est renseignée, sinon le copier-coller. '
+        +'Claude Code et le copier-coller utilisent votre abonnement claude.ai ; la clé API est facturée à part.</div>'
+      +'<label class="champ" style="margin-top:12px">Conversation dédiée pour le copier-coller (facultatif)'
+        +'<input type="text" id="ccConv" value="'+esc(c.convUrl||"")+'" placeholder="https://claude.ai/project/…"></label>'
+      +'<label class="champ" style="margin-top:12px">Consignes personnelles, ajoutées à chaque demande'
+        +'<textarea id="ccPerso" style="width:100%;min-height:60px;padding:8px;border:1px solid var(--trait);border-radius:2px" '
+        +'placeholder="Ex. : surtout des week-ends libres, budget modeste, étapes courtes">'+esc(c.consignes||"")+'</textarea></label>'
+      +'<hr class="sep">'
+      +'<div class="grille">'
+        +'<label class="champ">Clé API (mode clé API)<input type="password" id="ccKey" autocomplete="off" style="padding:6px 8px;border:1px solid var(--trait);border-radius:2px;background:#fff" placeholder="'
+          +(r.hasKey?"déjà renseignée : laisser vide pour la garder":"sk-ant-…")+'"></label>'
+        +'<label class="champ">Modèle API<input type="text" id="ccApiModel" value="'+esc(c.model||"claude-sonnet-5-5")+'"></label>'
+        +'<label class="champ">Longueur max (jetons)<input type="number" id="ccMax" min="200" max="8000" step="100" value="'+(+c.maxTokens||1200)+'"></label>'
+      +'</div>'
+      +'<div class="ligne" style="margin-top:8px">'
+        +'<label style="font-size:13.5px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="ccKeep"'+(r.keepKey?" checked":"")+'> Mémoriser la clé dans ce navigateur</label>'
+        +(r.hasKey?'<label style="font-size:13.5px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="ccClear"> Effacer la clé</label>':"")
+      +'</div>'
+      +'<div class="note-aide">La clé reste dans ce navigateur : elle n\'est jamais envoyée au serveur Pilot Perso ni incluse dans les exports.</div>'
+      +'<div id="ccTest" class="note-aide" style="margin-top:12px;font-size:13.5px" role="status"></div>',
+      [{txt:"Fermer",classe:"creux",fn:fermerModale},
+       {txt:"Tester la connexion",classe:"creux",droite:true,fn:function(){ enregistrerClaude().then(testerClaude) }},
+       {txt:"Enregistrer",droite:true,fn:function(){ enregistrerClaude().then(function(ok){ if(ok){ fermerModale(); toast("Connexion à Claude enregistrée") } }) }}]);
+  }).catch(function(e){ toast("Réglages de Claude indisponibles : "+e.message,true) });
+}
+function enregistrerClaude(){
+  var cle=valChamp("ccKey") || ($("#ccKey")?$("#ccKey").value.trim():"");
+  var eff=$("#ccClear") && $("#ccClear").checked;
+  var cfg={mode:$("#ccMode").value,ccModel:$("#ccModel").value,convUrl:$("#ccConv").value.trim(),
+    consignes:$("#ccPerso").value,model:$("#ccApiModel").value.trim(),maxTokens:+$("#ccMax").value||1200};
+  return demanderIdees("set-claude",{cfg:cfg,apiKey:eff?"":(cle||null),keepKey:$("#ccKeep").checked})
+    .then(function(r){ Idees.claude=r.claude; return true })
+    .catch(function(e){ toast("Enregistrement impossible : "+e.message,true); return false });
+}
+function testerClaude(ok){
+  var z=$("#ccTest"); if(!ok||!z) return;
+  z.textContent="Test en cours…"; z.style.color="";
+  demanderIdees("test-claude",{},200000).then(function(r){
+    z.textContent=r.t; z.style.color=r.ok?"var(--vert)":"var(--rouge)";
+  }).catch(function(e){ z.textContent=e.message; z.style.color="var(--rouge)" });
+}
+function exporterIdees(){
+  api("docs/ideas").then(function(r){
+    if(r.status===404){ toast("Aucune idée enregistrée pour l'instant",true); return }
+    if(!r.ok) throw new Error();
+    telecharger("pilot-perso-idees-"+auj()+".json",JSON.stringify(r.body.data,null,2));
+  }).catch(function(){ toast("Export impossible : serveur injoignable",true) });
+}
+var entreeIdees=document.createElement("input");
+entreeIdees.type="file"; entreeIdees.accept=".json,application/json"; entreeIdees.style.display="none";
+document.body.appendChild(entreeIdees);
+entreeIdees.addEventListener("change",function(){
+  var f=entreeIdees.files[0]; entreeIdees.value="";
+  if(!f) return;
+  var lr=new FileReader();
+  lr.onload=function(){
+    var o; try{ o=JSON.parse(lr.result) }catch(e){ toast("Fichier illisible : ce n'est pas du JSON valide",true); return }
+    if(!o || !estTableau(o.ideas)){ toast("Fichier non reconnu : choisissez un export des idées",true); return }
+    if(!confirm("Remplacer les idées actuelles par celles du fichier ("+o.ideas.length+" idée(s)) ? La version actuelle reste dans l'historique du serveur.")) return;
+    demanderIdees("importer",{data:o}).then(function(){ toast("Idées importées") })
+      .catch(function(e){ toast("Import impossible : "+e.message,true) });
+  };
+  lr.readAsText(f);
+});
+document.addEventListener("click",function(e){
+  var el=e.target.closest&&e.target.closest("[data-pp]");
+  if(!el) return;
+  var a=el.dataset.pp;
+  if(a==="claude") modaleClaude();
+  else if(a==="idees-export") exporterIdees();
+  else if(a==="idees-import") entreeIdees.click();
+});
 
 function catProjet(){
   var l=categories(),i;
@@ -331,7 +480,7 @@ function creerActivite(p){
   var K=catParNom(p.categorie)||catProjet();
   if(!K) throw new Error("Aucune catégorie d'activité");
   var c={id:uid(),categorie:K.cle,cree_le:new Date().toISOString(),
-    libelle:String(p.titre||"Projet").slice(0,200),reference:"",date:p.date||auj(),heure:"",duree:0,
+    libelle:String(p.titre||"Projet").slice(0,200),reference:"",date:dateValide(p.date)?p.date:"",heure:"",duree:0,
     type:"",tiers:"",contact_nom:"",contact_tel:"",commune:"",adresse:"",
     statut:statutAdmis(K,"planifie")?"planifie":"",priorite:"",
     commentaire:String(p.synthese||""),eprouvante:false};
@@ -353,6 +502,18 @@ function creerActivite(p){
 window.addEventListener("message",function(e){
   if(e.origin!==location.origin || !e.data || e.data.src!=="cristallisoir") return;
   var m=e.data,rep=function(o){ e.source.postMessage(Object.assign({src:"pilot",requestId:m.requestId},o),e.origin) };
+  if(m.type==="reponse"){
+    var f=Idees.attente[m.requestId];
+    if(f){ delete Idees.attente[m.requestId]; f(m) }
+    return;
+  }
+  if(m.type==="pret" || m.type==="etat-claude"){
+    if(m.type==="pret"){ Idees.prete=true; dernieresCats=""; pousserCats() }
+    Idees.claude=m.claude||Idees.claude;
+    if(vueActive==="donnees") rendreDonneesSiCalme();
+    return;
+  }
+  if(m.type==="ouvrir-categories"){ vueActive="param"; rendre(); return }
   if(m.type==="creer-activite"){
     try{
       var c=creerActivite(m.payload||{});
@@ -363,7 +524,7 @@ window.addEventListener("message",function(e){
     if(!chantierPar(m.id)){ toast("Cette activité n'existe plus",true); return }
     vueActive="chantiers"; rendre(); editerChantier(m.id);
   }else if(m.type==="categories"){
-    rep({type:"categories",liste:categories().map(function(K){ return {cle:K.cle,lib:K.lib,couleur:K.couleur} })});
+    rep({type:"categories",liste:catsPourIdees()});
   }else if(m.type==="etat-activites"){
     rep({type:"etat-activites",liste:(m.ids||[]).map(function(id){
       var c=chantierPar(id); return {id:id,existe:!!c,libelle:c?c.libelle:"",clos:c?estClos(c):false};

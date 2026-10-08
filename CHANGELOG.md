@@ -4,6 +4,16 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+### Retraits
+- Modules assistance téléphonique et compteur de traitement supprimés de la version personnelle : écran du jour, paramètres, exports CSV, journal et rapports.
+- Planning de la semaine retiré de l'onglet Idées : il n'était pas relié aux dates du pilotage.
+
+### Modifications
+- Onglet Idées présenté en fenêtres, comme les autres vues du pilotage.
+- Les catégories des idées sont celles des activités, gérées à un seul endroit.
+- Une idée unifiée porte une date prévue, reprise par l'activité créée (vide : à planifier).
+- Connexion à Claude, export et import des idées déplacés dans l'onglet Données ; seule la sensibilité du regroupement reste dans Idées.
+
 ## [0.1.0] - 2026-10-08
 
 Première version : PST·PILOT 3.13.1 décliné en pilotage personnel, avec le Cristallisoir.

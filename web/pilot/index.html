@@ -3204,13 +3204,12 @@ function vueJournal(){
       +parJour[d].map(function(x){ return x.kind==="note"?fragNote(x.o):fragAppel(x.o,true) }).join("")+'</div>';
   }).join("");
   return '<div class="bloc"><div class="bloc-tete"><h2>Journal</h2>'
-    +'<span class="compte">'+nbN+' note(s) · '+nbA+' appel(s)</span></div>'
+    +'<span class="compte">'+nbN+' note(s)</span></div>'
   +'<div class="bloc-corps">'
   +'<div class="ligne" style="margin:0 0 14px">'
-    +'<input type="search" id="fnotes" placeholder="Rechercher dans les notes et les appels…" value="'+esc(filtreNotes)+'" style="flex:1;min-width:200px">'
-    +'<select id="fjournal">'+selOpts([["","Notes et appels"],["notes","Notes seules"],["appels","Appels seuls"]],filtreJournal)+'</select>'
+    +'<input type="search" id="fnotes" placeholder="Rechercher dans les notes…" value="'+esc(filtreNotes)+'" style="flex:1;min-width:200px">'
   +'</div>'
-  +(corps||'<div class="vide"><b>Journal vide</b>Les notes et les appels de permanence apparaîtront ici.</div>')
+  +(corps||'<div class="vide"><b>Journal vide</b>Les notes apparaîtront ici.</div>')
   +'</div></div>';
 }
 function vueDonnees(){
@@ -3225,8 +3224,6 @@ function vueDonnees(){
       +'<button class="b creux" data-act="exp-json">Exporter en JSON</button>'
       +'<button class="b creux" data-act="exp-csv">Exporter les activités (CSV)</button>'
       +'<button class="b creux" data-act="exp-csvn">Exporter les notes (CSV)</button>'
-      +'<button class="b creux" data-act="exp-csvd">Exporter le suivi DT/DICT (CSV)</button>'
-      +'<button class="b creux" data-act="exp-csva">Exporter les appels (CSV)</button>'
     +'</div>'
     +'<div class="ligne" style="margin-top:8px">'
       +'<span class="puce-lbl">Période des CSV</span>'
@@ -3254,8 +3251,8 @@ function vueDonnees(){
     +'</div>'
     +'<div class="grille" style="margin-top:10px">'
       +'<label class="champ">Nom affiché sur le rapport<input type="text" id="idNom" value="'+esc(D.parametres.id_nom||"")+'" placeholder="Prénom NOM"></label>'
-      +'<label class="champ">Fonction<input type="text" id="idFonc" value="'+esc(D.parametres.id_fonction||"")+'" placeholder="Sécurité des tiers"></label>'
-      +'<label class="champ">Entité<input type="text" id="idEnt" value="'+esc(D.parametres.id_entite||"")+'" placeholder="DR Sillon Rhodanien"></label>'
+      +'<label class="champ">Fonction<input type="text" id="idFonc" value="'+esc(D.parametres.id_fonction||"")+'" placeholder="Facultatif"></label>'
+      +'<label class="champ">Entité<input type="text" id="idEnt" value="'+esc(D.parametres.id_entite||"")+'" placeholder="Facultatif"></label>'
     +'</div>'
     +'<label class="champ" style="margin-top:8px">Faits marquants — repris dans le rapport PDF'
       +'<textarea id="rapFaits" style="width:100%;min-height:64px;padding:8px;border:1px solid var(--trait);border-radius:2px" '
@@ -3275,7 +3272,7 @@ function vueDonnees(){
       +'<button class="b" data-act="cr">Établir le compte-rendu</button>'
       +((dateExport&&dateExport!==auj())?'<button class="lien" data-act="cr-auj">revenir à aujourd\'hui</button>':"")
     +'</div>'
-    +'<div class="note-aide">Vos données sont conservées dans le fichier lié. Aucun autre fichier n\'est lu au démarrage.</div>'
+    +'<div class="note-aide">Vos données sont enregistrées sur le serveur, avec leur historique de versions.</div>'
   +'</div></div>'
   +'<div class="bloc" style="margin-top:18px"><div class="bloc-tete"><h2>Diagnostic du poste</h2></div><div class="bloc-corps diag">'
     +'<div>Écriture directe du fichier<b class="'+(fsa?"ok":"ko")+'">'+(fsa?"disponible":"indisponible")+'</b></div>'
@@ -3404,13 +3401,8 @@ function vueDonnees(){
     +'<hr class="sep">'
     +'<div class="grille" style="margin-bottom:10px">'
       +'<label class="champ">Nom de l\'application<input type="text" id="nomApp" value="'+esc(D.parametres.nom_app||"PST Pilot")+'"></label>'
-      +'<label class="champ">Titre du compteur<input type="text" id="titreDt" value="'+esc(D.parametres.titre_dtdict||"")+'"></label>'
     +'</div>'
     +'<div class="ligne" style="margin-bottom:8px">'
-      +'<label style="font-size:13.5px;display:flex;gap:6px;align-items:center">'
-        +'<input type="checkbox" id="modPerm" '+(D.parametres.mod_permanence!==false?"checked":"")+'> Assistance téléphonique</label>'
-      +'<label style="font-size:13.5px;display:flex;gap:6px;align-items:center">'
-        +'<input type="checkbox" id="modDt" '+(D.parametres.mod_dtdict!==false?"checked":"")+'> Compteur de traitement</label>'
       +'<label style="font-size:13.5px;display:flex;gap:6px;align-items:center">'
         +'<input type="checkbox" id="modSplash" '+(D.parametres.splash!==false?"checked":"")+'> Animation d\'ouverture</label>'
       +'<span class="note-aide" style="margin:0">blocs affichés sur l\'écran du jour</span>'
@@ -5893,7 +5885,7 @@ function construireRapportPDF(a,b){
     +(o.ouvres?', soit '+(Math.round(o.notes.length/o.ouvres*10)/10).toString().replace(".",",")+' par jour ouvré':"")+'.'
     +(o.parTn.length?' '+o.parTn.slice(0,5).map(function(x){
         return esc(x[0])+' '+(o.notes.length?Math.round(x[1]*100/o.notes.length):0)+' %' }).join(', ')+'.':"")+'</p>';
-  h+='<div class="rp-duo">'
+  if(false) h+='<div class="rp-duo">'
     +'<div><h2>'+esc(P.titre_dtdict||"Compteur de traitement")+'</h2><table class="rp-tab">'
       +'<tr><th>Indicateur</th><th style="text-align:right">Période</th><th style="text-align:right">Préc.</th></tr>'
       +'<tr><td>Jours de traitement</td><td class="n">'+o.dt.jours+'</td><td class="n">'+q.dt.jours+'</td></tr>'
