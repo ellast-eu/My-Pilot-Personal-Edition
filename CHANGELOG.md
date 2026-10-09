@@ -4,6 +4,26 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+### Ajouts
+- **Onglet Veilles** : des flux RSS ou Atom collectés à votre rythme, filtrés, dédoublonnés et rangés en fiches.
+  - **Nouvelle veille** à partir d'un modèle (Point cyber et Point CVE, à partir des flux du CERT-FR) ou vide.
+  - **Fenêtre d'une veille** :
+    - **sources** : plusieurs flux, chacun avec un bouton « Vérifier » qui affiche son titre et ses derniers articles ;
+    - **filtres** : mots-clés à garder ou à écarter, sans tenir compte des accents ni de la casse ; ancienneté maximale ; nombre d'éléments par fiche ;
+    - **rythme** : toutes les N heures, chaque jour à une heure donnée, ou chaque semaine ;
+    - **exécutant** au choix : le serveur, ou cet appareil quand l'application est ouverte ;
+    - **sortie** : notification, fiche même sans nouveauté.
+  - **Tester** : essai à blanc qui montre ce qui serait collecté, gardé et nouveau, sans rien enregistrer.
+  - **Exécuter maintenant**.
+  - **Fiches** : non lues mises en avant, pastille sur l'onglet, notification du système. Sur chaque élément, « → Idée à creuser » et « → Activité à faire ».
+  - Ce qui a déjà figuré dans une fiche n'est jamais repris. Les 100 dernières fiches de chaque veille sont gardées.
+  - Configuration et fiches synchronisées entre vos appareils comme le reste.
+- **Récupération des flux protégée** :
+  - adresses du réseau local refusées (`VEILLES_RESEAU_LOCAL=1` pour les autoriser) ;
+  - redirections vérifiées ;
+  - 3 Mo et 15 s au plus par flux ;
+  - contenu lu comme du texte, jamais exécuté.
+
 ## [0.10.0] - 2026-10-09
 
 ### Ajouts

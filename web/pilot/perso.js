@@ -1126,6 +1126,286 @@ function marquerRecuesP(){
 setTimeout(function(){ majPartage(false).then(surveillerRecues) },3000);
 setInterval(surveillerRecues,20000);
 
+/* ===== Veilles : flux RSS collectés, filtrés et rangés en fiches (document « veilles ») ===== */
+var VE={doc:null,rev:0,info:null,sel:"",dernierLu:null,pret:false,essai:null};
+var MODELES_VEILLE=[
+  {cle:"vide",nom:"Veille vide",desc:"Vos propres flux RSS ou Atom.",v:{nom:"Nouvelle veille",sources:[],filtres:{ageHeures:72,max:30},rythme:{type:"jour",heure:"07:30"}}},
+  {cle:"cyber",nom:"Point cyber",desc:"CERT-FR, flux complet : alertes, avis, actualités.",v:{nom:"Point cyber",sources:[{nom:"CERT-FR",url:"https://cert.ssi.gouv.fr/feed/"}],filtres:{ageHeures:48,max:30},rythme:{type:"jour",heure:"07:30"}}},
+  {cle:"cve",nom:"Point CVE",desc:"Avis de sécurité du CERT-FR, filtrés sur vos logiciels (liste à compléter).",v:{nom:"Point CVE",sources:[{nom:"CERT-FR avis",url:"https://cert.ssi.gouv.fr/avis/feed/"},{nom:"CERT-FR alertes",url:"https://cert.ssi.gouv.fr/alerte/feed/"}],filtres:{inclure:"debian, linux, openssh, node.js, electron, firefox, qubes, xen",ageHeures:72,max:40},rythme:{type:"jour",heure:"07:30"}}}
+];
+var JOURS=["","lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
+function apiVeilles(){ return api("docs/veilles").then(function(r){
+  if(r.status===404){ VE.doc={veilles:[],fiches:[],etats:[]}; VE.rev=0; return }
+  if(r.ok){ VE.doc=r.body.data; VE.rev=r.body.rev; ["veilles","fiches","etats"].forEach(function(k){ if(!estTableau(VE.doc[k])) VE.doc[k]=[] }) }
+}) }
+function enregistrerVeilles(){
+  return api("docs/veilles",{method:"PUT",body:{data:VE.doc,baseRev:VE.rev}}).then(function(r){
+    if(r.status===409) return apiVeilles().then(function(){ throw new Error("modifié ailleurs entre-temps : réessayez") });
+    if(!r.ok) throw new Error((r.body&&r.body.message)||"enregistrement refusé");
+    VE.rev=r.body.rev; if(r.body.data) VE.doc=r.body.data;
+  });
+}
+function veillePar(id){ return (VE.doc.veilles||[]).filter(function(v){ return v.id===id })[0] }
+function etatVeille(id){ return (VE.doc.etats||[]).filter(function(e){ return e.id===id })[0]||{} }
+function fichesDe(id){ return (VE.doc.fiches||[]).filter(function(f){ return f && (!id||f.veille===id) }).sort(function(a,b){ return (b.at||"").localeCompare(a.at||"") }) }
+function nonLues(){ return (VE.doc&&VE.doc.fiches||[]).filter(function(f){ return f && !f.lue }) }
+function libExecuteur(v){
+  if(v.executeur==="serveur") return "le serveur";
+  if(VE.info && v.executeur===VE.info.executeur) return "cet appareil";
+  return v.executeurNom?"l'appareil « "+v.executeurNom+" »":"un autre appareil";
+}
+function libRythme(r){
+  r=r||{};
+  if(r.type==="heures") return "toutes les "+(r.n||6)+" h";
+  if(r.type==="semaine") return "chaque "+(JOURS[r.jour||1])+" à "+(r.heure||"07:00");
+  return "chaque jour à "+(r.heure||"07:00");
+}
+function quandV(t){ return t?new Date(t).toLocaleString("fr-FR",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"" }
+function vueVeilles(){
+  if(!VE.doc) return '<div class="bloc"><div class="bloc-corps"><div class="note-aide">Chargement des veilles…</div></div></div>';
+  var l=VE.doc.veilles.filter(function(v){ return v&&v.id });
+  var gauche='<div class="bloc"><div class="bloc-tete"><h2>Mes veilles</h2><span class="compte">'+l.length+'</span></div><div class="bloc-corps">'
+    +(l.length?l.map(function(v){
+      var e=etatVeille(v.id), nl=fichesDe(v.id).filter(function(f){ return !f.lue }).length, sel=VE.sel===v.id;
+      return '<div style="padding:9px 10px;margin:0 -10px;border-bottom:1px dashed var(--trait);'+(sel?'background:#F3F3F0;':'')+'cursor:pointer" data-ve="choisir" data-id="'+esc(v.id)+'">'
+        +'<div style="display:flex;gap:8px;align-items:baseline"><b style="font-size:14.5px">'+esc(v.nom)+'</b>'
+        +(nl?'<span class="pp-pastille" style="display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:var(--rouge,#D8232A);color:#fff;font-size:11px;line-height:18px;text-align:center">'+nl+'</span>':"")
+        +'<span class="note-aide" style="margin:0 0 0 auto">'+(v.actif?esc(libRythme(v.rythme)):"en pause")+'</span></div>'
+        +'<div class="note-aide" style="margin:2px 0 0">'+(v.sources||[]).length+' source(s) · exécutée par '+esc(libExecuteur(v))
+        +(e.derniere?' · dernière '+esc(quandV(e.derniere))+(e.nouveaux!=null?' ('+e.nouveaux+' nouveau'+(e.nouveaux>1?'x':'')+')':""):' · jamais exécutée')+'</div>'
+        +(e.erreur?'<div class="note-aide" style="margin:2px 0 0;color:var(--rouge)">'+esc(e.erreur)+'</div>':"")
+        +'<div class="ligne" style="margin-top:6px"><button class="b mini creux" data-ve="modifier" data-id="'+esc(v.id)+'">Modifier</button>'
+        +'<button class="b mini creux" data-ve="executer" data-id="'+esc(v.id)+'">Exécuter maintenant</button></div></div>';
+    }).join(""):'<div class="vide"><b>Aucune veille</b>Créez-en une à partir d\'un modèle ou de vos propres flux RSS.</div>')
+    +'<div class="ligne" style="margin-top:12px"><button class="b" data-ve="nouvelle">+ Nouvelle veille</button>'
+    +(VE.sel?'<button class="b creux" data-ve="choisir" data-id="">Toutes les fiches</button>':"")+'</div></div></div>';
+  var fiches=fichesDe(VE.sel).slice(0,40), nlt=fiches.filter(function(f){ return !f.lue }).length;
+  var droite='<div class="bloc"><div class="bloc-tete"><h2>Fiches'+(VE.sel&&veillePar(VE.sel)?' — '+esc(veillePar(VE.sel).nom):"")+'</h2><span class="compte">'+(nlt?nlt+' non lue(s)':fiches.length)+'</span></div><div class="bloc-corps">'
+    +(nlt?'<div class="ligne" style="margin:-4px 0 10px"><button class="b mini creux" data-ve="tout-lu">Tout marquer comme lu</button></div>':"")
+    +(fiches.length?fiches.map(ficheHTML).join(""):'<div class="vide"><b>Aucune fiche pour l\'instant</b>Une fiche apparaît à chaque exécution qui trouve du nouveau.</div>')
+    +'</div></div>';
+  return '<div style="display:grid;grid-template-columns:minmax(260px,360px) minmax(0,1fr);gap:18px;align-items:start" class="pp-veilles">'+gauche+droite+'</div>'
+    +'<style>@media (max-width:860px){.pp-veilles{grid-template-columns:1fr !important}}</style>';
+}
+function ficheHTML(f){
+  var ouverte=!f.lue || VE.ouvertes&&VE.ouvertes[f.id];
+  return '<div style="border:1px solid var(--trait);border-left:3px solid '+(f.lue?"var(--trait)":"var(--rouge,#D8232A)")+';padding:10px 12px;margin-bottom:12px">'
+    +'<div style="display:flex;gap:10px;align-items:baseline;cursor:pointer" data-ve="deplier" data-id="'+esc(f.id)+'"><b>'+esc(f.nom||"Veille")+'</b>'
+    +'<span class="mono" style="font-size:12px">'+esc(quandV(f.at))+'</span>'
+    +'<span class="note-aide" style="margin:0 0 0 auto">'+(f.items||[]).length+' élément(s)'+(f.stats?' · '+f.stats.collectes+' collecté(s), '+f.stats.gardes+' après filtres':"")+'</span></div>'
+    +(ouverte?((f.items||[]).map(function(it,i){
+        return '<div style="padding:8px 0;border-top:1px dashed var(--trait);margin-top:8px">'
+          +'<div><a href="'+esc(it.lien||"#")+'" target="_blank" rel="noopener noreferrer" style="font-weight:600;color:#2B4C6F">'+esc(it.titre)+'</a></div>'
+          +'<div class="note-aide" style="margin:2px 0">'+esc(it.source||"")+(it.date?' · '+esc(quandV(it.date)):"")+'</div>'
+          +(it.extrait?'<div style="font-size:13.5px">'+esc(it.extrait)+'</div>':"")
+          +'<div class="ligne" style="margin-top:4px"><button class="lien" data-ve="vers-idee" data-f="'+esc(f.id)+'" data-i="'+i+'">→ Idée à creuser</button>'
+          +'<button class="lien" data-ve="vers-activite" data-f="'+esc(f.id)+'" data-i="'+i+'">→ Activité à faire</button></div></div>';
+      }).join("")
+      +((f.erreurs||[]).length?'<div class="note-aide" style="color:var(--rouge)">Sources en erreur : '+esc(f.erreurs.map(function(e){ return e.url+" ("+e.message+")" }).join(" · "))+'</div>':"")
+      +(f.lue?"":'<div class="ligne" style="margin-top:8px"><button class="b mini creux" data-ve="lue" data-id="'+esc(f.id)+'">Marquer comme lue</button></div>'))
+    :"")
+    +'</div>';
+}
+/* fenêtre d'une veille */
+function modaleVeille(v,neuve){
+  v=JSON.parse(JSON.stringify(v));
+  v.sources=v.sources||[]; v.filtres=v.filtres||{}; v.rythme=v.rythme||{type:"jour",heure:"07:30"}; v.sortie=v.sortie||{notifier:true};
+  VE.edit=v; VE.essai=null;
+  var srv=SyncDist.mode!=="application" || (SyncDist.st&&SyncDist.st.configured);
+  if(!v.executeur) v.executeur=srv?"serveur":VE.info.executeur;
+  var opts=[];
+  if(srv) opts.push(["serveur","Le serveur (recommandé)"]);
+  if(VE.info.executeur!=="serveur") opts.push([VE.info.executeur,"Cet appareil ("+VE.info.appareil+")"]);
+  if(!opts.some(function(o){ return o[0]===v.executeur })) opts.push([v.executeur,"Autre appareil"+(v.executeurNom?" (« "+v.executeurNom+" »)":"")]);
+  var r=v.rythme;
+  ouvrirModale(neuve?"Nouvelle veille":"Veille — "+v.nom,
+    '<div class="grille"><label class="champ">Nom<input type="text" id="veNom" value="'+esc(v.nom)+'"></label>'
+    +'<label class="champ">Exécutée par<select id="veExe">'+opts.map(function(o){ return '<option value="'+esc(o[0])+'"'+(o[0]===v.executeur?" selected":"")+'>'+esc(o[1])+'</option>' }).join("")+'</select></label>'
+    +'<label class="champ">Rythme<select id="veRyt">'+selOpts([["jour","Chaque jour"],["semaine","Chaque semaine"],["heures","Toutes les N heures"]],r.type||"jour")+'</select></label>'
+    +'<label class="champ" id="veHeureL">Heure<input type="time" id="veHeure" value="'+esc(r.heure||"07:30")+'"></label>'
+    +'<label class="champ" id="veJourL">Jour<select id="veJour">'+selOpts(JOURS.slice(1).map(function(j,i){ return [String(i+1),j] }),String(r.jour||1))+'</select></label>'
+    +'<label class="champ" id="veNL">Toutes les (heures)<input type="number" id="veN" min="1" max="168" value="'+esc(r.n||6)+'"></label></div>'
+    +'<div class="note-aide" style="margin:4px 0 0">Le serveur exécute la veille même quand vos appareils sont éteints. Un appareil ne l\'exécute que lorsque l\'application y est ouverte.</div>'
+    +'<hr class="sep"><h3 style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 8px">Sources (flux RSS ou Atom)</h3><div id="veSources"></div>'
+    +'<div class="ligne" style="margin-top:6px"><button class="b mini creux" data-ve="src-ajout">+ Ajouter un flux</button>'
+    +'<span class="note-aide" style="margin:0">Les sources spécialisées (NVD, failles exploitées CISA, offres France Travail) et les opérations par Claude arrivent avec les versions suivantes.</span></div>'
+    +'<hr class="sep"><h3 style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 8px">Filtres</h3>'
+    +'<div class="grille"><label class="champ">Garder si contient (un mot par ligne ou virgule ; vide = tout)<textarea id="veInc" style="min-height:60px">'+esc(v.filtres.inclure||"")+'</textarea></label>'
+    +'<label class="champ">Écarter si contient<textarea id="veExc" style="min-height:60px">'+esc(v.filtres.exclure||"")+'</textarea></label>'
+    +'<label class="champ">Ancienneté maximale (heures, 0 = sans limite)<input type="number" id="veAge" min="0" value="'+esc(v.filtres.ageHeures!=null?v.filtres.ageHeures:72)+'"></label>'
+    +'<label class="champ">Éléments au plus par fiche<input type="number" id="veMax" min="1" max="200" value="'+esc(v.filtres.max||30)+'"></label></div>'
+    +'<div class="note-aide">Ce qui a déjà figuré dans une fiche de cette veille n\'est jamais repris.</div>'
+    +'<hr class="sep"><div class="ligne" style="flex-wrap:wrap;gap:14px">'
+    +'<label style="font-size:13.5px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="veActif"'+(v.actif!==false?" checked":"")+'> Active</label>'
+    +'<label style="font-size:13.5px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="veNotif"'+(v.sortie.notifier!==false?" checked":"")+'> Me prévenir à chaque nouvelle fiche</label>'
+    +'<label style="font-size:13.5px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="veVide"'+(v.sortie.ficheVide?" checked":"")+'> Fiche même sans nouveauté</label></div>'
+    +'<div id="veRes" class="note-aide" role="status" style="margin-top:10px"></div>',
+    [{txt:"Annuler",classe:"creux",fn:fermerModale}]
+      .concat(neuve?[]:[{txt:"Supprimer",classe:"creux",fn:function(){
+        if(!confirm("Supprimer la veille « "+v.nom+" » et ses fiches ?")) return;
+        VE.doc.veilles=VE.doc.veilles.filter(function(x){ return x.id!==v.id });
+        VE.doc.fiches=VE.doc.fiches.filter(function(x){ return x.veille!==v.id });
+        VE.doc.etats=VE.doc.etats.filter(function(x){ return x.id!==v.id });
+        enregistrerVeilles().then(function(){ fermerModale(); if(VE.sel===v.id) VE.sel=""; rendre(); toast("Veille supprimée") }).catch(function(e){ toast(e.message,true) });
+      }}])
+      .concat([{txt:"Tester",classe:"creux",droite:true,fn:testerVeille},
+               {txt:"Enregistrer",droite:true,fn:function(){ enregistrerVeille(neuve) }}]));
+  rendreSources(); majRythme();
+}
+function rendreSources(){
+  var z=$("#veSources"); if(!z) return;
+  var v=VE.edit;
+  z.innerHTML=v.sources.length?v.sources.map(function(s,i){
+    return '<div class="ligne" style="margin-bottom:6px;align-items:flex-start;flex-wrap:wrap">'
+      +'<input type="text" data-src="nom" data-i="'+i+'" value="'+esc(s.nom||"")+'" placeholder="Nom" style="width:150px">'
+      +'<input type="url" data-src="url" data-i="'+i+'" value="'+esc(s.url||"")+'" placeholder="https://…/feed/" style="flex:1;min-width:220px">'
+      +'<button class="b mini creux" data-ve="src-verif" data-i="'+i+'">Vérifier</button>'
+      +'<button class="b mini creux" data-ve="src-retirer" data-i="'+i+'">Retirer</button>'
+      +'<div id="veSrc'+i+'" class="note-aide" style="flex-basis:100%;margin:2px 0 0"></div></div>';
+  }).join(""):'<div class="note-aide" style="margin:0">Aucune source : ajoutez l\'adresse d\'un flux RSS ou Atom (souvent signalé par l\'icône orange, ou en ajoutant /feed/ à l\'adresse d\'un site).</div>';
+}
+function majRythme(){
+  var t=($("#veRyt")||{}).value||"jour";
+  $("#veHeureL").style.display=t==="heures"?"none":""; $("#veJourL").style.display=t==="semaine"?"":"none"; $("#veNL").style.display=t==="heures"?"":"none";
+}
+function lireVeille(){
+  var v=VE.edit;
+  v.nom=$("#veNom").value.trim()||"Veille";
+  v.executeur=$("#veExe").value;
+  if(VE.info && v.executeur===VE.info.executeur && v.executeur!=="serveur") v.executeurNom=VE.info.appareil;
+  var t=$("#veRyt").value;
+  v.rythme={type:t,heure:$("#veHeure").value||"07:30",jour:+$("#veJour").value||1,n:Math.max(1,Math.min(168,+$("#veN").value||6))};
+  try{ v.fuseau=Intl.DateTimeFormat().resolvedOptions().timeZone }catch(e){}
+  v.sources=v.sources.filter(function(s){ return s.url && s.url.trim() }).map(function(s){ return {nom:(s.nom||"").trim(),url:s.url.trim()} });
+  v.filtres={inclure:$("#veInc").value.trim(),exclure:$("#veExc").value.trim(),ageHeures:Math.max(0,+$("#veAge").value||0),max:Math.max(1,Math.min(200,+$("#veMax").value||30))};
+  v.actif=$("#veActif").checked;
+  v.sortie={notifier:$("#veNotif").checked,ficheVide:$("#veVide").checked};
+  return v;
+}
+function testerVeille(){
+  var v=lireVeille(), z=$("#veRes");
+  z.style.color=""; z.textContent="Collecte en cours…";
+  api("veilles/essai",{method:"POST",body:{veille:v}}).then(function(r){
+    if(!r.ok) throw new Error((r.body&&r.body.message)||"essai impossible");
+    var b=r.body;
+    z.innerHTML='<b>Essai</b> : '+b.collectes+' élément(s) collecté(s), '+b.gardes+' après filtres, <b>'+b.nouveaux.length+' nouveau(x)</b>'+(b.ecartes?' (+'+b.ecartes+' au-delà du maximum)':"")+'. Rien n\'a été enregistré.'
+      +(b.erreurs.length?'<div style="color:var(--rouge)">'+esc(b.erreurs.map(function(e){ return e.url+" : "+e.message }).join(" · "))+'</div>':"")
+      +(b.nouveaux.length?'<ul style="margin:6px 0 0;padding-left:18px">'+b.nouveaux.slice(0,8).map(function(it){ return '<li>'+esc(it.titre)+' <span class="mono" style="font-size:11.5px">'+esc(it.source||"")+'</span></li>' }).join("")+(b.nouveaux.length>8?'<li>…</li>':"")+'</ul>':"");
+  }).catch(function(e){ z.style.color="var(--rouge)"; z.textContent=e.message });
+}
+function enregistrerVeille(neuve){
+  var v=lireVeille(), z=$("#veRes");
+  if(!v.sources.length){ z.style.color="var(--rouge)"; z.textContent="Ajoutez au moins une source."; return }
+  var l=VE.doc.veilles, i=-1; l.forEach(function(x,k){ if(x.id===v.id) i=k });
+  if(i>=0) l[i]=v; else l.push(v);
+  enregistrerVeilles().then(function(){ fermerModale(); VE.sel=v.id; rendre(); toast(neuve?"Veille créée : elle sera exécutée par "+libExecuteur(v):"Veille enregistrée") })
+    .catch(function(e){ z.style.color="var(--rouge)"; z.textContent=e.message });
+}
+function choisirModele(){
+  ouvrirModale("Nouvelle veille",MODELES_VEILLE.map(function(m){
+    return '<div style="display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px dashed var(--trait)"><div><b>'+esc(m.nom)+'</b><div class="note-aide" style="margin:2px 0 0">'+esc(m.desc)+'</div></div>'
+      +'<button class="b mini" style="margin-left:auto" data-ve="modele" data-m="'+m.cle+'">Choisir</button></div>';
+  }).join(""),[{txt:"Annuler",classe:"creux",fn:fermerModale}]);
+}
+function versIdee(f,i){
+  var it=fichePar(f).items[i]; if(!it) return;
+  boite();
+  var essai=0;
+  (function attendre(){
+    if(!Idees.prete){ if(++essai>40) return toast("L'onglet Idées ne répond pas",true); return setTimeout(attendre,250) }
+    demanderIdees("ajouter-idee",{titre:it.titre,note:(it.extrait?it.extrait+"\n":"")+(it.lien||"")+"\n(veille : "+(fichePar(f).nom||"")+")"})
+      .then(function(){ toast("Idée déposée dans l'onglet Idées") }).catch(function(e){ toast(e.message,true) });
+  })();
+}
+function versActivite(f,i){
+  var it=fichePar(f).items[i]; if(!it) return;
+  try{ var c=creerActivite({titre:it.titre,synthese:(it.extrait||"")+(it.lien?"\n\nSource : "+it.lien:""),categorie:""}); toast("Activité créée : "+c.libelle); }
+  catch(e){ toast(e.message,true) }
+}
+function fichePar(id){ return (VE.doc.fiches||[]).filter(function(f){ return f.id===id })[0]||{items:[]} }
+function marquerLues(ids){
+  var n=0; (VE.doc.fiches||[]).forEach(function(f){ if(ids.indexOf(f.id)>=0 && !f.lue){ f.lue=true; n++ } });
+  if(!n) return;
+  pastilleVeilles(); rendre();
+  enregistrerVeilles().catch(function(){});
+}
+function pastilleVeilles(){ pastille("veilles",VE.doc?nonLues().length:0,"dans vos veilles") }
+document.addEventListener("click",function(e){
+  var el=e.target.closest&&e.target.closest("[data-ve]");
+  if(!el) return;
+  var a=el.dataset.ve, d=el.dataset;
+  if(a==="choisir"){ if(e.target.closest("button")&&e.target.closest("button")!==el) return; VE.sel=d.id||""; rendre() }
+  else if(a==="nouvelle") choisirModele();
+  else if(a==="modele"){ var m=MODELES_VEILLE.filter(function(x){ return x.cle===d.m })[0]; fermerModale(); modaleVeille(Object.assign({id:"v"+uid(),actif:true},JSON.parse(JSON.stringify(m.v))),true) }
+  else if(a==="modifier"){ e.stopPropagation(); modaleVeille(veillePar(d.id),false) }
+  else if(a==="executer"){
+    e.stopPropagation(); toast("Exécution de la veille…");
+    api("veilles/"+encodeURIComponent(d.id)+"/executer",{method:"POST"}).then(function(r){
+      if(!r.ok) throw new Error((r.body&&r.body.message)||"échec");
+      return apiVeilles().then(function(){ VE.sel=d.id; rendre(); toast(r.body.nouveaux.length?r.body.nouveaux.length+" nouveau(x) élément(s)":"Rien de nouveau") });
+    }).catch(function(x){ toast("Veille : "+x.message,true); apiVeilles().then(rendre) });
+  }
+  else if(a==="deplier"){ VE.ouvertes=VE.ouvertes||{}; VE.ouvertes[d.id]=!VE.ouvertes[d.id]; rendre() }
+  else if(a==="lue") marquerLues([d.id]);
+  else if(a==="tout-lu") marquerLues(fichesDe(VE.sel).map(function(f){ return f.id }));
+  else if(a==="vers-idee") versIdee(d.f,+d.i);
+  else if(a==="vers-activite") versActivite(d.f,+d.i);
+  else if(a==="src-ajout"){ lireSourcesSaisies(); VE.edit.sources.push({nom:"",url:""}); rendreSources(); var x=$('#veSources [data-src="url"][data-i="'+(VE.edit.sources.length-1)+'"]'); if(x) x.focus() }
+  else if(a==="src-retirer"){ lireSourcesSaisies(); VE.edit.sources.splice(+d.i,1); rendreSources() }
+  else if(a==="src-verif"){
+    lireSourcesSaisies();
+    var s=VE.edit.sources[+d.i], z=$("#veSrc"+d.i); if(!s||!s.url){ z.textContent="Saisissez d'abord l'adresse."; return }
+    z.style.color=""; z.textContent="Vérification…";
+    api("veilles/flux",{method:"POST",body:{url:s.url}}).then(function(r){
+      if(!r.ok) throw new Error((r.body&&r.body.message)||"flux illisible");
+      if(!s.nom && r.body.titre){ s.nom=r.body.titre.slice(0,60); var n=$('#veSources [data-src="nom"][data-i="'+d.i+'"]'); if(n) n.value=s.nom }
+      z.style.color="var(--vert)";
+      z.innerHTML='Flux valide : « '+esc(r.body.titre||"sans titre")+' », '+r.body.nombre+' élément(s). Derniers : '+esc(r.body.items.slice(0,3).map(function(x){ return x.titre }).join(" · "));
+    }).catch(function(x){ z.style.color="var(--rouge)"; z.textContent=x.message });
+  }
+});
+function lireSourcesSaisies(){
+  Array.prototype.forEach.call(document.querySelectorAll("#veSources [data-src]"),function(e){
+    var s=VE.edit.sources[+e.dataset.i]; if(s) s[e.dataset.src]=e.value;
+  });
+}
+document.addEventListener("change",function(e){ if(e.target.id==="veRyt") majRythme() });
+document.addEventListener("input",function(e){ if(e.target.dataset && e.target.dataset.src && VE.edit){ var s=VE.edit.sources[+e.target.dataset.i]; if(s) s[e.target.dataset.src]=e.target.value } });
+/* suivi : nouvelles fiches (exécutées ici ou ailleurs), pastille et notification */
+function suivreVeilles(){
+  if(!fichierCharge) return;
+  var p=VE.info?Promise.resolve():api("veilles/info").then(function(r){ if(r.ok) VE.info=r.body });
+  p.then(function(){ return api("docs/veilles/rev") }).then(function(r){
+    if(r && r.status===404 && !VE.doc){ VE.doc={veilles:[],fiches:[],etats:[]}; VE.rev=0; if(vueActive==="veilles") rendre(); return }
+    if(!r || !r.ok || (VE.doc && r.body.rev<=VE.rev)) return;
+    var mod=$("#modale"); if(vueActive==="veilles" && mod && mod.open) return;
+    return apiVeilles().then(function(){
+      var nl=nonLues(), neuves=VE.pret?nl.filter(function(f){ return (f.at||"")>(VE.dernierLu||"") }):[];
+      VE.dernierLu=nl.reduce(function(m,f){ return f.at>m?f.at:m },VE.dernierLu||""); VE.pret=true;
+      pastilleVeilles();
+      if(vueActive==="veilles") rendreDonneesSiCalme();
+      neuves=neuves.filter(function(f){ var v=veillePar(f.veille); return !v || !v.sortie || v.sortie.notifier!==false });
+      if(neuves.length){
+        var f=neuves[0], n=(f.items||[]).length;
+        notifier(neuves.length>1?neuves.length+" nouvelles fiches de veille":"Veille « "+f.nom+" » : "+n+" nouveau"+(n>1?"x":"")+" élément"+(n>1?"s":""),
+          neuves.length>1?neuves.map(function(x){ return x.nom }).join(", "):(f.items||[]).slice(0,3).map(function(x){ return "• "+x.titre }).join("\n"),"veilles");
+      }
+    });
+  }).catch(function(){});
+}
+function notifier(titre,corps,cible){
+  var dehors=document.hidden || !document.hasFocus();
+  var permis=!(Partage.st && Partage.st.notifications && Partage.st.notifications.systeme===false);
+  if(dehors && permis && window.Notification){
+    var go=function(){ try{ var n=new Notification(titre,{body:corps,tag:"mppe-"+cible});
+      n.onclick=function(){ window.focus(); vueActive=cible; rendre(); n.close() } }catch(x){} };
+    if(Notification.permission==="granted") go();
+    else if(Notification.permission!=="denied") Notification.requestPermission().then(function(p){ if(p==="granted") go() });
+  } else toast(titre);
+}
+setTimeout(suivreVeilles,2500);
+setInterval(suivreVeilles,10000);
+
 window.persoBlocIdees=function(){
   var st=Idees.claude;
   return '<div class="bloc" style="margin-top:18px"><div class="bloc-tete"><h2>Idées et Claude</h2></div><div class="bloc-corps">'
@@ -1267,6 +1547,10 @@ rendre=function(){
   b.style.display="none"; v.style.display="";
   document.documentElement.style.overflow="";
   rendre0();
+  if(vueActive==="veilles"){
+    if(!VE.doc || !VE.info){ Promise.all([VE.doc?null:apiVeilles(),VE.info?null:api("veilles/info").then(function(r){ if(r.ok) VE.info=r.body })]).then(function(){ if(vueActive==="veilles") rendre() }) }
+    v.innerHTML=vueVeilles(); pastilleVeilles(); return;
+  }
   decorerNotes(v);
   if(vueActive==="chantiers"){ decorerActivites(v); afficherRecuesActivites(v) }
   if(vueActive==="donnees"){

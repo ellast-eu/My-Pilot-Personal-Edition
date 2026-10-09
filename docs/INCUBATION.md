@@ -1,6 +1,8 @@
 # Incubation — proposition
 
-Statut : **piste de réflexion pour après la 0.10**, non validée, non implémentée.
+Statut : **en cours sous le nom « Veilles »**. 0.11 : socle sans Claude, livré (onglet Veilles, flux RSS/Atom, filtres, rythme, exécutant au choix entre le serveur et un appareil, essai à blanc, fiches, notifications, vers Idées/Activités). Suite : 0.12 opérations Claude (notation, résumés, synthèse, actions proposées), 0.13 sources spécialisées (NVD, CISA KEV, France Travail) et révision.
+
+Décisions : nom « Veilles » ; chaque veille est exécutée, au choix, par le serveur ou par une application de bureau donnée.
 
 Objectif : une section **Incubation** qui produit chaque jour une fiche courte par sujet, lisible en 3 minutes et reliée au reste de l'application. Ce qui mérite d'être retenu devient une idée, une activité ou une candidature.
 

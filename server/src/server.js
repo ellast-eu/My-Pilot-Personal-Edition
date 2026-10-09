@@ -11,6 +11,7 @@ import { Settings, baseFromEnv } from './settings.js';
 import { Garde, adresseClient } from './garde.js';
 import { Hote } from './espaces-hote.js';
 import { Espaces } from './espaces.js';
+import { Veilles, lireFlux, telecharger } from './veilles.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(here, '../..');
@@ -90,6 +91,10 @@ export function createApp(opts = {}) {
   const espaces = mode === 'application' && opts.espaces !== false
     ? new Espaces(store, { configPrivee: () => (sync ? sync.config() : { url: '', token: '' }), log: m => console.log(m) }).start()
     : null;
+  // Veilles : chaque instance exécute celles qui lui sont attribuées (serveur, ou cette application)
+  const veilles = opts.veilles === false ? null
+    : new Veilles(store, { mode, reseauLocal: opts.veillesReseauLocal, log: m => console.log(m) });
+  if (veilles && opts.veillesAuto !== false) veilles.start();
   // Derrière Caddy : adresse réelle du visiteur, et freinage des essais d'identifiants
   const trustProxy = opts.trustProxy ?? process.env.TRUST_PROXY === '1';
   const garde = opts.garde ?? new Garde();
@@ -123,6 +128,28 @@ export function createApp(opts = {}) {
     }
 
     if (parts[0] === 'partage') return apiPartage(req, res, parts.slice(1), m);
+
+    if (parts[0] === 'veilles') {
+      if (!veilles) throw new HttpError(404, 'not_found', 'Veilles désactivées');
+      const ko = e => { throw new HttpError(e.code === 'bad_request' || e.code === 'bad_url' ? 400 : 502, e.code || 'veille', e.message); };
+      if (parts[1] === 'info' && m === 'GET') return send(res, 200, veilles.info());
+      if (parts[1] === 'flux' && m === 'POST') {          // vérifier un flux avant de l'ajouter
+        const b = await readJson(req);
+        try {
+          const f = lireFlux(await telecharger(String(b.url || ''), { reseauLocal: veilles.reseauLocal }));
+          return send(res, 200, { titre: f.titre, nombre: f.items.length, items: f.items.slice(0, 5) });
+        } catch (e) { ko(e); }
+      }
+      if (parts[1] === 'essai' && m === 'POST') {         // essai à blanc d'une configuration (même non enregistrée)
+        const b = await readJson(req);
+        try { return send(res, 200, await veilles.collecter(b.veille || {}, { essai: true })); } catch (e) { ko(e); }
+      }
+      if (parts[1] && parts[2] === 'executer' && m === 'POST') {
+        const v = (veilles.donnees().veilles || []).find(x => x && x.id === parts[1]);
+        if (!v) throw new HttpError(404, 'not_found', 'Veille inconnue (enregistrez-la d\'abord)');
+        try { const r = await veilles.executer(v); return send(res, 200, { ...r, fiche: r.fiche && r.fiche.id }); } catch (e) { ko(e); }
+      }
+    }
 
     if (parts[0] === 'docs') {
       const id = parts[1];
@@ -375,8 +402,8 @@ export function createApp(opts = {}) {
   }
   appliquerReglages();
   settings.on(appliquerReglages);
-  server.on('close', () => { if (timer) clearInterval(timer); if (sync) sync.stop(); if (espaces) espaces.stop(); if (!opts.garde) garde.stop(); });
-  return { server, store, sync, settings, espaces, hote, garde };
+  server.on('close', () => { if (timer) clearInterval(timer); if (sync) sync.stop(); if (espaces) espaces.stop(); if (veilles) veilles.stop(); if (!opts.garde) garde.stop(); });
+  return { server, store, sync, settings, espaces, hote, garde, veilles };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

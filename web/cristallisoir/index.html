@@ -860,6 +860,10 @@ async function onPilotCommand(m){
     return reply({ok:true,claude:etatClaude()});
   }
   if(m.type==='test-claude') return reply(await testOnce());
+  if(m.type==='ajouter-idee'){            /* depuis une fiche de veille : « → Idée à creuser » */
+    S.ideas.push({id:uid(),title:String(m.titre||'Idée').slice(0,200),note:String(m.note||'').slice(0,2000),cat:'',created:Date.now(),status:'libre',solo:false,day:null});
+    renderAll(); return reply({ok:true});
+  }
   if(m.type==='importer'){
     applyState(m.data); ui.drawer=null; ui.selected.clear();
     const r=await askPilot({type:'categories'}).catch(()=>null);

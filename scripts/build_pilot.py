@@ -22,7 +22,7 @@ PATCHES = [
      r'<title>PST Pilot v[\d.]+</title>', '<title>My Pilot Personal Edition</title>', True),
     ("onglet Idées dans la navigation",
      '<button data-vue="chantiers">Activités</button>',
-     '<button data-vue="chantiers">Activités</button>\n    <button data-vue="idees">Idées</button>', False),
+     '<button data-vue="chantiers">Activités</button>\n    <button data-vue="idees">Idées</button>\n    <button data-vue="veilles">Veilles</button>', False),
     ("démarrage différé : la couche perso charge d'abord les données du serveur",
      '(function init(){', 'window.__pilotInit = (function init(){', False),
     ("fin du démarrage différé",

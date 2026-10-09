@@ -142,6 +142,24 @@ En 0.10.0 :
 
 Pour essayer sans toucher à vos données : `node scripts/banc-partage.mjs --pret` lance un serveur hôte et deux appareils (« Stella » et « Paul ») sur votre machine, à ouvrir dans le navigateur.
 
+## Veilles
+
+Onglet **Veilles** :
+- chaque veille réunit des flux RSS ou Atom, des filtres (mots-clés, ancienneté) et un rythme (toutes les N heures, chaque jour, chaque semaine) ;
+- elle produit une fiche quand elle trouve du nouveau ;
+- « Tester » fait un essai à blanc ;
+- chaque élément d'une fiche peut devenir une idée ou une activité.
+
+Une veille est exécutée par l'instance choisie dans sa fenêtre :
+- **le serveur**, qui tourne même quand vos appareils sont éteints ;
+- **un appareil**, seulement quand l'application y est ouverte.
+
+Les flux du réseau local sont refusés par défaut : `VEILLES_RESEAU_LOCAL=1` dans le `.env` (ou dans l'environnement de l'application) pour les autoriser.
+
+Prochaines étapes, détaillées dans [docs/INCUBATION.md](docs/INCUBATION.md) :
+- opérations par Claude : notation, résumés, synthèse ;
+- sources spécialisées : NVD, CISA KEV, France Travail.
+
 ## Sauvegardes
 
 Trois niveaux, détaillés dans [docs/SAUVEGARDES.md](docs/SAUVEGARDES.md) :

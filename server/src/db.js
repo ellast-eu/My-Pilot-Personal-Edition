@@ -15,6 +15,7 @@ import { fusionner3, TAMPONS } from './fusion.js';
 export const COLLECTIONS = {
   pilot: ['chantiers', 'notes', 'vigilances', 'contacts', 'organisations'],
   ideas: ['ideas', 'unified', 'projects'],
+  veilles: ['veilles', 'fiches', 'etats'],
 };
 /* espaces partagés : documents « s-<identifiant> », chiffrés de bout en bout lors de la synchronisation */
 export const PREFIXE_ESPACE = 's-';

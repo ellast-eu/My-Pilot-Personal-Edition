@@ -86,6 +86,27 @@ document s-<id> en clair ── sceller (AES-256-GCM) ────▶ /api/space
 - **Pilotage** : même principe pour les activités. `D.chantiers` et `D.notes` contiennent les fiches des espaces, avec `_sp`. Une note prend toujours l'espace de son activité (`affecterPartages`), et `privD()` est ce qui part vers le document `pilot`. `suitesOuvertes` est filtré : une tâche partagée attribuée (`suite.pour`) à un autre membre n'apparaît pas dans « En attente ». Le fil de discussion d'une activité, ce sont ses notes, signées par leur auteur (pas de collection séparée).
 - **Boîte « Reçues »** (table `inbox`) : alimentée à la réception des fiches d'un espace, avant de les appliquer, par comparaison avec la version locale. Les catégories sont partage, modification, cristallisation, activité et retrait. Le premier échange après l'arrivée n'est pas signalé, et les gestes d'un membre qui porte votre nom (votre autre appareil) sont écartés.
 
+## Veilles (0.11)
+
+- Document `veilles`, avec trois collections :
+  - `veilles` : configuration ;
+  - `fiches` : résultats ;
+  - `etats` : dernière exécution, nombre de nouveautés, erreur.
+- Ce document est synchronisé comme les autres. Chaque veille porte son exécutant : `serveur`, ou `appareil:<id>`.
+- `server/src/veilles.js` :
+  - toutes les minutes, l'instance exécute les veilles qui lui sont attribuées et arrivées à échéance (`aEcheance`, heure locale du fuseau enregistré) ;
+  - `telecharger` récupère les flux en refusant les adresses privées, y compris après redirection, avec une taille et un délai limités ;
+  - `lireFlux` lit RSS 2.0 et Atom sans dépendance ;
+  - `filtrer`, puis dédoublonnage par clé d'élément (guid, lien ou titre) sur les fiches existantes.
+- API :
+
+| Méthode | Chemin | Rôle |
+|---|---|---|
+| GET | `/api/veilles/info` | exécutant de cette instance et nom de l'appareil |
+| POST | `/api/veilles/flux` | vérifier un flux (titre, 5 derniers éléments) |
+| POST | `/api/veilles/essai` | essai à blanc d'une configuration, rien n'est enregistré |
+| POST | `/api/veilles/:id/executer` | exécuter maintenant, ici |
+
 ## Exposition sur Internet
 
 - **Caddy** ([deploy/Caddyfile](../deploy/Caddyfile)) fait le HTTPS et les en-têtes de sécurité. L'authentification reste dans l'application.
