@@ -4,6 +4,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+## [0.8.0] - 2026-10-09
+
 ### Ajouts
 - **Partage d'idées** dans l'onglet Idées (application de bureau) :
   - **fiche vivante** : une idée partagée est la même pour tous les membres de l'espace, chacun peut la modifier, la regrouper et la cristalliser ;
