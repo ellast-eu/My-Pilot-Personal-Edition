@@ -4,6 +4,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+## [0.11.0] - 2026-10-10
+
 ### Ajouts
 - **Onglet Veilles** : des flux RSS ou Atom collectés à votre rythme, filtrés, dédoublonnés et rangés en fiches.
   - **Nouvelle veille** à partir d'un modèle (Point cyber et Point CVE, à partir des flux du CERT-FR) ou vide.
