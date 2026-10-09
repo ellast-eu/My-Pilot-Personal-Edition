@@ -4,6 +4,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+## [0.8.0-a] - 2026-10-09
+
 ### Ajouts
 - **Espaces partagés chiffrés de bout en bout** (première étape) : onglet Données, bloc Partage.
   - Nom affiché, empreinte de l'appareil.
