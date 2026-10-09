@@ -4,6 +4,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+## [0.12.0] - 2026-10-10
+
 ### Ajouts
 - **Veilles : opérations par Claude**, à cocher dans la fenêtre d'une veille :
   - **noter la pertinence** de 0 à 5 selon un critère que vous écrivez, avec un seuil sous lequel l'élément est écarté ; les éléments sont triés par note ;
