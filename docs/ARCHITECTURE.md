@@ -107,6 +107,14 @@ document s-<id> en clair ── sceller (AES-256-GCM) ────▶ /api/space
 | POST | `/api/veilles/essai` | essai à blanc d'une configuration, rien n'est enregistré |
 | POST | `/api/veilles/:id/executer` | exécuter maintenant, ici |
 
+**Opérations par Claude** (0.12) : `traiterParClaude` traite les nouveaux éléments par paquets de 40.
+- Chaque demande donne note, résumé, action proposée et raison, ainsi que la synthèse, demandée au premier paquet seulement.
+- Elle passe par `claude.ask` (Claude Code, abonnement) avec le modèle choisi.
+- Les éléments sont transmis en JSON entre balises `<elements>`, présentés comme des données.
+- La réponse est filtrée par `lireReponse`.
+- Le plafond quotidien est compté dans `etats[].appels`.
+- Les éléments sous le seuil sont écartés et comptés dans `stats.ecartesNote`.
+
 ## Exposition sur Internet
 
 - **Caddy** ([deploy/Caddyfile](../deploy/Caddyfile)) fait le HTTPS et les en-têtes de sécurité. L'authentification reste dans l'application.

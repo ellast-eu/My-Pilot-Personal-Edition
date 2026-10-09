@@ -1171,7 +1171,7 @@ function vueVeilles(){
         +'<div style="display:flex;gap:8px;align-items:baseline"><b style="font-size:14.5px">'+esc(v.nom)+'</b>'
         +(nl?'<span class="pp-pastille" style="display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:var(--rouge,#D8232A);color:#fff;font-size:11px;line-height:18px;text-align:center">'+nl+'</span>':"")
         +'<span class="note-aide" style="margin:0 0 0 auto">'+(v.actif?esc(libRythme(v.rythme)):"en pause")+'</span></div>'
-        +'<div class="note-aide" style="margin:2px 0 0">'+(v.sources||[]).length+' source(s) · exécutée par '+esc(libExecuteur(v))
+        +'<div class="note-aide" style="margin:2px 0 0">'+(v.sources||[]).length+' source(s)'+(v.claude&&(v.claude.noter||v.claude.resumer||v.claude.actions||v.claude.synthese)?' · avec Claude':"")+' · exécutée par '+esc(libExecuteur(v))
         +(e.derniere?' · dernière '+esc(quandV(e.derniere))+(e.nouveaux!=null?' ('+e.nouveaux+' nouveau'+(e.nouveaux>1?'x':'')+')':""):' · jamais exécutée')+'</div>'
         +(e.erreur?'<div class="note-aide" style="margin:2px 0 0;color:var(--rouge)">'+esc(e.erreur)+'</div>':"")
         +'<div class="ligne" style="margin-top:6px"><button class="b mini creux" data-ve="modifier" data-id="'+esc(v.id)+'">Modifier</button>'
@@ -1192,15 +1192,21 @@ function ficheHTML(f){
   return '<div style="border:1px solid var(--trait);border-left:3px solid '+(f.lue?"var(--trait)":"var(--rouge,#D8232A)")+';padding:10px 12px;margin-bottom:12px">'
     +'<div style="display:flex;gap:10px;align-items:baseline;cursor:pointer" data-ve="deplier" data-id="'+esc(f.id)+'"><b>'+esc(f.nom||"Veille")+'</b>'
     +'<span class="mono" style="font-size:12px">'+esc(quandV(f.at))+'</span>'
-    +'<span class="note-aide" style="margin:0 0 0 auto">'+(f.items||[]).length+' élément(s)'+(f.stats?' · '+f.stats.collectes+' collecté(s), '+f.stats.gardes+' après filtres':"")+'</span></div>'
-    +(ouverte?((f.items||[]).map(function(it,i){
+    +'<span class="note-aide" style="margin:0 0 0 auto">'+(f.items||[]).length+' élément(s)'+(f.stats?' · '+f.stats.collectes+' collecté(s), '+f.stats.gardes+' après filtres'+(f.stats.ecartesNote?', '+f.stats.ecartesNote+' écarté(s) par la note':""):"")
+      +(f.claude&&f.claude.appels?' · Claude ('+esc(f.claude.modele)+')':"")+'</span></div>'
+    +(ouverte?(syntheseHTML(f.synthese)
+      +(f.claude&&f.claude.erreur?'<div class="note-aide" style="color:var(--rouge);margin:6px 0 0">'+esc(f.claude.erreur)+'</div>':"")
+      +((f.items||[]).map(function(it,i){
+        var sug=it.action&&it.action!=="aucune";
         return '<div style="padding:8px 0;border-top:1px dashed var(--trait);margin-top:8px">'
-          +'<div><a href="'+esc(it.lien||"#")+'" target="_blank" rel="noopener noreferrer" style="font-weight:600;color:#2B4C6F">'+esc(it.titre)+'</a></div>'
+          +'<div>'+noteHTML(it)+'<a href="'+esc(it.lien||"#")+'" target="_blank" rel="noopener noreferrer" style="font-weight:600;color:#2B4C6F">'+esc(it.titre)+'</a></div>'
           +'<div class="note-aide" style="margin:2px 0">'+esc(it.source||"")+(it.date?' · '+esc(quandV(it.date)):"")+'</div>'
-          +(it.extrait?'<div style="font-size:13.5px">'+esc(it.extrait)+'</div>':"")
-          +'<div class="ligne" style="margin-top:4px"><button class="lien" data-ve="vers-idee" data-f="'+esc(f.id)+'" data-i="'+i+'">→ Idée à creuser</button>'
-          +'<button class="lien" data-ve="vers-activite" data-f="'+esc(f.id)+'" data-i="'+i+'">→ Activité à faire</button></div></div>';
-      }).join("")
+          +(it.resume?'<div style="font-size:13.5px">'+esc(it.resume)+'</div>':it.extrait?'<div style="font-size:13.5px">'+esc(it.extrait)+'</div>':"")
+          +(sug?'<div class="note-aide" style="margin:4px 0 0">Suggestion de Claude : <b>'+(it.action==="faire"?"à faire":"à creuser")+'</b>'+(it.raison?" — "+esc(it.raison):"")+'</div>':"")
+          +'<div class="ligne" style="margin-top:4px">'
+          +'<button class="'+(sug&&it.action==="creuser"?"b mini":"lien")+'" data-ve="vers-idee" data-f="'+esc(f.id)+'" data-i="'+i+'">→ Idée à creuser</button>'
+          +'<button class="'+(sug&&it.action==="faire"?"b mini":"lien")+'" data-ve="vers-activite" data-f="'+esc(f.id)+'" data-i="'+i+'">→ Activité à faire</button></div></div>';
+      }).join(""))
       +((f.erreurs||[]).length?'<div class="note-aide" style="color:var(--rouge)">Sources en erreur : '+esc(f.erreurs.map(function(e){ return e.url+" ("+e.message+")" }).join(" · "))+'</div>':"")
       +(f.lue?"":'<div class="ligne" style="margin-top:8px"><button class="b mini creux" data-ve="lue" data-id="'+esc(f.id)+'">Marquer comme lue</button></div>'))
     :"")
@@ -1235,6 +1241,7 @@ function modaleVeille(v,neuve){
     +'<label class="champ">Ancienneté maximale (heures, 0 = sans limite)<input type="number" id="veAge" min="0" value="'+esc(v.filtres.ageHeures!=null?v.filtres.ageHeures:72)+'"></label>'
     +'<label class="champ">Éléments au plus par fiche<input type="number" id="veMax" min="1" max="200" value="'+esc(v.filtres.max||30)+'"></label></div>'
     +'<div class="note-aide">Ce qui a déjà figuré dans une fiche de cette veille n\'est jamais repris.</div>'
+    +blocClaudeVeille(v)
     +'<hr class="sep"><div class="ligne" style="flex-wrap:wrap;gap:14px">'
     +'<label style="font-size:13.5px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="veActif"'+(v.actif!==false?" checked":"")+'> Active</label>'
     +'<label style="font-size:13.5px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="veNotif"'+(v.sortie.notifier!==false?" checked":"")+'> Me prévenir à chaque nouvelle fiche</label>'
@@ -1250,7 +1257,33 @@ function modaleVeille(v,neuve){
       }}])
       .concat([{txt:"Tester",classe:"creux",droite:true,fn:testerVeille},
                {txt:"Enregistrer",droite:true,fn:function(){ enregistrerVeille(neuve) }}]));
-  rendreSources(); majRythme();
+  rendreSources(); majRythme(); majEtatClaudeVeille();
+}
+function caseV(id,lib,on){ return '<label style="font-size:13.5px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="'+id+'"'+(on?" checked":"")+'> '+lib+'</label>' }
+function blocClaudeVeille(v){
+  var c=v.claude||{};
+  return '<hr class="sep"><h3 style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 8px">Opérations par Claude</h3>'
+    +'<div class="note-aide" style="margin:0 0 8px">Facultatives. Une seule demande à Claude par exécution (jusqu\'à 40 éléments), avec votre abonnement via Claude Code '
+    +'sur l\'exécutant de la veille. <span id="veClaudeEtat"></span></div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:8px 18px">'
+      +caseV("veCNoter","Noter la pertinence (0 à 5)",c.noter)+caseV("veCResumer","Résumer chaque élément",c.resumer)
+      +caseV("veCActions","Proposer « à creuser » ou « à faire »",c.actions)+caseV("veCSynthese","Synthèse de la fiche et « ce que ça change pour moi »",c.synthese)
+    +'</div>'
+    +'<div class="grille" style="margin-top:8px">'
+    +'<label class="champ">Critère de pertinence<input type="text" id="veCCritere" value="'+esc(c.critere||"")+'" placeholder="ex. faille qui touche mes logiciels, utile pour une alternante AIS"></label>'
+    +'<label class="champ">Écarter sous la note<select id="veCSeuil">'+selOpts([["0","ne rien écarter"],["2","2"],["3","3"],["4","4"]],String(c.seuil||0))+'</select></label>'
+    +'<label class="champ">Modèle<select id="veCModele">'+selOpts([["haiku","Haiku : rapide, économe"],["sonnet","Sonnet : équilibré"],["opus","Opus : approfondi, coûteux en quota"]],c.modele||"haiku")+'</select></label>'
+    +'<label class="champ">Appels à Claude au plus par jour<input type="number" id="veCPlafond" min="1" max="100" value="'+esc(c.plafond||6)+'"></label>'
+    +'</div>'
+    +'<label class="champ">Consigne (angle, ton, ce qui vous intéresse)<textarea id="veCConsigne" style="min-height:52px" placeholder="ex. explique comme à une alternante en administration d\'infrastructures sécurisées, en 2 phrases">'+esc(c.consigne||"")+'</textarea></label>';
+}
+function majEtatClaudeVeille(){
+  var z=$("#veClaudeEtat"); if(!z) return;
+  var exe=($("#veExe")||{}).value;
+  if(VE.info && exe===VE.info.executeur){
+    api("claude/status").then(function(r){ var ok=r.ok&&r.body.available; z.innerHTML=ok?'<b style="color:var(--vert)">Claude Code est prêt ici.</b>'
+      :'<b style="color:var(--rouge)">Claude Code n\'est pas disponible ici</b> : la veille tournera sans ces opérations (voir Données, Idées et Claude).' });
+  } else z.textContent="Claude Code doit être installé et connecté sur l'exécutant choisi ; sinon la veille tourne sans ces opérations.";
 }
 function rendreSources(){
   var z=$("#veSources"); if(!z) return;
@@ -1280,18 +1313,39 @@ function lireVeille(){
   v.filtres={inclure:$("#veInc").value.trim(),exclure:$("#veExc").value.trim(),ageHeures:Math.max(0,+$("#veAge").value||0),max:Math.max(1,Math.min(200,+$("#veMax").value||30))};
   v.actif=$("#veActif").checked;
   v.sortie={notifier:$("#veNotif").checked,ficheVide:$("#veVide").checked};
+  v.claude={noter:$("#veCNoter").checked,resumer:$("#veCResumer").checked,actions:$("#veCActions").checked,synthese:$("#veCSynthese").checked,
+    critere:$("#veCCritere").value.trim(),seuil:+$("#veCSeuil").value||0,modele:$("#veCModele").value,
+    plafond:Math.max(1,Math.min(100,+$("#veCPlafond").value||6)),consigne:$("#veCConsigne").value.trim()};
   return v;
 }
 function testerVeille(){
   var v=lireVeille(), z=$("#veRes");
-  z.style.color=""; z.textContent="Collecte en cours…";
-  api("veilles/essai",{method:"POST",body:{veille:v}}).then(function(r){
+  var c=v.claude, avecC=(c.noter||c.resumer||c.actions||c.synthese) && VE.info && v.executeur===VE.info.executeur
+    && confirm("Inclure les opérations par Claude dans l'essai ?\n\nOK : une demande à Claude sur 10 éléments au plus (consomme un peu de quota, hors plafond).\nAnnuler : collecte et filtres seulement.");
+  z.style.color=""; z.textContent=avecC?"Collecte, puis Claude… (jusqu'à une minute)":"Collecte en cours…";
+  api("veilles/essai",{method:"POST",body:{veille:v,avecClaude:!!avecC}}).then(function(r){
     if(!r.ok) throw new Error((r.body&&r.body.message)||"essai impossible");
     var b=r.body;
-    z.innerHTML='<b>Essai</b> : '+b.collectes+' élément(s) collecté(s), '+b.gardes+' après filtres, <b>'+b.nouveaux.length+' nouveau(x)</b>'+(b.ecartes?' (+'+b.ecartes+' au-delà du maximum)':"")+'. Rien n\'a été enregistré.'
+    z.innerHTML='<b>Essai</b> : '+b.collectes+' élément(s) collecté(s), '+b.gardes+' après filtres, <b>'+b.nouveaux.length+' nouveau(x)</b>'+(b.ecartes?' (+'+b.ecartes+' au-delà du maximum)':"")
+      +(b.ecartesNote?', '+b.ecartesNote+' écarté(s) par la note':"")+'. Rien n\'a été enregistré.'
+      +(b.claude&&b.claude.erreur?'<div style="color:var(--rouge)">'+esc(b.claude.erreur)+'</div>':"")
       +(b.erreurs.length?'<div style="color:var(--rouge)">'+esc(b.erreurs.map(function(e){ return e.url+" : "+e.message }).join(" · "))+'</div>':"")
-      +(b.nouveaux.length?'<ul style="margin:6px 0 0;padding-left:18px">'+b.nouveaux.slice(0,8).map(function(it){ return '<li>'+esc(it.titre)+' <span class="mono" style="font-size:11.5px">'+esc(it.source||"")+'</span></li>' }).join("")+(b.nouveaux.length>8?'<li>…</li>':"")+'</ul>':"");
+      +(b.synthese?syntheseHTML(b.synthese):"")
+      +(b.nouveaux.length?'<ul style="margin:6px 0 0;padding-left:18px">'+b.nouveaux.slice(0,8).map(function(it){ return '<li>'+noteHTML(it)+esc(it.titre)+' <span class="mono" style="font-size:11.5px">'+esc(it.source||"")+'</span>'
+        +(it.resume?'<div style="font-size:12.5px">'+esc(it.resume)+'</div>':"")+(it.action&&it.action!=="aucune"?'<div class="note-aide" style="margin:0">Suggestion : '+(it.action==="faire"?"à faire":"à creuser")+(it.raison?" — "+esc(it.raison):"")+'</div>':"")+'</li>' }).join("")+(b.nouveaux.length>8?'<li>…</li>':"")+'</ul>':"");
   }).catch(function(e){ z.style.color="var(--rouge)"; z.textContent=e.message });
+}
+function noteHTML(it){
+  if(it.note==null) return "";
+  var c=it.note>=4?"var(--rouge,#D8232A)":it.note>=3?"#B8901C":"#8B918C";
+  return '<span title="Pertinence selon votre critère" style="display:inline-block;min-width:30px;padding:0 5px;margin-right:6px;border-radius:2px;background:'+c+';color:#fff;font:600 11px/18px var(--data,monospace);text-align:center">'+it.note+'/5</span>';
+}
+function syntheseHTML(s){
+  if(!s || (!s.points.length && !s.pourMoi)) return "";
+  return '<div style="background:#F3F3F0;border:1px solid var(--trait);padding:10px 12px;margin:10px 0 4px;font-size:13.5px">'
+    +'<div style="font:600 12px var(--display,inherit);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px">Synthèse</div>'
+    +(s.points.length?'<ul style="margin:0 0 6px;padding-left:18px">'+s.points.map(function(p){ return '<li>'+esc(p)+'</li>' }).join("")+'</ul>':"")
+    +(s.pourMoi?'<div><b>Ce que ça change pour moi :</b> '+esc(s.pourMoi)+'</div>':"")+'</div>';
 }
 function enregistrerVeille(neuve){
   var v=lireVeille(), z=$("#veRes");
@@ -1313,13 +1367,13 @@ function versIdee(f,i){
   var essai=0;
   (function attendre(){
     if(!Idees.prete){ if(++essai>40) return toast("L'onglet Idées ne répond pas",true); return setTimeout(attendre,250) }
-    demanderIdees("ajouter-idee",{titre:it.titre,note:(it.extrait?it.extrait+"\n":"")+(it.lien||"")+"\n(veille : "+(fichePar(f).nom||"")+")"})
+    demanderIdees("ajouter-idee",{titre:it.titre,note:((it.resume||it.extrait)?(it.resume||it.extrait)+"\n":"")+(it.lien||"")+"\n(veille : "+(fichePar(f).nom||"")+")"})
       .then(function(){ toast("Idée déposée dans l'onglet Idées") }).catch(function(e){ toast(e.message,true) });
   })();
 }
 function versActivite(f,i){
   var it=fichePar(f).items[i]; if(!it) return;
-  try{ var c=creerActivite({titre:it.titre,synthese:(it.extrait||"")+(it.lien?"\n\nSource : "+it.lien:""),categorie:""}); toast("Activité créée : "+c.libelle); }
+  try{ var c=creerActivite({titre:it.titre,synthese:(it.resume||it.extrait||"")+(it.raison?"\n\nPourquoi : "+it.raison:"")+(it.lien?"\n\nSource : "+it.lien:""),categorie:""}); toast("Activité créée : "+c.libelle); }
   catch(e){ toast(e.message,true) }
 }
 function fichePar(id){ return (VE.doc.fiches||[]).filter(function(f){ return f.id===id })[0]||{items:[]} }
@@ -1369,7 +1423,7 @@ function lireSourcesSaisies(){
     var s=VE.edit.sources[+e.dataset.i]; if(s) s[e.dataset.src]=e.value;
   });
 }
-document.addEventListener("change",function(e){ if(e.target.id==="veRyt") majRythme() });
+document.addEventListener("change",function(e){ if(e.target.id==="veRyt") majRythme(); if(e.target.id==="veExe") majEtatClaudeVeille() });
 document.addEventListener("input",function(e){ if(e.target.dataset && e.target.dataset.src && VE.edit){ var s=VE.edit.sources[+e.target.dataset.i]; if(s) s[e.target.dataset.src]=e.target.value } });
 /* suivi : nouvelles fiches (exécutées ici ou ailleurs), pastille et notification */
 function suivreVeilles(){

@@ -11,7 +11,7 @@ import { Settings, baseFromEnv } from './settings.js';
 import { Garde, adresseClient } from './garde.js';
 import { Hote } from './espaces-hote.js';
 import { Espaces } from './espaces.js';
-import { Veilles, lireFlux, telecharger } from './veilles.js';
+import { Veilles, lireFlux, telecharger, opsClaude } from './veilles.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(here, '../..');
@@ -93,7 +93,7 @@ export function createApp(opts = {}) {
     : null;
   // Veilles : chaque instance exécute celles qui lui sont attribuées (serveur, ou cette application)
   const veilles = opts.veilles === false ? null
-    : new Veilles(store, { mode, reseauLocal: opts.veillesReseauLocal, log: m => console.log(m) });
+    : new Veilles(store, { mode, reseauLocal: opts.veillesReseauLocal, log: m => console.log(m), claude: opts.claude || claude });
   if (veilles && opts.veillesAuto !== false) veilles.start();
   // Derrière Caddy : adresse réelle du visiteur, et freinage des essais d'identifiants
   const trustProxy = opts.trustProxy ?? process.env.TRUST_PROXY === '1';
@@ -142,7 +142,14 @@ export function createApp(opts = {}) {
       }
       if (parts[1] === 'essai' && m === 'POST') {         // essai à blanc d'une configuration (même non enregistrée)
         const b = await readJson(req);
-        try { return send(res, 200, await veilles.collecter(b.veille || {}, { essai: true })); } catch (e) { ko(e); }
+        try {
+          const r = await veilles.collecter(b.veille || {}, { essai: true });
+          if (b.avecClaude && opsClaude(b.veille || {})) {     // essai complet, sur 10 éléments au plus (consomme du quota)
+            const cl = await veilles.traiterParClaude(b.veille, r.nouveaux.slice(0, 10), { compter: false });
+            return send(res, 200, { ...r, nouveaux: cl.items, synthese: cl.synthese, claude: cl.info, ecartesNote: cl.ecartesNote || 0 });
+          }
+          return send(res, 200, r);
+        } catch (e) { ko(e); }
       }
       if (parts[1] && parts[2] === 'executer' && m === 'POST') {
         const v = (veilles.donnees().veilles || []).find(x => x && x.id === parts[1]);

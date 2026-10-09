@@ -1,6 +1,6 @@
 # Incubation — proposition
 
-Statut : **en cours sous le nom « Veilles »**. 0.11 : socle sans Claude, livré (onglet Veilles, flux RSS/Atom, filtres, rythme, exécutant au choix entre le serveur et un appareil, essai à blanc, fiches, notifications, vers Idées/Activités). Suite : 0.12 opérations Claude (notation, résumés, synthèse, actions proposées), 0.13 sources spécialisées (NVD, CISA KEV, France Travail) et révision.
+Statut : **en cours sous le nom « Veilles »**. 0.11 : socle sans Claude, livré (onglet Veilles, flux RSS/Atom, filtres, rythme, exécutant au choix entre le serveur et un appareil, essai à blanc, fiches, notifications, vers Idées/Activités). 0.12 : opérations Claude, livrées (note et seuil, résumés, actions proposées, synthèse, consigne, modèle, plafond quotidien). Suite : 0.13 sources spécialisées (NVD, CISA KEV, France Travail) et questions de révision.
 
 Décisions : nom « Veilles » ; chaque veille est exécutée, au choix, par le serveur ou par une application de bureau donnée.
 

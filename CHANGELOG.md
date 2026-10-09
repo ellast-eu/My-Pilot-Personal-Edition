@@ -4,6 +4,22 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+### Ajouts
+- **Veilles : opérations par Claude**, à cocher dans la fenêtre d'une veille :
+  - **noter la pertinence** de 0 à 5 selon un critère que vous écrivez, avec un seuil sous lequel l'élément est écarté ; les éléments sont triés par note ;
+  - **résumer** chaque élément en 2 phrases ;
+  - **proposer** « à creuser » ou « à faire », avec la raison ; le bouton correspondant est mis en avant, et rien n'est créé sans votre clic ;
+  - **synthèse de la fiche** : 5 faits marquants au plus, et « ce que ça change pour moi ».
+- **Réglages par veille** :
+  - consigne (angle, ton) ;
+  - modèle : Haiku par défaut, Sonnet ou Opus ;
+  - plafond d'appels à Claude par jour, 6 par défaut.
+- **Coût** : une seule demande à Claude par exécution, jusqu'à 40 éléments.
+- **Essai** : « Tester » peut inclure Claude, sur 10 éléments au plus, sans compter dans le plafond.
+- **État de Claude Code** affiché dans la fenêtre quand la veille est exécutée par l'instance courante.
+- **Sans Claude** : si Claude Code n'est pas disponible sur l'exécutant, ou que le plafond est atteint, la fiche est produite sans ces opérations, avec l'explication.
+- **Sécurité** : les articles sont transmis à Claude comme des données balisées, avec l'interdiction d'obéir à leur contenu. Chaque réponse est contrôlée champ par champ : note bornée, actions limitées à une liste, textes tronqués.
+
 ## [0.11.0] - 2026-10-10
 
 ### Ajouts
