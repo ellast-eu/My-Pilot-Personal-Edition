@@ -139,6 +139,20 @@ test('activités partagées : activité, tâche attribuée et tâche faite arriv
   assert.equal(((await getDoc('p1', 'pilot')) || { data: { chantiers: [] } }).data.chantiers.length, 0);
 });
 
+test('espace : deux membres modifient deux champs de la même idée, les deux sont gardés partout', async () => {
+  const modif = async (n, f) => { const d = await getDoc(n, doc); f(d.data.ideas.find(i => i.id === 'i1')); return call(n, '/api/docs/' + doc, 'PUT', { data: d.data, baseRev: d.rev }); };
+  await modif('s1', i => { i.note = 'Côté sud, à l\'abri du vent'; });
+  await new Promise(r => setTimeout(r, 5));
+  await modif('p1', i => { i.cat = 'maison'; });
+  await run('s1'); await run('p1'); await run('s1'); await run('p1');
+  for (const n of ['s1', 'p1']) {
+    const i = (await getDoc(n, doc)).data.ideas.find(x => x.id === 'i1');
+    assert.equal(i.note, 'Côté sud, à l\'abri du vent', n); assert.equal(i.cat, 'maison', n);
+  }
+  const brut = N.S.app.store.db.prepare('SELECT parent FROM records WHERE doc=? AND parent IS NOT NULL').all(doc).map(r => r.parent).join(' ');
+  assert.doesNotMatch(brut, /abri|maison|Potager/);              // les versions d'origine sont chiffrées elles aussi
+});
+
 test('chiffrement de bout en bout : l\'hôte ne stocke aucun contenu lisible', async () => {
   const rows = N.S.app.store.db.prepare('SELECT coll, data FROM records WHERE doc=? AND deleted=0').all(doc);
   assert.ok(rows.length >= 4);
@@ -204,6 +218,32 @@ test('retrait d\'un membre : son accès est coupé', async () => {
   assert.equal((await call('p1', '/api/partage/espaces/' + espace + '/quitter', 'POST', { forcer: true })).status, 200);
   assert.equal(await getDoc('p1', doc), null);
   assert.equal((await partage('p1')).espaces.length, 0);
+});
+
+test('après un retrait : nouvelle clé pour les membres restants, ancienne et nouvelle lisibles', async () => {
+  const s1 = (await partage('s1')).espaces[0];
+  assert.equal(s1.epoch, 2);
+  await putIdee('s1', doc, { id: 'i10', titre: 'Serre en palettes', title: 'Serre en palettes' });
+  await run('s1'); await run('s2');
+  assert.equal((await partage('s2')).espaces[0].epoch, 2);
+  assert.ok((await titres('s2', doc)).includes('Serre en palettes'));
+  const env = JSON.parse(N.S.app.store.db.prepare("SELECT data FROM records WHERE doc=? AND id='i10'").get(doc).data);
+  assert.equal(env.e, 2);
+});
+
+test('rôle lecteur : il lit tout (anciennes clés comprises) mais ne modifie rien', async () => {
+  const inv = await call('s1', '/api/partage/espaces/' + espace + '/invitations', 'POST', { role: 'lecteur' });
+  assert.equal((await call('p1', '/api/partage/rejoindre', 'POST', { lien: inv.body.lien })).status, 200);
+  await run('s1'); await run('p1'); await run('s1');
+  const e = (await partage('p1')).espaces[0];
+  assert.equal(e.status, 'actif', e.last_error); assert.equal(e.role, 'lecteur');
+  const t = await titres('p1', doc);
+  assert.ok(t.includes('Potager en carrés surélevés') && t.includes('Serre en palettes'));   // époques 1 et 2
+  assert.ok((await partage('s1')).espaces[0].membres.some(m => m.nom === 'Paul' && m.role === 'lecteur'));   // sa carte, elle, passe
+  await putIdee('p1', doc, { id: 'i10', titre: 'Serre modifiée par un lecteur', title: 'Serre modifiée par un lecteur' });
+  await run('p1'); await run('s1');
+  assert.ok((await titres('s1', doc)).includes('Serre en palettes'));
+  assert.ok(!(await titres('s1', doc)).includes('Serre modifiée par un lecteur'));
 });
 
 test('lien d\'invitation illisible', async () => {

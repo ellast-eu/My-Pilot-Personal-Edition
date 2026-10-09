@@ -349,6 +349,8 @@ const membre=(sp,mid)=>(espace(sp)?.membres||[]).find(m=>m.member===mid);
 const nomMembre=(sp,mid)=>{const m=membre(sp,mid); return m?(m.moi?'vous':m.nom||'un membre'):'un membre';};
 const couleurMembre=(sp,mid)=>membre(sp,mid)?.couleur||'#8A90A6';
 const espacesActifs=()=>SP.liste.filter(e=>e.status==='actif');
+const espacesEcriture=()=>espacesActifs().filter(e=>e.role!=='lecteur');
+const ro=x=>!!(x&&x._sp&&espace(x._sp)?.role==='lecteur');
 function privState(){ return Object.assign({},S,{ideas:S.ideas.filter(i=>!i._sp),unified:S.unified.filter(u=>!u._sp)}); }
 const privJson=()=>JSON.stringify(privState());
 const STAMPS=['_sp','modifiePar','modifieLe'];
@@ -393,6 +395,10 @@ async function pushEspaces(){
     const d=SP.docs[id]; if(d.sending){ d.again=true; continue; }
     let items=itemsEspace(id);
     if(JSON.stringify(items)===d.last) continue;
+    if(espace(id)?.role==='lecteur'){                 /* lecture seule : la modification est annulée */
+      fusionnerEspace(id,JSON.parse(d.last||'{"ideas":[],"unified":[]}')); renderAll();
+      toast('Espace « '+(espace(id)?.nom||'')+' » en lecture seule : modification annulée.',true); continue;
+    }
     const me=moi(id), now=Date.now();
     const tamponner=(k,x,list)=>{ if(d.items.get(k+x.id)!==JSON.stringify(propre(x))){ const o=list.find(y=>y.id===x.id&&y._sp===id); if(o){ o.modifiePar=me; o.modifieLe=now; if(!o.par) o.par=me; } } };
     items.ideas.forEach(x=>tamponner('i',x,S.ideas)); items.unified.forEach(x=>tamponner('u',x,S.unified));
@@ -476,10 +482,11 @@ function spBox(kind,x){
     const e=espace(x._sp), quand=x.modifieLe?new Date(x.modifieLe).toLocaleString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
     return `<div class="spbox"><span class="sptag" style="--c:${couleurMembre(x._sp,x.par)}"><span class="dot"></span></span>
       Partagée dans <b>« ${esc(e?.nom||'')} »</b>${x.par?', proposée par '+esc(nomMembre(x._sp,x.par)):''}${x.modifiePar&&quand?`. Dernière modification : ${esc(nomMembre(x._sp,x.modifiePar))}, ${esc(quand)}`:''}.
-      <div class="muted">Fiche vivante : ce que vous changez ici apparaît chez les autres membres.</div>
-      <div class="row"><button class="btn small" data-act="sp-retirer" data-k="${kind}" data-id="${x.id}">Retirer du partage</button></div></div>`;
+      ${ro(x)?'':'<div class="muted">Fiche vivante : ce que vous changez ici apparaît chez les autres membres.</div>'}
+      ${ro(x)?'<div class="muted"><b>Lecture seule</b> : vous pouvez consulter cette idée, pas la modifier.</div>'
+        :`<div class="row"><button class="btn small" data-act="sp-retirer" data-k="${kind}" data-id="${x.id}">Retirer du partage</button></div>`}</div>`;
   }
-  const l=espacesActifs();
+  const l=espacesEcriture();
   if(!l.length) return `<div class="spbox muted">Pour partager ${lib}, créez ou rejoignez un espace : onglet Données, bloc Partage.</div>`;
   return `<div class="spbox">Partager ${lib} dans
     <div class="row"><select class="field" id="spDest" style="flex:1">${l.map(e=>`<option value="${e.id}">${esc(e.nom)} (${e.membres.filter(m=>m.status!=='retire').length} membres)</option>`).join('')}</select>
@@ -769,6 +776,7 @@ async function testClaude(){
 async function crystallize(ids){
   const ideas=ids.map(id=>S.ideas.find(i=>i.id===id)).filter(i=>i&&i.status==='libre');
   if(!ideas.length) return;
+  if(ideas.some(ro)){ toast('Une de ces idées est dans un espace en lecture seule : elle ne peut pas être cristallisée.',true); return; }
   const sps=[...new Set(ideas.map(i=>i._sp).filter(Boolean))];
   if(sps.length>1){ toast('Ces idées appartiennent à deux espaces partagés différents : cristallisez-les séparément.',true); return; }
   const sp=sps[0]||null, privees=sp?ideas.filter(i=>!i._sp):[];
@@ -918,7 +926,7 @@ function renderNewCat(){
   const sel=$('#newCat'), v=sel.value;
   sel.innerHTML=S.categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')+'<option value="">Sans catégorie</option>';
   if([...sel.options].some(o=>o.value===v)) sel.value=v;
-  const sp=$('#newSpace'), l=espacesActifs(), w=sp.value||(ui.portee!=='tout'&&ui.portee!=='prive'?ui.portee:'');
+  const sp=$('#newSpace'), l=espacesEcriture(), w=sp.value||(ui.portee!=='tout'&&ui.portee!=='prive'?ui.portee:'');
   sp.hidden=!l.length;
   sp.innerHTML='<option value="">Dans mes idées (privé)</option>'+l.map(e=>`<option value="${e.id}">Partagée dans « ${esc(e.nom)} »</option>`).join('');
   if([...sp.options].some(o=>o.value===w)) sp.value=w;
@@ -1215,6 +1223,13 @@ function renderDrawer(){
   }
   const wasOpen=d.classList.contains('open');
   d.innerHTML=html;
+  /* idée d'un espace en lecture seule : consultation seulement */
+  const cible=D.type==='idea'?S.ideas.find(x=>x.id===D.id):D.type==='uni'?S.unified.find(x=>x.id===D.id):null;
+  const roMeta=D.type==='meta'&&computeMetas().metas.find(x=>x.key===D.key)?.ideas.some(ro);
+  if(ro(cible)||roMeta){
+    d.querySelectorAll('.dcorps input,.dcorps textarea,.dcorps select').forEach(e=>e.disabled=true);
+    d.querySelectorAll('[data-act="idea-del"],[data-act="crystal-one"],[data-act="dissolve"],[data-act="make-proj"],[data-act="detach"],[data-act="crystal-meta"]').forEach(b=>b.remove());
+  }
   d.classList.add('open'); v.classList.add('open');
   if(!wasOpen){
     tellPilot({type:'voile',on:true});

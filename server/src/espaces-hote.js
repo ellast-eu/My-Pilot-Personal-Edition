@@ -45,7 +45,7 @@ export class Hote {
 
   inviter(m, { role = 'membre', jours = 7 } = {}) {
     this.exigerProprietaire(m);
-    if (!['membre', 'proprietaire'].includes(role)) throw err(400, 'bad_request', 'Rôle inconnu');
+    if (!['membre', 'proprietaire', 'lecteur'].includes(role)) throw err(400, 'bad_request', 'Rôle inconnu');
     const j = Math.min(Math.max(+jours || 7, 1), 30);
     const invite = aleatoire(18);
     this.db.prepare(`INSERT INTO host_invites(id_hash, space, role, created_by, created_at, expires_at) VALUES (?,?,?,?,?,?)`)
@@ -71,16 +71,34 @@ export class Hote {
       .all(m.space).map(x => (m.role === 'proprietaire' ? x : { member: x.member, role: x.role, status: x.status, pub: x.pub, joined_at: x.joined_at, revoked_at: x.revoked_at }));
   }
 
-  /** Remise de la clé à un membre en attente (enveloppée par l'appareil propriétaire). */
-  approuver(m, cible, { epoch, wrap }) {
+  /** Remise des clés (toutes les époques) à un membre en attente, enveloppées par l'appareil propriétaire. */
+  approuver(m, cible, { epoch, wrap, wraps }) {
     this.exigerProprietaire(m);
     const t = this.db.prepare('SELECT * FROM host_members WHERE space=? AND member=?').get(m.space, cible);
     if (!t || t.status === 'retire') throw err(404, 'not_found', 'Membre inconnu');
-    if (!Number.isInteger(epoch) || epoch < 1 || !wrap || typeof wrap.iv !== 'string' || typeof wrap.ct !== 'string') throw err(400, 'bad_request', 'Clé enveloppée invalide');
-    this.db.prepare('INSERT OR REPLACE INTO host_keys(space, epoch, member, wrap) VALUES (?,?,?,?)')
-      .run(m.space, epoch, cible, JSON.stringify({ from: m.member, iv: wrap.iv, ct: wrap.ct }));
+    const liste = Array.isArray(wraps) ? wraps : [{ epoch, ...(wrap || {}) }];
+    if (!liste.length || liste.length > 1000 || liste.some(w => !w || !Number.isInteger(w.epoch) || w.epoch < 1 || typeof w.iv !== 'string' || typeof w.ct !== 'string')) {
+      throw err(400, 'bad_request', 'Clé enveloppée invalide');
+    }
+    const ins = this.db.prepare('INSERT OR REPLACE INTO host_keys(space, epoch, member, wrap) VALUES (?,?,?,?)');
+    for (const w of liste) ins.run(m.space, w.epoch, cible, JSON.stringify({ from: m.member, iv: w.iv, ct: w.ct }));
     this.db.prepare("UPDATE host_members SET status='actif' WHERE space=? AND member=?").run(m.space, cible);
     return { ok: true };
+  }
+
+  /** Nouvelle époque de clé (après un retrait) : une enveloppe par membre restant. */
+  renouveler(m, { epoch, wraps }) {
+    this.exigerProprietaire(m);
+    const max = this.db.prepare('SELECT max(epoch) AS e FROM host_keys WHERE space=?').get(m.space).e || 1;
+    if (epoch !== max + 1) throw err(409, 'epoch', 'Une autre clé a été créée entre-temps : réessayez');
+    if (!Array.isArray(wraps) || wraps.length > 1000) throw err(400, 'bad_request', 'Enveloppes attendues');
+    const membres = new Set(this.db.prepare("SELECT member FROM host_members WHERE space=? AND status<>'retire'").all(m.space).map(x => x.member));
+    const ins = this.db.prepare('INSERT OR REPLACE INTO host_keys(space, epoch, member, wrap) VALUES (?,?,?,?)');
+    for (const w of wraps) {
+      if (!w || !membres.has(w.member) || typeof w.iv !== 'string' || typeof w.ct !== 'string') throw err(400, 'bad_request', 'Enveloppe invalide');
+      ins.run(m.space, epoch, w.member, JSON.stringify({ from: m.member, iv: w.iv, ct: w.ct }));
+    }
+    return { ok: true, epoch };
   }
 
   retirer(m, cible) {
@@ -107,16 +125,21 @@ export class Hote {
   echange(m, body) {
     this.exigerActif(m);
     const doc = PREFIXE_ESPACE + m.space;
-    const incoming = (Array.isArray(body.changes) ? body.changes.slice(0, 5000) : []).filter(ch => ch
-      && ch.doc === doc && COLLECTIONS_ESPACE.includes(ch.coll) && typeof ch.id === 'string' && ch.id.length <= 120
-      && typeof ch.hlc === 'string' && ch.hlc.length <= 80 && (ch.data === null || estEnveloppe(ch.data)))
-      .map(ch => ({ doc, coll: ch.coll, id: ch.id, hlc: ch.hlc, data: ch.data, origin: m.member }));
-    const applied = incoming.length ? this.store.applyRemote(incoming, { source: 'membre ' + m.member }).applied : 0;
+    const brut = Array.isArray(body.changes) ? body.changes.slice(0, 5000) : [];
+    const ok = ch => ch && ch.doc === doc && COLLECTIONS_ESPACE.includes(ch.coll) && typeof ch.id === 'string' && ch.id.length <= 120
+      && typeof ch.hlc === 'string' && ch.hlc.length <= 80 && (ch.data === null || estEnveloppe(ch.data))
+      && (ch.bases === undefined || (Array.isArray(ch.bases) && ch.bases.length === 1 && estEnveloppe(ch.bases[0])))
+      && (m.role !== 'lecteur' || (ch.coll === 'members' && ch.id === m.member));     // un lecteur n'écrit que sa carte
+    const rangs = brut.map((ch, i) => (ok(ch) ? i : -1)).filter(i => i >= 0);
+    const incoming = rangs.map(i => ({ doc, coll: brut[i].coll, id: brut[i].id, hlc: brut[i].hlc, data: brut[i].data, origin: m.member,
+      ...(brut[i].bases ? { bases: brut[i].bases } : {}) }));
+    const r = incoming.length ? this.store.applyRemote(incoming, { source: 'membre ' + m.member }) : { applied: 0, accepted: [] };
+    const applied = r.applied;
     const since = Math.max(0, +body.since || 0);
     const limit = Math.min(Math.max(+body.limit || 500, 1), 2000);
     const out = this.store.changesSince(since, { doc, excludeOrigin: m.member, limit });
     const more = out.length === limit;
-    return { applied, changes: out.map(({ seq, ...c }) => c), cursor: more ? out[out.length - 1].seq : this.store.maxSeq(), more };
+    return { applied, accepted: r.accepted.map(i => rangs[i]), changes: out.map(({ seq, ...c }) => c), cursor: more ? out[out.length - 1].seq : this.store.maxSeq(), more };
   }
 }
 

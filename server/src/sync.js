@@ -17,13 +17,16 @@ export function hubExchange(store, body) {
   const device = String(body.device || '').slice(0, 64);
   if (!device) throw Object.assign(new Error('Identifiant d\'appareil manquant'), { code: 'bad_request' });
   const since = Math.max(0, +body.since || 0);
-  const incoming = prives(Array.isArray(body.changes) ? body.changes.slice(0, 5000) : []);
-  const applied = incoming.length ? store.applyRemote(incoming, { source: 'appareil ' + device }) : { applied: 0 };
+  const brut = Array.isArray(body.changes) ? body.changes.slice(0, 5000) : [];
+  const rangs = brut.map((ch, i) => (ch && !estEspace(ch.doc) ? i : -1)).filter(i => i >= 0);
+  const incoming = rangs.map(i => brut[i]);
+  const applied = incoming.length ? store.applyRemote(incoming, { source: 'appareil ' + device }) : { applied: 0, accepted: [] };
   const limit = Math.min(Math.max(+body.limit || BATCH, 1), 2000);
   const out = store.changesSince(since, { excludeOrigin: device, limit, sansEspaces: true });
   const more = out.length === limit;
   const cursor = more ? out[out.length - 1].seq : store.maxSeq();
-  return { hub: store.deviceId, applied: applied.applied, changes: out.map(({ seq, ...c }) => c), cursor, more };
+  // accepted : rangs (dans l'envoi de l'appareil) des fiches gardées telles quelles ici → nouvelle version commune
+  return { hub: store.deviceId, applied: applied.applied, accepted: applied.accepted.map(i => rangs[i]), changes: out.map(({ seq, ...c }) => c), cursor, more };
 }
 
 /** Côté appareil : moteur de synchronisation vers le hub configuré. */
@@ -125,11 +128,13 @@ export class SyncEngine {
         }
         const body = await res.json();
         const pushed = changes.length ? changes[changes.length - 1].seq : st.pushed_seq;
-        // une fiche envoyée dans cet échange puis remplacée par une version plus récente a « perdu » : on la journalise
-        const r = store.applyRemote(prives(body.changes), { pendingAfter: st.pushed_seq, source: 'synchronisation' });
+        // fiches gardées telles quelles par le serveur : c'est la nouvelle version commune pour la fusion
+        store.setRecBases((body.accepted || []).map(i => changes[i]).filter(Boolean));
+        // fiches reçues : fusion champ par champ avec ce qui a été modifié ici
+        const r = store.applyRemote(prives(body.changes), { source: 'synchronisation' });
         store.setSyncState(url, { pushed_seq: pushed, pulled_cursor: +body.cursor || st.pulled_cursor });
         sent += changes.length; received += r.applied; conflicts += r.conflicts;
-        if (changes.length < BATCH && !body.more) break;
+        if (changes.length < BATCH && !body.more && !(r.applied && store.pendingCount(url))) break;   // fusion faite ici : renvoyée aussitôt
       }
       const now = new Date().toISOString();
       store.setSyncState(url, { last_ok: now, last_error: null });

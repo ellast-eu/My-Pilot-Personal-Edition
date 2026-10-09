@@ -9,6 +9,7 @@ import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { fusionner3, TAMPONS } from './fusion.js';
 
 /* collections découpées en fiches ; tout le reste d'un document est un réglage global */
 export const COLLECTIONS = {
@@ -59,6 +60,10 @@ const MIGRATIONS = [
   `CREATE TABLE inbox(id INTEGER PRIMARY KEY AUTOINCREMENT, space TEXT NOT NULL, coll TEXT NOT NULL, rid TEXT NOT NULL,
      kind TEXT NOT NULL, author TEXT NOT NULL, titre TEXT NOT NULL, at TEXT NOT NULL, seen INTEGER NOT NULL DEFAULT 0);
    CREATE INDEX inbox_seen ON inbox(seen, at);`,
+  // v5 : fusion champ par champ — dernière version échangée de chaque fiche, champs en conflit
+  `CREATE TABLE rec_bases(doc TEXT NOT NULL, coll TEXT NOT NULL, id TEXT NOT NULL, data TEXT, PRIMARY KEY(doc, coll, id));
+   ALTER TABLE conflicts ADD COLUMN champs TEXT;
+   ALTER TABLE records ADD COLUMN parent TEXT;`,
 ];
 
 const stable = v => JSON.stringify(v);   // l'ordre des clés est celui de l'objet : suffisant ici
@@ -196,13 +201,19 @@ export class Store {
     return Object.assign(out, JSON.parse(row.local || '{}'));
   }
 
-  writeRecord(doc, coll, id, json, hlc, origin = this.deviceId) {
+  /** parent : versions d'origine (liste JSON) de cette version quand elle vient d'ailleurs ou d'une fusion — transmises aux autres. */
+  writeRecord(doc, coll, id, json, hlc, origin = this.deviceId, parent = null) {
     const seq = this.counter('seq');
     const cur = this.db.prepare('SELECT ord FROM records WHERE doc=? AND coll=? AND id=?').get(doc, coll, id);
     const ord = cur ? cur.ord : this.counter('ord');
-    this.db.prepare(`INSERT INTO records(doc, coll, id, data, deleted, hlc, origin, seq, ord) VALUES (?,?,?,?,?,?,?,?,?)
+    if (this.schemaVersion === undefined) {     // pendant les migrations (v1 → v2), avant la colonne parent
+      this.db.prepare(`INSERT OR REPLACE INTO records(doc, coll, id, data, deleted, hlc, origin, seq, ord) VALUES (?,?,?,?,?,?,?,?,?)`)
+        .run(doc, coll, id, json, json === null ? 1 : 0, hlc, origin, seq, ord);
+      return;
+    }
+    this.db.prepare(`INSERT INTO records(doc, coll, id, data, deleted, hlc, origin, seq, ord, parent) VALUES (?,?,?,?,?,?,?,?,?,?)
       ON CONFLICT(doc, coll, id) DO UPDATE SET data=excluded.data, deleted=excluded.deleted, hlc=excluded.hlc,
-      origin=excluded.origin, seq=excluded.seq`).run(doc, coll, id, json, json === null ? 1 : 0, hlc, origin, seq, ord);
+      origin=excluded.origin, seq=excluded.seq, parent=excluded.parent`).run(doc, coll, id, json, json === null ? 1 : 0, hlc, origin, seq, ord, parent);
   }
 
   saveBase(doc, rev, data) {
@@ -262,7 +273,15 @@ export class Store {
         const b = base.has(k) ? base.get(k) : null;
         if (m === b) { if (t !== b) remoteKept = true; continue; }   // la page n'a pas touché : on garde l'existant
         if (t === b || m === t) { if (m !== t) { this.writeKey(id, k, m); writes++; } continue; }
-        // modifiée des deux côtés : la saisie de la page l'emporte, l'autre version est journalisée
+        // modifiée des deux côtés : fusion champ par champ ; pour un même champ, la saisie de la page l'emporte
+        if (m !== null && t !== null) {
+          const f = fusionner3(b === null ? undefined : JSON.parse(b), JSON.parse(m), JSON.parse(t), 'mien');
+          const fusion = stable(f.valeur), champs = f.conflits.filter(c => !TAMPONS.includes(c));
+          if (champs.length) { this.logConflict(id, k, fusion, t, 'onglet', champs); conflicts++; }
+          if (fusion !== m) remoteKept = true;
+          this.writeKey(id, k, fusion); writes++;
+          continue;
+        }
         this.logConflict(id, k, m, t, 'onglet');
         this.writeKey(id, k, m); writes++; conflicts++;
       }
@@ -298,14 +317,29 @@ export class Store {
     this.writeRecord(doc, coll, id, json, this.nextHlc());
   }
 
-  logConflict(doc, key, kept, lost, source) {
+  logConflict(doc, key, kept, lost, source, champs = null) {
     const [coll, rid] = splitKey(key);
-    this.db.prepare('INSERT INTO conflicts(doc, coll, rid, kept, lost, source, at) VALUES (?,?,?,?,?,?,?)')
-      .run(doc, coll, rid, kept, lost, source, nowIso());
+    this.db.prepare('INSERT INTO conflicts(doc, coll, rid, kept, lost, source, at, champs) VALUES (?,?,?,?,?,?,?,?)')
+      .run(doc, coll, rid, kept, lost, source, nowIso(), champs && champs.length ? JSON.stringify(champs) : null);
   }
   listConflicts(limit = 50) {
     return this.db.prepare('SELECT * FROM conflicts ORDER BY id DESC LIMIT ?').all(limit)
-      .map(c => ({ ...c, kept: c.kept && JSON.parse(c.kept), lost: c.lost && JSON.parse(c.lost), seen: !!c.seen }));
+      .map(c => ({ ...c, kept: c.kept && JSON.parse(c.kept), lost: c.lost && JSON.parse(c.lost), seen: !!c.seen,
+        champs: c.champs ? JSON.parse(c.champs) : null }));
+  }
+
+  /* ---------- versions de référence pour la fusion (dernière version échangée de chaque fiche) ---------- */
+  getRecBase(doc, coll, id) {
+    const r = this.db.prepare('SELECT data FROM rec_bases WHERE doc=? AND coll=? AND id=?').get(doc, coll, id);
+    return r ? r.data : undefined;            // undefined : inconnue ; null : supprimée
+  }
+  setRecBase(doc, coll, id, json) {
+    this.db.prepare('INSERT INTO rec_bases(doc, coll, id, data) VALUES (?,?,?,?) ON CONFLICT(doc, coll, id) DO UPDATE SET data=excluded.data')
+      .run(doc, coll, id, json);
+  }
+  /** Après un envoi accepté tel quel par l'autre côté : c'est la nouvelle version commune. */
+  setRecBases(changes) {
+    for (const c of changes) this.setRecBase(c.doc, c.coll, c.id, c.data === null || c.data === undefined ? null : stable(c.data));
   }
   unseenConflicts() { return this.db.prepare('SELECT count(*) AS n FROM conflicts WHERE seen=0').get().n; }
   markConflictsSeen() { this.db.prepare('UPDATE conflicts SET seen=1 WHERE seen=0').run(); }
@@ -340,45 +374,77 @@ export class Store {
   /* ---------- synchronisation ---------- */
   /** Modifications locales postérieures à `since` (séquence), au format d'échange. */
   changesSince(since, { limit = 1000, origin = null, excludeOrigin = null, doc = null, sansEspaces = false } = {}) {
-    let sql = 'SELECT doc, coll, id, data, deleted, hlc, origin, seq FROM records WHERE seq > ?';
+    let sql = 'SELECT doc, coll, id, data, deleted, hlc, origin, seq, parent FROM records WHERE seq > ?';
     const args = [since];
     if (doc) { sql += ' AND doc = ?'; args.push(doc); }
     if (sansEspaces) { sql += " AND doc NOT LIKE 's-%'"; }
     if (origin) { sql += ' AND origin = ?'; args.push(origin); }
     if (excludeOrigin) { sql += ' AND origin <> ?'; args.push(excludeOrigin); }
     sql += ' ORDER BY seq LIMIT ?'; args.push(limit);
-    return this.db.prepare(sql).all(...args).map(r => ({
-      doc: r.doc, coll: r.coll, id: r.id, data: r.deleted ? null : JSON.parse(r.data), hlc: r.hlc, origin: r.origin, seq: r.seq,
-    }));
+    return this.db.prepare(sql).all(...args).map(r => {
+      const c = { doc: r.doc, coll: r.coll, id: r.id, data: r.deleted ? null : JSON.parse(r.data), hlc: r.hlc, origin: r.origin, seq: r.seq };
+      // versions d'origine, pour que celui qui reçoit sache s'il s'agit d'une suite ou d'une modification concurrente
+      if (r.parent !== null) c.bases = JSON.parse(r.parent);
+      else if (r.origin === this.deviceId) { const b = this.getRecBase(r.doc, r.coll, r.id); if (b) c.bases = [JSON.parse(b)]; }
+      return c;
+    });
   }
   maxSeq() { return +this.getMeta('seq') || 0; }
 
   /**
-   * Applique des modifications venues d'ailleurs : pour chaque fiche, la plus récente (HLC) gagne.
-   * Si une modification locale pas encore envoyée est écrasée, elle part dans le journal des conflits.
-   * @returns {{applied:number, docs:string[], conflicts:number}}
+   * Applique des modifications venues d'ailleurs.
+   * - Fiche dont la dernière version vient d'ailleurs : la plus récente (HLC) gagne.
+   * - Fiche dont la dernière version a été écrite ici : fusion champ par champ avec la version
+   *   commune (dernière version échangée). Un champ modifié des deux côtés prend la valeur la plus
+   *   récente, l'autre est notée dans le journal des conflits. Si la fusion diffère de la version
+   *   reçue, elle est écrite ici avec une horloge plus récente : elle repartira au prochain échange.
+   * @returns {{applied:number, docs:string[], conflicts:number, accepted:number[]}}
+   *   accepted : rang des modifications reçues désormais présentes telles quelles ici
    */
-  applyRemote(changes, { pendingAfter = Infinity, source = 'synchronisation' } = {}) {
+  applyRemote(changes, { source = 'synchronisation' } = {}) {
     let applied = 0, conflicts = 0;
-    const touched = new Set();
+    const touched = new Set(), accepted = [];
     this.db.exec('BEGIN IMMEDIATE');
     try {
-      for (const ch of changes) {
-        if (!ch || typeof ch.doc !== 'string' || typeof ch.coll !== 'string' || typeof ch.id !== 'string' || typeof ch.hlc !== 'string') continue;
+      changes.forEach((ch, rang) => {
+        if (!ch || typeof ch.doc !== 'string' || typeof ch.coll !== 'string' || typeof ch.id !== 'string' || typeof ch.hlc !== 'string') return;
         this.observeHlc(ch.hlc);
-        const cur = this.db.prepare('SELECT data, deleted, hlc, origin, seq FROM records WHERE doc=? AND coll=? AND id=?').get(ch.doc, ch.coll, ch.id);
-        if (cur && cur.hlc >= ch.hlc) continue;                  // l'existant est plus récent (ou identique)
         const json = ch.data === null || ch.data === undefined ? null : stable(ch.data);
-        if (cur && cur.origin === this.deviceId && cur.seq > pendingAfter) {
-          const curJson = cur.deleted ? null : cur.data;
-          if (curJson !== json) { this.logConflict(ch.doc, joinKey(ch.coll, ch.id), json, curJson, source); conflicts++; }
+        const parents = (Array.isArray(ch.bases) ? ch.bases : []).filter(b => b && typeof b === 'object').slice(0, 4).map(stable);
+        const parentCol = parents.length ? '[' + parents.join(',') + ']' : null;
+        const cur = this.db.prepare('SELECT data, deleted, hlc, origin, seq FROM records WHERE doc=? AND coll=? AND id=?').get(ch.doc, ch.coll, ch.id);
+        const ecrire = (data, hlc, origin, parent) => {
+          if (!this.db.prepare('SELECT 1 FROM docs WHERE id=?').get(ch.doc)) {
+            this.db.prepare('INSERT INTO docs(id, rev, updated_at, local) VALUES (?,0,?,?)').run(ch.doc, nowIso(), '{}');
+          }
+          this.writeRecord(ch.doc, ch.coll, ch.id, data, hlc, origin, parent);
+          applied++; touched.add(ch.doc);
+        };
+        const telle = () => { ecrire(json, ch.hlc, ch.origin || 'distant', parentCol); accepted.push(rang); };
+        const fin = () => this.setRecBase(ch.doc, ch.coll, ch.id, json);
+        if (!cur) { telle(); return fin(); }
+        const curJson = cur.deleted ? null : cur.data;
+        const recent = ch.hlc > cur.hlc;
+        if (curJson === json) { if (recent) ecrire(json, ch.hlc, ch.origin || 'distant', parentCol); accepted.push(rang); return fin(); }
+        const chiffre = estScelle(curJson) || estScelle(json);       // hôte d'un espace : il ne lit pas, la plus récente gagne
+        if (!chiffre && curJson !== null && parents.includes(curJson)) { telle(); return fin(); }   // simple suite de ce qu'on a
+        // version commune : la dernière échangée d'ici si elle fait partie des origines reçues, sinon la première origine
+        const rb = this.getRecBase(ch.doc, ch.coll, ch.id);
+        const anc = rb !== undefined && rb !== null && parents.includes(rb) ? rb : parents.length ? parents[0] : rb;
+        if (chiffre || anc === undefined && cur.origin !== this.deviceId) { if (recent) telle(); if (recent) fin(); return; }
+        const key = joinKey(ch.coll, ch.id);
+        if (curJson !== null && json !== null) {
+          const f = fusionner3(anc ? JSON.parse(anc) : undefined, JSON.parse(curJson), JSON.parse(json), recent ? 'sien' : 'mien');
+          const fusion = stable(f.valeur), champs = f.conflits.filter(c => !TAMPONS.includes(c));
+          if (champs.length) { this.logConflict(ch.doc, key, fusion, recent ? curJson : json, source, champs); conflicts++; }
+          if (fusion === json) telle();
+          else if (fusion !== curJson || recent) ecrire(fusion, this.nextHlc(), this.deviceId, '[' + curJson + ',' + json + ']');   // repartira, avec ses deux origines
+        } else if (recent) {                                      // suppression d'un côté : la plus récente gagne
+          if (anc !== curJson) { this.logConflict(ch.doc, key, json, curJson, source); conflicts++; }
+          telle();
         }
-        if (!this.db.prepare('SELECT 1 FROM docs WHERE id=?').get(ch.doc)) {
-          this.db.prepare('INSERT INTO docs(id, rev, updated_at, local) VALUES (?,0,?,?)').run(ch.doc, nowIso(), '{}');
-        }
-        this.writeRecord(ch.doc, ch.coll, ch.id, json, ch.hlc, ch.origin || 'distant');
-        applied++; touched.add(ch.doc);
-      }
+        fin();
+      });
       for (const doc of touched) {
         const d = this.db.prepare('SELECT rev FROM docs WHERE id=?').get(doc);
         const rev = d.rev + 1;
@@ -393,7 +459,7 @@ export class Store {
       throw e;
     }
     if (touched.size) this.emit({ type: 'remote-change', docs: [...touched] });
-    return { applied, docs: [...touched], conflicts };
+    return { applied, docs: [...touched], conflicts, accepted };
   }
 
   getSyncState(remote) {
@@ -436,7 +502,7 @@ export class Store {
   dropDoc(doc) {
     this.db.exec('BEGIN IMMEDIATE');
     try {
-      for (const t of ['records', 'bases', 'revisions']) this.db.prepare(`DELETE FROM ${t} WHERE doc=?`).run(doc);
+      for (const t of ['records', 'bases', 'revisions', 'rec_bases']) this.db.prepare(`DELETE FROM ${t} WHERE doc=?`).run(doc);
       this.db.prepare('DELETE FROM docs WHERE id=?').run(doc);
       this.db.exec('COMMIT');
     } catch (e) { try { this.db.exec('ROLLBACK'); } catch {} throw e; }
@@ -461,6 +527,11 @@ export class Store {
   close() { this.db.close(); }
 }
 
+function estScelle(json) {
+  if (!json || json[0] !== '{') return false;
+  try { const v = JSON.parse(json); return Number.isInteger(v.e) && typeof v.iv === 'string' && typeof v.ct === 'string' && Object.keys(v).length === 3; }
+  catch { return false; }
+}
 function joinKey(coll, id) { return coll + '\u0000' + id; }
 function splitKey(k) { const i = k.indexOf('\u0000'); return [k.slice(0, i), k.slice(i + 1)]; }
 function parseHlc(h) {

@@ -77,6 +77,7 @@ export class Espaces {
   maj(id, patch) {
     const cur = this.get(id); if (!cur) return null;
     const s = { ...cur, ...patch };
+    if (patch.keys) s.keys = { ...cur.keys, ...patch.keys };      // les clés ne font que s'ajouter (cycles concurrents)
     this.db.prepare(`UPDATE my_spaces SET name=?, role=?, status=?, owner_pub=?, keys=?, epoch=?, invites=?, members=?, last_ok=?, last_error=? WHERE id=?`)
       .run(s.name, s.role, s.status, s.owner_pub, JSON.stringify(s.keys), s.epoch, JSON.stringify(s.invites), JSON.stringify(s.members), s.last_ok, s.last_error, id);
     return s;
@@ -128,7 +129,7 @@ export class Espaces {
     const r = await this.appel(sp.host, '/' + sp.id + '/invites', { method: 'POST', body: { role, jours }, token: sp.token });
     const secret = aleatoire(18);
     const id = this.identite();
-    sp.invites = [...sp.invites.filter(i => i.expires_at > nowIso()),
+    sp.invites = [...this.get(sp.id).invites.filter(i => i.expires_at > nowIso()),
       { hash: hacher(r.invite), invite: r.invite, secret, role, created_at: nowIso(), expires_at: r.expires_at }];
     this.maj(sp.id, { invites: sp.invites });
     const lien = `${sp.host}/rejoindre/#v1.${sp.id}.${r.invite}.${secret}.${empreinteComplete(id.pub)}.${b64url(Buffer.from(sp.name, 'utf8'))}`;
@@ -160,8 +161,28 @@ export class Espaces {
   async retirer(spaceId, membre) {
     const sp = this.exiger(spaceId);
     await this.appel(sp.host, '/' + sp.id + '/members/' + encodeURIComponent(membre) + '/revoke', { method: 'POST', body: {}, token: sp.token });
+    await this.renouvelerCle(this.get(sp.id));
     await this.run('retrait');
     return this.vue(this.get(sp.id));
+  }
+
+  /** Nouvelle clé pour les membres restants : ce que l'espace contiendra désormais reste illisible pour un membre retiré. */
+  async renouvelerCle(sp) {
+    for (let essai = 0; essai < 3; essai++) {
+      await this.majCles(sp).catch(() => {});
+      sp = this.get(sp.id);
+      const membres = await this.appel(sp.host, '/' + sp.id + '/members', { token: sp.token });
+      const id = this.identite();
+      const epoch = Math.max(0, ...Object.keys(sp.keys).map(Number)) + 1, cle = nouvelleCle();
+      const wraps = membres.filter(m => m.status === 'actif' && m.member !== sp.member).map(m => ({
+        member: m.member, ...envelopper({ priv: id.priv, pubDest: m.pub, cle, contexte: contexteCle(sp.id, epoch, m.member) }),
+      }));
+      try {
+        await this.appel(sp.host, '/' + sp.id + '/rekey', { method: 'POST', token: sp.token, body: { epoch, wraps } });
+        return this.maj(sp.id, { keys: { ...sp.keys, [epoch]: cle }, epoch });
+      } catch (e) { if (e.code !== 'epoch') throw e; }        // une autre clé vient d'être créée : on la récupère et on recommence
+    }
+    throw err('epoch', 'Nouvelle clé impossible : réessayez');
   }
 
   /** Quitter : se retire de l'hôte puis efface la copie locale de l'espace. */
@@ -193,7 +214,7 @@ export class Espaces {
     for (const sp0 of this.liste()) {
       let sp = sp0;
       try {
-        if (sp.status !== 'actif') sp = await this.recupererCle(sp);
+        sp = await this.majCles(sp);
         if (sp.status === 'actif') {
           sp = await this.rafraichirMembres(sp);
           if (sp.status === 'actif') await this.synchroniser(sp);
@@ -208,7 +229,13 @@ export class Espaces {
   }
 
   /** Membre en attente : récupère et vérifie la clé remise par un appareil propriétaire. */
-  async recupererCle(sp) {
+  /**
+   * Clés de l'espace remises à cet appareil (à l'arrivée, puis à chaque nouvelle époque).
+   * Une clé n'est acceptée que si elle a été enveloppée par l'appareil dont le lien d'invitation
+   * donnait l'empreinte, ou par un membre dont la carte (chiffrée, donc écrite par un membre et
+   * non par l'hôte) porte cette clé publique.
+   */
+  async majCles(sp) {
     const cles = await this.appel(sp.host, '/' + sp.id + '/key', { token: sp.token }).catch(e => {
       if (e.code === 'pending') return [];
       throw e;
@@ -216,10 +243,11 @@ export class Espaces {
     const id = this.identite();
     const keys = { ...sp.keys };
     let epoch = sp.epoch;
+    const cartes = (this.store.getDoc(PREFIXE_ESPACE + sp.id)?.data.members || []).filter(c => c && c.pub);
     for (const k of cles) {
       if (keys[k.epoch]) continue;
-      // la première clé doit venir de l'appareil dont le lien donnait l'empreinte : sinon l'hôte a pu s'interposer
-      if (!k.fromPub || empreinteComplete(k.fromPub) !== sp.owner_pub) {
+      const fiable = k.fromPub && (empreinteComplete(k.fromPub) === sp.owner_pub || cartes.some(c => c.id === k.from && c.pub === k.fromPub));
+      if (!fiable) {
         return this.maj(sp.id, { last_error: 'Clé reçue d\'un appareil inconnu : refusée (vérifiez le lien avec la personne qui vous a invitée)' });
       }
       try {
@@ -230,29 +258,35 @@ export class Espaces {
       }
     }
     if (!Object.keys(keys).length) return this.maj(sp.id, { status: 'en_attente' });
-    const s = this.maj(sp.id, { keys, epoch, status: 'actif', last_error: null });
-    this.ecrireCarte(s);
+    const neuf = sp.status !== 'actif';
+    if (!neuf && epoch === sp.epoch) return sp;
+    const s = this.maj(sp.id, { keys, epoch, status: 'actif', ...(neuf ? { last_error: null } : {}) });
+    if (neuf) this.ecrireCarte(s);
     return s;
   }
 
   /** Liste des membres ; un propriétaire remet aussi la clé aux arrivants dont la preuve est valide. */
   async rafraichirMembres(sp) {
     const membres = await this.appel(sp.host, '/' + sp.id + '/members', { token: sp.token });
+    sp = this.get(sp.id) || sp;              // relu après l'attente : une invitation a pu être créée entre-temps
     let alerte = null;
     if (sp.role === 'proprietaire') {
       const id = this.identite();
       let invites = sp.invites;
+      const utilisees = new Set();
       for (const m of membres.filter(x => x.status === 'en_attente')) {
         const inv = invites.find(i => i.hash === m.invite);
         if (!inv) continue;                                   // invitation créée depuis un autre appareil
         const attendu = preuve(inv.secret, messagePreuve(sp.id, inv.invite, m.pub));
         if (attendu !== m.proof) { alerte = 'Une arrivée ne correspond pas au lien envoyé : clé non remise'; continue; }
-        const wrap = envelopper({ priv: id.priv, pubDest: m.pub, cle: sp.keys[sp.epoch], contexte: contexteCle(sp.id, sp.epoch, m.member) });
-        await this.appel(sp.host, '/' + sp.id + '/members/' + m.member + '/approve', { method: 'POST', body: { epoch: sp.epoch, wrap }, token: sp.token });
+        // toutes les époques : l'arrivant lit aussi ce qui a été écrit avant une éventuelle nouvelle clé
+        const wraps = Object.entries(sp.keys).map(([e, cle]) => ({ epoch: +e, ...envelopper({ priv: id.priv, pubDest: m.pub, cle, contexte: contexteCle(sp.id, +e, m.member) }) }));
+        await this.appel(sp.host, '/' + sp.id + '/members/' + m.member + '/approve', { method: 'POST', body: { wraps }, token: sp.token });
         m.status = 'actif';
-        invites = invites.filter(i => i !== inv);
+        utilisees.add(inv.hash);
       }
-      invites = invites.filter(i => i.expires_at > nowIso());
+      // relecture juste avant d'écrire : on ne retire que les invitations utilisées ou expirées
+      invites = this.get(sp.id).invites.filter(i => !utilisees.has(i.hash) && i.expires_at > nowIso());
       sp = this.maj(sp.id, { invites });
     }
     const moi = membres.find(m => m.member === sp.member);
@@ -271,24 +305,37 @@ export class Espaces {
     let rejetees = 0;
     for (let round = 0; round < 200; round++) {
       const st = store.getSyncState(remote);
-      const changes = store.changesSince(st.pushed_seq, { origin: store.deviceId, doc, limit: BATCH });
+      const changes = store.changesSince(st.pushed_seq, { origin: store.deviceId, doc, limit: BATCH })
+        .filter(c => sp.role !== 'lecteur' || (c.coll === 'members' && c.id === sp.member));     // lecteur : sa carte seulement
+      const cle = sp.keys[sp.epoch];
       const scellees = changes.map(c => ({
         doc, coll: c.coll, id: c.id, hlc: c.hlc,
-        data: c.data === null ? null : sceller(sp.keys[sp.epoch], sp.epoch, { doc, coll: c.coll, id: c.id, hlc: c.hlc }, c.data),
+        data: c.data === null ? null : sceller(cle, sp.epoch, { doc, coll: c.coll, id: c.id, hlc: c.hlc }, c.data),
+        // versions d'origine (fusion champ par champ chez les autres membres), chiffrées elles aussi
+        ...(c.bases ? { bases: [sceller(cle, sp.epoch, { doc, coll: c.coll, id: c.id + '|origines', hlc: c.hlc }, c.bases)] } : {}),
       }));
       const body = await this.appel(sp.host, '/' + sp.id + '/sync', { method: 'POST', token: sp.token, body: { since: st.pulled_cursor, changes: scellees } });
       const claires = [];
+      const manque = (body.changes || []).filter(c => c.doc === doc && c.data && !sp.keys[c.data.e]).map(c => c.data.e);
+      if (manque.length) {
+        Object.assign(sp, await this.majCles(sp));
+        if (manque.some(e => !sp.keys[e])) throw err('epoch', 'Clé n° ' + Math.max(...manque) + ' de l\'espace pas encore reçue : synchronisation reprise plus tard');
+      }
       for (const c of body.changes || []) {
         if (c.doc !== doc) continue;
         try {
+          const env = Array.isArray(c.bases) && c.bases[0];
           claires.push({ doc, coll: c.coll, id: c.id, hlc: c.hlc, origin: c.origin,
-            data: c.data === null ? null : ouvrir(sp.keys, { doc, coll: c.coll, id: c.id, hlc: c.hlc }, c.data) });
+            data: c.data === null ? null : ouvrir(sp.keys, { doc, coll: c.coll, id: c.id, hlc: c.hlc }, c.data),
+            ...(env ? { bases: ouvrir(sp.keys, { doc, coll: c.coll, id: c.id + '|origines', hlc: c.hlc }, env) } : {}) });
         } catch { rejetees++; }
       }
+      store.setRecBases((body.accepted || []).map(i => changes[i]).filter(Boolean));
       if (!premier) this.noterRecues(sp, claires);
-      store.applyRemote(claires, { pendingAfter: st.pushed_seq, source: 'espace ' + sp.name });
+      store.applyRemote(claires, { source: 'espace ' + sp.name });
       store.setSyncState(remote, { pushed_seq: changes.length ? changes[changes.length - 1].seq : st.pushed_seq, pulled_cursor: +body.cursor || st.pulled_cursor });
-      if (changes.length < BATCH && !body.more) break;
+      // une fusion vient de produire une nouvelle version ici : on l'envoie tout de suite
+      if (changes.length < BATCH && !body.more && !(claires.length && store.pendingCount(remote, doc))) break;
     }
     if (rejetees) sp.alerte = `${rejetees} fiche(s) reçue(s) illisible(s) ou altérée(s) : ignorée(s)`;
   }
@@ -379,7 +426,7 @@ export class Espaces {
   /** Carte de membre (nom, couleur, empreinte), chiffrée comme le reste de l'espace. */
   ecrireCarte(sp) {
     const id = this.identite();
-    const carte = { id: sp.member, nom: id.nom || os.hostname(), couleur: id.couleur || '', empreinte: id.empreinte, appareil: os.hostname() };
+    const carte = { id: sp.member, nom: id.nom || os.hostname(), couleur: id.couleur || '', empreinte: id.empreinte, pub: id.pub, appareil: os.hostname() };
     const doc = PREFIXE_ESPACE + sp.id;
     const cur = this.store.getRecord(doc, 'members', sp.member);
     if (!cur || JSON.stringify(cur) !== JSON.stringify(carte)) this.store.putRecord(doc, 'members', sp.member, carte);

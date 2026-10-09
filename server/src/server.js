@@ -276,6 +276,7 @@ export function createApp(opts = {}) {
     if (action === 'invites' && m === 'POST') { const b = await readJson(req); return send(res, 200, run(() => hote.inviter(membre, b))); }
     if (action === 'members' && cible && sous === 'approve' && m === 'POST') { const b = await readJson(req); return send(res, 200, run(() => hote.approuver(membre, cible, b))); }
     if (action === 'members' && cible && sous === 'revoke' && m === 'POST') return send(res, 200, run(() => hote.retirer(membre, cible)));
+    if (action === 'rekey' && m === 'POST') { const b = await readJson(req); return send(res, 200, run(() => hote.renouveler(membre, b))); }
     if (action === 'key' && m === 'GET') {
       if (membre.status !== 'actif') throw new HttpError(403, 'pending', 'En attente de la clé de l\'espace');
       return send(res, 200, hote.cles(membre));

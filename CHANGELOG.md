@@ -4,6 +4,27 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+### Ajouts
+- **Fusion champ par champ** :
+  - quand une même fiche (activité, note, idée, contact…) est modifiée sur deux appareils, ou par deux membres d'un espace, les champs modifiés d'un seul côté sont tous gardés ;
+  - pour un même champ modifié des deux côtés, la valeur la plus récente l'emporte et le champ est nommé dans le journal des conflits ; « Remettre l'écartée » ne reprend que ce champ ;
+  - chaque modification voyage avec sa version d'origine (chiffrée dans les espaces), ce qui permet de distinguer une simple suite d'une modification concurrente ;
+  - vaut aussi pour deux onglets ouverts sur le même appareil.
+- **Nouvelle clé au retrait d'un membre** : l'espace passe à une nouvelle clé de chiffrement, remise aux membres restants. Ce que l'espace contiendra ensuite reste illisible pour la personne retirée.
+  - Les arrivants reçoivent toutes les clés successives et lisent donc tout l'historique.
+  - Une nouvelle clé n'est acceptée que si elle vient d'un membre authentifié par sa carte chiffrée.
+  - Le numéro de clé est affiché dans le bloc Partage.
+- **Rôle lecteur** : « Inviter en lecture seule ».
+  - La personne lit tout (idées, activités, notes) sans rien pouvoir modifier : fenêtres en consultation, modifications annulées, et l'hôte refuse toute écriture sauf sa carte de membre.
+  - Les notes et tâches qu'elle ajoute à une activité partagée restent dans son pilotage privé.
+  - Les tâches d'un espace en lecture seule n'apparaissent pas dans « En attente ».
+
+### Corrections
+- Une invitation créée pendant une synchronisation en cours pouvait être perdue : l'arrivant restait « en attente » sans recevoir la clé.
+
+### Modifications
+- Schéma de la base v5 (migration automatique) : versions de référence par fiche, versions d'origine, champs en conflit.
+
 ## [0.9.0] - 2026-10-09
 
 ### Ajouts

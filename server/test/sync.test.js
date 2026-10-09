@@ -82,6 +82,32 @@ test('même fiche modifiée sur les deux appareils : la plus récente gagne, l\'
   assert.equal((await call('a', '/api/sync/status')).body.conflicts, 0);
 });
 
+test('fusion champ par champ : deux champs différents de la même fiche, les deux sont gardés', async () => {
+  await put('a', d => { d.chantiers[0].libelle = 'Potager'; d.chantiers[0].commune = 'Lyon'; });
+  await syncNow('a'); await syncNow('b'); await syncNow('a');
+  await put('a', d => { d.chantiers[0].statut = 'en_cours'; });          // A change le statut
+  await new Promise(r => setTimeout(r, 5));
+  await put('b', d => { d.chantiers[0].date = '2026-11-02'; });          // B change la date, sans avoir vu A
+  await syncNow('a'); await syncNow('b'); await syncNow('a'); await syncNow('b');
+  for (const n of ['a', 'b', 'hub']) {
+    const c = n === 'hub' ? nodes.hub.app.store.getDoc('pilot').data.chantiers[0] : (await get(n)).data.chantiers[0];
+    assert.equal(c.statut, 'en_cours', n); assert.equal(c.date, '2026-11-02', n); assert.equal(c.commune, 'Lyon', n);
+  }
+  const avant = (await call('a', '/api/sync/conflicts')).body.length + (await call('b', '/api/sync/conflicts')).body.length;
+  // même champ des deux côtés : la plus récente gagne, le champ est nommé dans le journal
+  await put('a', d => { d.chantiers[0].commune = 'Villeurbanne'; });
+  await new Promise(r => setTimeout(r, 5));
+  await put('b', d => { d.chantiers[0].commune = 'Vénissieux'; d.chantiers[0].heure = '09:00'; });
+  await syncNow('a'); await syncNow('b'); await syncNow('a'); await syncNow('b');
+  for (const n of ['a', 'b']) {
+    const c = (await get(n)).data.chantiers[0];
+    assert.equal(c.commune, 'Vénissieux', n); assert.equal(c.heure, '09:00', n); assert.equal(c.statut, 'en_cours', n);
+  }
+  const tous = [...(await call('a', '/api/sync/conflicts')).body, ...(await call('b', '/api/sync/conflicts')).body];
+  assert.equal(tous.length, avant + 1);
+  assert.deepEqual(tous.find(c => c.champs).champs, ['commune']);
+});
+
 test('réglages locaux (meta) jamais synchronisés, rien en attente après échange', async () => {
   await put('a', d => { d.meta = { appareil: 'A' }; });
   await syncNow('a'); await syncNow('b');

@@ -1,6 +1,6 @@
 # Partage et travail à plusieurs — conception
 
-Statut : **0.9.0 implémentée** (identités, espaces, invitations, chiffrement, synchro, sécurisation Caddy, partage d'idées et d'activités, attribution des tâches, boîte « Reçues », notifications). Suite : 0.10 (fusion champ par champ, nouvelle clé au retrait d'un membre, rôle lecteur).
+Statut : **0.10.0 implémentée** : tout le découpage ci-dessous est réalisé (identités, espaces, invitations, chiffrement, synchro, sécurisation Caddy, partage d'idées et d'activités, attribution des tâches, boîte « Reçues », notifications, fusion champ par champ, nouvelle clé au retrait, rôle lecteur).
 
 ## Décisions
 

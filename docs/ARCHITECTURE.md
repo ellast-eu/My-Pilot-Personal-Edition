@@ -38,6 +38,29 @@ curseurs « envoyé » et « reçu » mis à jour
 - Le hub authentifie les appareils par le jeton `SYNC_TOKEN`.
 - Les documents d'espaces partagés (`s-…`) sont exclus de cet échange, dans les deux sens : ils ont leur propre canal chiffré.
 
+### Fusion champ par champ (0.10)
+
+- Chaque fiche envoyée porte ses **versions d'origine** (`bases`), c'est-à-dire la ou les versions dont elle découle.
+  - Pour une modification faite ici, c'est la dernière version échangée (table `rec_bases`).
+  - Pour une version reçue puis relayée, ce sont celles qu'elle portait (colonne `records.parent`).
+  - Pour une fusion, ce sont ses deux sources.
+- À la réception (`applyRemote`) :
+  - si la version locale fait partie des origines, c'est une simple suite, appliquée telle quelle ;
+  - sinon, si la version locale a été écrite ici ou que des origines sont connues, `fusionner3` fusionne champ par champ à partir de la version commune. Un champ modifié des deux côtés prend la valeur la plus récente (HLC) et est noté dans le journal avec son nom ;
+  - sinon, la plus récente gagne.
+- Une fusion qui diffère de la version reçue est écrite ici avec une horloge plus récente, puis renvoyée dans le même cycle.
+- `accepted` dans la réponse de l'échange liste les fiches gardées telles quelles par l'autre côté. Elles deviennent la nouvelle version commune.
+- L'hôte d'un espace ne lit pas les fiches : chez lui, la plus récente gagne, et ce sont les appareils membres qui fusionnent en recevant. Les versions d'origine circulent chiffrées.
+- `putDoc` (page partie d'une version dépassée) fusionne aussi champ par champ.
+
+### Clés et rôles (0.10)
+
+- **Retrait d'un membre** : l'appareil propriétaire crée l'époque n+1 et l'enveloppe pour chaque membre restant (`POST /api/spaces/:id/rekey`). Les nouvelles fiches sont scellées avec la dernière époque.
+- **Arrivée** : l'arrivant reçoit toutes les époques.
+- **Clés reçues** : un membre n'accepte une clé que si son expéditeur est l'appareil du lien d'invitation, ou un membre dont la carte chiffrée porte cette clé publique.
+- **Fiche d'une époque inconnue** : le cycle récupère les clés ; si la clé manque encore, il s'arrête sans avancer son curseur.
+- **Rôle `lecteur`** : l'hôte n'accepte de lui que sa carte. Les pages annulent ses modifications et ouvrent les fenêtres en consultation.
+
 ## Espaces partagés (chiffrés de bout en bout)
 
 Conception et décisions : [PARTAGE.md](PARTAGE.md).

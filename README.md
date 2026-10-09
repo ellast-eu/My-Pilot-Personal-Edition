@@ -135,6 +135,11 @@ Dans l'onglet **Activités** (0.9.0) :
 - **attribuer** une tâche à un membre (champ « Pour ») ;
 - **Reçues — activités partagées** en tête de l'onglet.
 
+En 0.10.0 :
+- **fusion champ par champ** : deux personnes, ou deux appareils, qui modifient deux champs différents d'une même fiche gardent chacune leur modification ;
+- **nouvelle clé de chiffrement** quand un membre est retiré ;
+- **invitation en lecture seule**.
+
 Pour essayer sans toucher à vos données : `node scripts/banc-partage.mjs --pret` lance un serveur hôte et deux appareils (« Stella » et « Paul ») sur votre machine, à ouvrir dans le navigateur.
 
 ## Sauvegardes

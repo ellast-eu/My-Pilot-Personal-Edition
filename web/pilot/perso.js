@@ -591,13 +591,14 @@ function journalConflits(){
     var l=r.body||[];
     ouvrirModale("Journal des conflits",
       (l.length?'<div class="note-aide" style="margin-top:0">Une fiche modifiée sur deux appareils (ou deux onglets) avant leur synchronisation : '
-        +'la version gardée est la plus récente. La version écartée peut être remise en place pour les activités, notes et contacts.</div>'
+        +'les champs modifiés d\'un seul côté sont tous gardés ; pour un même champ modifié des deux côtés, la valeur la plus récente l\'emporte. '
+        +'La valeur écartée peut être remise en place pour les activités, notes et contacts.</div>'
         +'<table style="width:100%;border-collapse:collapse;font-size:13.5px">'
         +'<tr><th style="text-align:left">Quand</th><th style="text-align:left">Fiche</th><th style="text-align:left">Gardée</th><th style="text-align:left">Écartée</th><th></th></tr>'
         +l.map(function(c,i){
           var remettable=c.doc==="pilot" && c.coll!=="_" && c.lost;
           return '<tr style="border-top:1px solid #ddd'+(c.seen?'':';background:#FFF7E0')+'"><td style="padding:6px 4px">'+esc(new Date(c.at).toLocaleString("fr-FR"))+'</td>'
-            +'<td>'+esc(COLL_LIB[c.coll]||c.coll)+'</td><td>'+resumeFiche(c.kept,c.coll,c.rid)+'</td><td>'+resumeFiche(c.lost,c.coll,c.rid)+'</td>'
+            +'<td>'+esc(COLL_LIB[c.coll]||c.coll)+(c.champs?'<div class="note-aide" style="margin:0">champ'+(c.champs.length>1?'s':'')+' : '+esc(c.champs.join(", "))+'</div>':"")+'</td><td>'+resumeFiche(c.kept,c.coll,c.rid)+'</td><td>'+resumeFiche(c.lost,c.coll,c.rid)+'</td>'
             +'<td style="text-align:right">'+(remettable?'<button class="b mini creux" data-pp="conflit-remettre" data-i="'+i+'">Remettre l\'écartée</button>':"")+'</td></tr>';
         }).join("")+'</table>'
       :'<p>Aucun conflit enregistré.</p>'),
@@ -609,7 +610,15 @@ function remettreConflit(i){
   var c=(journalConflits.liste||[])[i]; if(!c||!c.lost) return;
   var liste=D[c.coll]; if(!estTableau(liste)) return;
   var k=-1; liste.forEach(function(x,j){ if(x&&x.id===c.rid) k=j });
-  if(k>=0) liste[k]=c.lost; else liste.push(c.lost);
+  if(k>=0 && c.champs && c.champs.length){
+    /* conflit sur quelques champs : seuls ces champs reprennent la valeur écartée */
+    c.champs.forEach(function(ch){
+      var p=ch.split("."), o=liste[k], l=c.lost, i;
+      for(i=0;i<p.length-1;i++){ if(!o[p[i]]||typeof o[p[i]]!=="object") o[p[i]]={}; o=o[p[i]]; l=l&&l[p[i]] }
+      if(l && p[p.length-1] in l) o[p[p.length-1]]=l[p[p.length-1]]; else delete o[p[p.length-1]];
+    });
+  }
+  else if(k>=0) liste[k]=c.lost; else liste.push(c.lost);
   modifie(); fermerModale(); rendre(); toast("Version écartée remise en place");
 }
 document.addEventListener("click",function(e){
@@ -637,6 +646,7 @@ function majPartage(rendu){
 setInterval(function(){ if(vueActive==="donnees" && !Partage.indispo) majPartage() },15000);
 var STATUT_ESPACE={actif:["ok","actif"],en_attente:["","en attente de la clé (remise à la prochaine synchronisation de la personne qui invite)"],retire:["ko","retiré de l'espace"]};
 var STATUT_MEMBRE={actif:"",en_attente:" · en attente",retire:" · retiré"};
+var ROLE_LIB={proprietaire:"propriétaire",membre:"membre",lecteur:"lecteur"};
 window.persoBlocPartage=function(){
   if(!Partage.charge){ Partage.charge=true; majPartage() }
   var titre='<div class="bloc" style="margin-top:18px"><div class="bloc-tete"><h2>Partage</h2></div><div class="bloc-corps">';
@@ -651,11 +661,12 @@ window.persoBlocPartage=function(){
     var se=STATUT_ESPACE[e.status]||["",e.status], prop=e.role==="proprietaire" && e.status==="actif";
     h+='<div style="border:1px solid var(--trait);border-radius:2px;padding:10px 12px;margin:10px 0">'
       +'<div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap"><b style="font-size:15px">'+esc(e.nom)+'</b>'
-        +'<span class="note-aide" style="margin:0">'+(e.role==="proprietaire"?"propriétaire":"membre")+' · hébergé par <span class="mono">'+esc(e.host.replace(/^https?:\/\//,""))+'</span></span></div>'
+        +'<span class="note-aide" style="margin:0">'+(ROLE_LIB[e.role]||e.role)+(e.role==="lecteur"?" (lecture seule)":"")+' · hébergé par <span class="mono">'+esc(e.host.replace(/^https?:\/\//,""))+'</span></span></div>'
       +'<div class="diag" style="margin:6px 0">'
         +'<div>État<b class="'+se[0]+'">'+esc(se[1])+'</b></div>'
         +(e.last_error?'<div>Alerte<b class="ko">'+esc(e.last_error)+'</b></div>':"")
         +'<div>Fiches partagées<b>'+e.fiches+(e.pending?' · '+e.pending+' à envoyer':"")+'</b></div>'
+        +(e.status==="actif"?'<div>Clé de chiffrement<b>n° '+e.epoch+(e.epoch>1?' (renouvelée après un retrait)':"")+'</b></div>':"")
         +(e.last_ok?'<div>Dernier échange<b>'+esc(new Date(e.last_ok).toLocaleString("fr-FR"))+'</b></div>':"")
       +'</div>'
       +'<div style="font-size:13.5px;margin:8px 0 4px">Membres</div>'
@@ -663,13 +674,14 @@ window.persoBlocPartage=function(){
         return '<div style="display:flex;gap:8px;align-items:center;padding:3px 0;font-size:13.5px'+(m.status==="retire"?';opacity:.55':"")+'">'
           +'<span style="width:10px;height:10px;border-radius:50%;flex:none;background:'+esc(m.couleur||"var(--trait)")+'"></span>'
           +'<span>'+esc(m.nom||"(nom pas encore reçu)")+(m.moi?" (cet appareil)":"")+(m.appareil&&!m.moi?' <span class="note-aide" style="margin:0">'+esc(m.appareil)+'</span>':"")
-          +' <span class="note-aide" style="margin:0">'+(m.role==="proprietaire"?"propriétaire":"membre")+(STATUT_MEMBRE[m.status]||"")+'</span></span>'
+          +' <span class="note-aide" style="margin:0">'+(ROLE_LIB[m.role]||m.role)+(STATUT_MEMBRE[m.status]||"")+'</span></span>'
           +'<span class="mono" style="margin-left:auto;font-size:12px">'+esc(m.empreinte||"")+'</span>'
           +(prop && !m.moi && m.status!=="retire"?'<button class="b mini creux" data-pt="retirer" data-e="'+esc(e.id)+'" data-m="'+esc(m.member)+'" data-n="'+esc(m.nom||"ce membre")+'">Retirer</button>':"")
           +'</div>';
       }).join("")
       +'<div class="ligne" style="margin-top:8px">'
         +(prop?'<button class="b" data-pt="inviter" data-e="'+esc(e.id)+'" data-r="membre">Inviter une personne</button>'
+          +'<button class="b creux" data-pt="inviter" data-e="'+esc(e.id)+'" data-r="lecteur">Inviter en lecture seule</button>'
           +'<button class="b creux" data-pt="inviter" data-e="'+esc(e.id)+'" data-r="proprietaire">Ajouter mon autre appareil</button>':"")
         +'<button class="b creux" data-pt="quitter" data-e="'+esc(e.id)+'" data-n="'+esc(e.nom)+'">'+(e.status==="retire"?"Effacer de cet appareil":"Quitter")+'</button>'
       +'</div></div>';
@@ -724,13 +736,14 @@ function modaleCreer(){
 }
 function inviter(espace,role){
   appelPartage("espaces/"+encodeURIComponent(espace)+"/invitations",{role:role}).then(function(r){
-    var autre=role==="proprietaire";
+    var autre=role==="proprietaire", lect=role==="lecteur";
     ouvrirModale(autre?"Lien pour votre autre appareil":"Lien d'invitation",
       '<textarea id="ptLien" readonly style="width:100%;height:96px;font-family:var(--data);font-size:12.5px;word-break:break-all">'+esc(r.lien)+'</textarea>'
       +'<div class="ligne" style="margin-top:8px"><button class="b" data-pt="copier-lien">Copier le lien</button><span id="ptRes" class="note-aide" role="status" style="margin:0"></span></div>'
       +'<div class="note-aide">'
         +(autre?'Sur votre autre appareil : Données → Partage → « Rejoindre un espace », puis collez ce lien. Il deviendra propriétaire de l\'espace comme celui-ci.'
-          :'Envoyez ce lien à la personne par un canal que vous jugez sûr (messagerie chiffrée, de vive voix…). '
+          :(lect?'Cette personne pourra tout lire dans l\'espace mais rien y modifier. ':'')
+           +'Envoyez ce lien à la personne par un canal que vous jugez sûr (messagerie chiffrée, de vive voix…). '
            +'Elle le colle dans son application : Données → Partage → « Rejoindre un espace ».')
         +' Le lien sert une seule fois et expire le '+esc(new Date(r.expires_at).toLocaleDateString("fr-FR"))+'. '
         +'La clé de l\'espace est remise automatiquement à la prochaine synchronisation de cet appareil, après vérification que l\'arrivant détient bien ce lien.</div>',
@@ -783,7 +796,8 @@ document.addEventListener("click",function(e){
       function(){ try{ document.execCommand("copy"); resPartage($("#ptRes"),"Copié.",true) }catch(x){ resPartage($("#ptRes"),"Copiez-le à la main.") } });
   }
   else if(a==="retirer") confirmerPartage("Retirer un membre",
-    "Retirer <b>"+esc(d.n)+"</b> de l'espace ? Son accès est coupé immédiatement. Ce qu'il ou elle a déjà reçu reste sur son appareil.",
+    "Retirer <b>"+esc(d.n)+"</b> de l'espace ? Son accès est coupé immédiatement et une nouvelle clé de chiffrement est remise aux autres membres : "
+      +"ce que l'espace contiendra désormais lui restera illisible. Ce qu'il ou elle a déjà reçu reste sur son appareil.",
     "Retirer",function(){ return appelPartage("espaces/"+encodeURIComponent(d.e)+"/membres/"+encodeURIComponent(d.m)+"/retirer") });
   else if(a==="quitter") confirmerPartage("Quitter l'espace",
     "Quitter <b>"+esc(d.n)+"</b> ? La copie de l'espace est effacée de cet appareil ; les autres membres gardent la leur.",
@@ -798,6 +812,8 @@ var PA={docs:{}};
 function espaceP(id){ return ((Partage.st&&Partage.st.espaces)||[]).filter(function(e){ return e.id===id })[0] }
 function espacesActifsP(){ return ((Partage.st&&Partage.st.espaces)||[]).filter(function(e){ return e.status==="actif" }) }
 function moiP(sp){ var e=espaceP(sp); return e?e.member:"" }
+function roP(sp){ var e=espaceP(sp); return !!(e && e.role==="lecteur") }
+function espacesEcriture(){ return espacesActifsP().filter(function(e){ return e.role!=="lecteur" }) }
 function membreP(sp,mid){ var e=espaceP(sp); return e?e.membres.filter(function(m){ return m.member===mid })[0]:null }
 function nomP(sp,mid){ var m=membreP(sp,mid); return m?(m.moi?"vous":(m.nom||"un membre")):"un membre" }
 function couleurP(sp,mid){ var m=membreP(sp,mid); return (m&&m.couleur)||"#8A90A6" }
@@ -817,7 +833,9 @@ function affecterPartages(){
   }
   D.notes.forEach(function(n){
     var c=n.chantier_id?chantierPar(n.chantier_id):null;
-    if(c && c._sp) n._sp=c._sp; else delete n._sp;
+    /* espace en lecture seule : les notes venues de l'espace y restent, celles écrites ici restent privées */
+    if(c && c._sp && roP(c._sp)){ var d=PA.docs[c._sp]; if(!(d && d.items && d.items["n"+n.id])) delete n._sp; else n._sp=c._sp }
+    else if(c && c._sp) n._sp=c._sp; else delete n._sp;
   });
 }
 function privD(){
@@ -873,6 +891,11 @@ function pousserP(id){
   var d=PA.docs[id]; if(!d || d.envoi) { if(d) d.encore=true; return Promise.resolve() }
   var items=itemsP(id);
   if(JSON.stringify(items)===d.last) return Promise.resolve();
+  if(roP(id)){                                   /* lecture seule : la modification est annulée */
+    fusionnerP(id,JSON.parse(d.last||'{"chantiers":[],"notes":[]}')); rendre();
+    toast("Espace « "+(espaceP(id)||{}).nom+" » en lecture seule : modification annulée",true);
+    return Promise.resolve();
+  }
   var me=moiP(id),now=Date.now();
   var tamponner=function(k,x,liste){
     if(d.items[k+x.id]===JSON.stringify(propreP(x))) return;
@@ -912,7 +935,7 @@ setInterval(function(){ majEspacesP().then(function(c){ if(c) rendre() }) },2000
 /* les tâches attribuées à un autre membre ne figurent pas dans vos listes « En attente » */
 var suitesOuvertes0=suitesOuvertes;
 suitesOuvertes=function(){
-  return suitesOuvertes0().filter(function(n){ return !(n._sp && n.suite.pour && n.suite.pour!==moiP(n._sp)) });
+  return suitesOuvertes0().filter(function(n){ return !(n._sp && (roP(n._sp) || (n.suite.pour && n.suite.pour!==moiP(n._sp)))) });
 };
 
 /* partager / retirer une activité */
@@ -946,9 +969,10 @@ function boitePartageActivite(c){
       +(c.modifiePar?'. Dernière modification : '+esc(nomP(c._sp,c.modifiePar))+', '+esc(quandP(c.modifieLe)):"")+'.'
       +'<div class="note-aide" style="margin:4px 0 8px">Les notes et tâches de cette activité sont partagées avec elle, signées par leur auteur. '
       +'Une tâche peut être attribuée à un membre depuis la note qui la porte.</div>'
-      +'<button class="b mini creux" data-pa="retirer" data-id="'+esc(c.id)+'">Retirer du partage</button></div>';
+      +(roP(c._sp)?'<div class="note-aide" style="margin:0"><b>Lecture seule</b> : vous ne pouvez pas modifier cette activité. Les notes et tâches que vous y ajoutez restent privées.</div>'
+        :'<button class="b mini creux" data-pa="retirer" data-id="'+esc(c.id)+'">Retirer du partage</button>')+'</div>';
   }
-  var l=espacesActifsP();
+  var l=espacesEcriture();
   if(!l.length) return "";
   return '<hr class="sep"><div class="ligne" style="font-size:13.5px">Partager cette activité, avec ses notes et tâches, dans '
     +'<select id="paDest">'+l.map(function(e){ return '<option value="'+esc(e.id)+'">'+esc(e.nom)+'</option>' }).join("")+'</select>'
@@ -962,7 +986,13 @@ editerChantier=function(id){
   var box=boitePartageActivite(c);
   if(box){ var o=corps.querySelector("#ficheAjout"); (o?o.parentNode:corps).insertAdjacentHTML(o?"beforeend":"beforeend",box) }
   decorerNotes(corps);
+  if(c._sp && roP(c._sp)) lectureSeule(corps,["Archiver","Désarchiver","Supprimer","Enregistrer"],"#ficheAjout");
 };
+/* fenêtre en lecture seule : champs désactivés, boutons d'écriture retirés */
+function lectureSeule(corps,boutons,garder){
+  Array.prototype.forEach.call(corps.querySelectorAll("input,textarea,select"),function(e){ if(!(garder && e.closest(garder))) e.disabled=true });
+  Array.prototype.forEach.call($("#modPied").querySelectorAll("button"),function(b){ if(boutons.indexOf(b.textContent.trim())>=0) b.remove() });
+}
 /* « Pour » sur une tâche d'une activité partagée */
 var editerNote0=editerNote;
 editerNote=function(id){
@@ -970,6 +1000,7 @@ editerNote=function(id){
   var n=notePar(id), c=n&&n.chantier_id?chantierPar(n.chantier_id):null;
   if(!n || !c || !c._sp) return;
   var e=espaceP(c._sp); if(!e) return;
+  if(n._sp && roP(n._sp)){ lectureSeule($("#modCorps"),["Supprimer","Traiter l\u2019action","Enregistrer"]); return }
   var pour=(n.suite&&n.suite.pour)||"";
   var ech=$("#modCorps").querySelector('[name="suite_ech"]');
   if(!ech) return;
@@ -1393,7 +1424,7 @@ function creerActivite(p){
   else if((p.objectifs||[]).length) c.commentaire+="\n\nObjectifs :\n- "+p.objectifs.join("\n- ");
   if(champs.vigilance) c.vigilance=(p.vigilance||[]).join("\n");
   else if((p.vigilance||[]).length) c.commentaire+="\n\nPoints de vigilance :\n- "+p.vigilance.join("\n- ");
-  var esp=p.espace?espacesActifsP().filter(function(e){ return e.id===p.espace })[0]:null;
+  var esp=p.espace?espacesEcriture().filter(function(e){ return e.id===p.espace })[0]:null;
   if(esp){ c._sp=esp.id; c.par=esp.member; c.categorie_lib=K.lib; if(!PA.docs[esp.id]) PA.docs[esp.id]={rev:0,data:{},last:"",items:{}} }
   D.chantiers.push(c);
   (p.etapes||[]).forEach(function(t){

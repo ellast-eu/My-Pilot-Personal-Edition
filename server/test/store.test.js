@@ -65,10 +65,22 @@ test('migration d\'une base v1 (document entier) vers les fiches', async () => {
   db.prepare('INSERT INTO documents VALUES (?,?,?,?)').run('pilot', JSON.stringify(pilot([{ id: 'a', libelle: 'A' }])), 7, new Date().toISOString());
   db.close();
   const s = new Store(f);
-  assert.equal(s.schemaVersion, 4);
+  assert.equal(s.schemaVersion, 5);
   const d = s.getDoc('pilot');
   assert.equal(d.rev, 7);
   assert.equal(d.data.chantiers[0].libelle, 'A');
   const r = s.putDoc('pilot', { ...d.data, chantiers: [] }, 7);
   assert.equal(r.rev, 8);
+});
+
+test('page partie d\'une version dépassée : fusion champ par champ dans la même fiche', () => {
+  const s = new Store(':memory:');
+  const r1 = s.putDoc('pilot', pilot([{ id: 'a', libelle: 'A', commune: 'Lyon', statut: 'x' }]), 0);
+  const r2 = s.putDoc('pilot', pilot([{ id: 'a', libelle: 'A', commune: 'Lyon', statut: 'y' }]), r1.rev);   // autre onglet : statut
+  const r3 = s.putDoc('pilot', pilot([{ id: 'a', libelle: 'B', commune: 'Lyon', statut: 'x' }]), r1.rev);   // cette page : libellé
+  assert.equal(r3.conflicts, 0);
+  const c = s.getDoc('pilot').data.chantiers[0];
+  assert.equal(c.libelle, 'B'); assert.equal(c.statut, 'y');
+  assert.ok(r3.data, 'la page reçoit la version fusionnée');
+  assert.ok(r2.ok);
 });
