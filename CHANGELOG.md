@@ -4,6 +4,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+## [0.10.0] - 2026-10-09
+
 ### Ajouts
 - **Fusion champ par champ** :
   - quand une même fiche (activité, note, idée, contact…) est modifiée sur deux appareils, ou par deux membres d'un espace, les champs modifiés d'un seul côté sont tous gardés ;
