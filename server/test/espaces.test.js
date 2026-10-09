@@ -94,6 +94,29 @@ test('fiche vivante : chacun voit et modifie la même idée', async () => {
   assert.deepEqual(await titres('s1', doc), ['Potager en carrés surélevés', 'Récupérateur d\'eau']);
 });
 
+test('boîte « Reçues » : ce que l\'autre a fait, sans l\'existant à l\'arrivée ni ses propres gestes', async () => {
+  let r = (await call('s1', '/api/partage/recues')).body;
+  const k = r.entrees.map(e => e.kind + ':' + e.auteur + ':' + e.titre).sort();
+  assert.deepEqual(k, ['modifie:Paul:Potager en carrés surélevés', 'partage:Paul:Récupérateur d\'eau']);
+  assert.equal(r.nonVues, 2);
+  assert.equal(r.entrees[0].espaceNom, 'Nous');
+  r = (await call('s1', '/api/partage/recues/vues', 'POST', {})).body;
+  assert.equal(r.nonVues, 0);
+  // chez Paul : seule l'idée déposée par Stella après son arrivée (l'existant reçu à l'arrivée n'est pas signalé)
+  assert.deepEqual((await call('p1', '/api/partage/recues')).body.entrees.map(e => e.kind + ':' + e.auteur + ':' + e.titre), ['partage:Stella:Potager en carrés']);
+  await call('p1', '/api/partage/recues/vues', 'POST', {});
+  await putIdee('s1', doc, { id: 'i9', titre: 'Haie fruitière', title: 'Haie fruitière' });
+  await run('s1'); await run('p1');
+  const d = await getDoc('s1', doc);
+  d.data.ideas = d.data.ideas.filter(i => i.id !== 'i9');
+  await call('s1', '/api/docs/' + doc, 'PUT', { data: d.data, baseRev: d.rev });
+  await run('s1'); await run('p1');
+  r = (await call('p1', '/api/partage/recues')).body;
+  assert.deepEqual(r.entrees.filter(e => !e.vue).map(e => e.kind + ':' + e.auteur).sort(), ['partage:Stella', 'retire:Stella']);
+  assert.equal((await call('p1', '/api/partage/notifications', 'PUT', { systeme: false })).body.systeme, false);
+  assert.equal((await partage('p1')).notifications.systeme, false);
+});
+
 test('chiffrement de bout en bout : l\'hôte ne stocke aucun contenu lisible', async () => {
   const rows = N.S.app.store.db.prepare('SELECT coll, data FROM records WHERE doc=? AND deleted=0').all(doc);
   assert.ok(rows.length >= 4);

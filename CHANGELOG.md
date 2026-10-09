@@ -4,6 +4,25 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+### Ajouts
+- **Partage d'idées** dans l'onglet Idées (application de bureau) :
+  - **fiche vivante** : une idée partagée est la même pour tous les membres de l'espace, chacun peut la modifier, la regrouper et la cristalliser ;
+  - **partager** depuis la fenêtre d'une idée ou d'une idée unifiée (ses idées d'origine suivent) ; **retirer du partage** ramène une copie dans vos idées privées ;
+  - **déposer directement** une idée dans un espace depuis la boîte à idées ;
+  - **filtre** Toutes / Mes idées / chaque espace ; pastille à la couleur de la personne qui a proposé l'idée ; auteur et dernière modification dans la fenêtre ;
+  - **cristallisation** : des idées de deux espaces différents ne se mélangent pas ; une idée privée cristallisée avec des idées partagées rejoint l'espace, après confirmation ;
+  - une idée partagée devenue activité chez un membre est signalée comme telle chez les autres.
+- **Boîte « Reçues »** : ce que les autres membres ont partagé, modifié, cristallisé, transformé en activité ou retiré. Ce qui existait déjà au moment de rejoindre n'est pas signalé.
+- **Notifications** :
+  - pastille avec le nombre de nouveautés sur l'onglet Idées ;
+  - notification du système quand l'application est en arrière-plan, désactivable dans Données → Partage.
+- **Banc d'essai** `node scripts/banc-partage.mjs [--pret]` : un serveur hôte et deux appareils simulés sur une seule machine, sans toucher à vos données.
+
+### Modifications
+- Schéma de la base v4 (migration automatique) : boîte « Reçues ».
+- Export des idées : seulement les idées privées.
+- Ancien code de partage hérité de la version claude.ai retiré du Cristallisoir.
+
 ## [0.8.0-a] - 2026-10-09
 
 ### Ajouts

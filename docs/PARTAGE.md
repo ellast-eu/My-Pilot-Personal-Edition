@@ -1,6 +1,6 @@
 # Partage et travail à plusieurs — conception
 
-Statut : **0.8.0-a implémentée** (identités, espaces, invitations, chiffrement, synchro, sécurisation Caddy). Suite : 0.8.0 (idées), 0.9 (activités).
+Statut : **0.8.0 implémentée** (identités, espaces, invitations, chiffrement, synchro, sécurisation Caddy, partage d'idées, boîte « Reçues », notifications). Suite : 0.9 (activités).
 
 ## Décisions
 

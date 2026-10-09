@@ -70,6 +70,18 @@ select.field{padding:6px 0}
 .slider{width:100%;accent-color:var(--ink)}
 .badge{display:inline-block;min-width:20px;padding:0 6px;border-radius:999px;background:var(--danger);color:#fff;font-size:12px;text-align:center;margin-left:6px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+/* partage */
+.portee{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.portee .cat{padding:3px 10px}
+.sptag{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);white-space:nowrap}
+.sptag .dot{width:8px;height:8px;border-radius:50%;background:var(--c,#8A90A6);box-shadow:0 0 0 1.5px #fff,0 0 0 2.5px var(--c,#8A90A6)}
+.spbox{border:1px dashed var(--rule);border-radius:2px;padding:10px 12px;margin-top:12px;font-size:13.5px}
+.spbox .row{margin-top:8px}
+.recue{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--rule)}
+.recue.nv{background:linear-gradient(90deg,rgba(216,35,42,.06),transparent 60%)}
+.recue .dot{width:10px;height:10px;border-radius:50%;background:var(--c,#8A90A6);flex:none;margin-top:5px}
+.recue .quand{margin-left:auto;color:var(--muted);font-size:12px;white-space:nowrap}
+.btn .badge{margin-left:6px}
 
 /* main */
 main{display:flex;flex-direction:column;min-width:0;min-height:100vh}
@@ -271,6 +283,7 @@ body.embed .drawer .btn.danger{background:transparent}
       <input id="newTitle" class="field" placeholder="Une idée, en quelques mots" autocomplete="off">
       <textarea id="newNote" class="field" placeholder="Note (facultatif) : contexte, envie, contrainte"></textarea>
       <select id="newCat" class="field" aria-label="Catégorie"></select>
+      <select id="newSpace" class="field" aria-label="Où déposer l'idée" hidden></select>
       <button class="btn primary" data-act="add-idea">Déposer l'idée</button>
     </section>
 
@@ -313,7 +326,7 @@ const CAT_DEFAULT=[
 ];
 const blank=()=>({version:1,categories:JSON.parse(JSON.stringify(CAT_DEFAULT)),ideas:[],unified:[],projects:[],settings:{threshold:.22,pseudo:'',claude:{mode:'auto',tier:'default',model:'claude-sonnet-5-5',maxTokens:1200,consignes:'',convUrl:'',ccModel:'sonnet'}},seenShared:[]});
 let S=blank();
-const ui={view:'idees',mode:'bulles',filter:new Set(),drawer:null,busy:null,selected:new Set(),settings:null,catDel:null,testMsg:null,testing:false,showKey:false,manual:null,shared:[],sharedOpen:false,focusProject:null,confirm:null,fresh:null};
+const ui={view:'idees',mode:'bulles',filter:new Set(),drawer:null,busy:null,selected:new Set(),settings:null,catDel:null,testMsg:null,testing:false,showKey:false,manual:null,shared:[],sharedOpen:false,focusProject:null,confirm:null,fresh:null,portee:'tout'};
 
 const $=s=>document.querySelector(s);
 const uid=()=>Math.random().toString(36).slice(2,9);
@@ -325,6 +338,163 @@ const catOf=id=>S.categories.find(c=>c.id===id)||{id:'',name:'Sans catégorie',c
 const todayIdx=()=>(new Date().getDay()+6)%7;
 const fmtDate=t=>new Date(t).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
 
+/* ---------- espaces partagés (application de bureau) ----------
+   Les idées d'un espace vivent dans le document « s-<id> » ; elles sont fusionnées dans S.ideas /
+   S.unified avec un marqueur _sp, ce qui laisse tout le reste de la page inchangé. À l'envoi, chaque
+   idée repart vers son document : le privé dans « ideas », le partagé dans son espace. */
+const SP={dispo:false,liste:[],docs:{},recues:{nonVues:0,entrees:[]}};
+const espace=id=>SP.liste.find(e=>e.id===id);
+const moi=sp=>espace(sp)?.member||'';
+const membre=(sp,mid)=>(espace(sp)?.membres||[]).find(m=>m.member===mid);
+const nomMembre=(sp,mid)=>{const m=membre(sp,mid); return m?(m.moi?'vous':m.nom||'un membre'):'un membre';};
+const couleurMembre=(sp,mid)=>membre(sp,mid)?.couleur||'#8A90A6';
+const espacesActifs=()=>SP.liste.filter(e=>e.status==='actif');
+function privState(){ return Object.assign({},S,{ideas:S.ideas.filter(i=>!i._sp),unified:S.unified.filter(u=>!u._sp)}); }
+const privJson=()=>JSON.stringify(privState());
+const STAMPS=['_sp','modifiePar','modifieLe'];
+const propre=o=>{const c={}; for(const k in o) if(!STAMPS.includes(k)) c[k]=o[k]; return c;};
+function itemsEspace(id){
+  const strip=x=>{const c=Object.assign({},x); delete c._sp; return c;};
+  return {ideas:S.ideas.filter(i=>i._sp===id).map(strip),unified:S.unified.filter(u=>u._sp===id).map(strip)};
+}
+function fusionnerEspace(id,data){
+  const tag=x=>Object.assign({},x,{_sp:id});
+  S.ideas=S.ideas.filter(i=>i._sp!==id).concat(((data&&data.ideas)||[]).filter(x=>x&&x.id).map(tag));
+  S.unified=S.unified.filter(u=>u._sp!==id).concat(((data&&data.unified)||[]).filter(x=>x&&x.id).map(tag));
+}
+/* mémorise l'état de référence d'un espace : ce qui est sur le disque (rev, data) et les idées correspondantes */
+function retenirEspace(id,doc,items){
+  items=items||itemsEspace(id);
+  const d=SP.docs[id]||(SP.docs[id]={});
+  d.rev=doc.rev; d.data=doc.data; d.last=JSON.stringify(items);
+  d.items=new Map([...items.ideas.map(x=>['i'+x.id,JSON.stringify(propre(x))]),...items.unified.map(x=>['u'+x.id,JSON.stringify(propre(x))])]);
+}
+async function chargerEspace(id){
+  const r=await fetch(API+'docs/s-'+id); if(r.status===404) return null; if(!r.ok) throw new Error('HTTP '+r.status);
+  const doc=await r.json(); fusionnerEspace(id,doc.data); retenirEspace(id,doc); return doc;
+}
+async function majEspaces(){
+  try{
+    const r=await fetch(API+'partage'); if(!r.ok){ SP.dispo=false; return false; }
+    const st=await r.json(); SP.dispo=true;
+    const avant=JSON.stringify(SP.liste.map(e=>[e.id,e.status,e.nom,e.membres.map(m=>[m.member,m.nom,m.couleur,m.status])]));
+    SP.liste=st.espaces||[];
+    const actifs=new Set(espacesActifs().map(e=>e.id));
+    let change=false;
+    for(const id of Object.keys(SP.docs)) if(!actifs.has(id)){ delete SP.docs[id]; fusionnerEspace(id,null); change=true; }
+    for(const id of actifs) if(!SP.docs[id]){ await chargerEspace(id).catch(()=>null); change=true; }
+    if(avant!==JSON.stringify(SP.liste.map(e=>[e.id,e.status,e.nom,e.membres.map(m=>[m.member,m.nom,m.couleur,m.status])]))) change=true;
+    return change;
+  }catch{ return false; }
+}
+/* tampon d'auteur sur ce qui a changé ici, puis envoi de chaque espace modifié */
+async function pushEspaces(){
+  for(const id of Object.keys(SP.docs)){
+    const d=SP.docs[id]; if(d.sending){ d.again=true; continue; }
+    let items=itemsEspace(id);
+    if(JSON.stringify(items)===d.last) continue;
+    const me=moi(id), now=Date.now();
+    const tamponner=(k,x,list)=>{ if(d.items.get(k+x.id)!==JSON.stringify(propre(x))){ const o=list.find(y=>y.id===x.id&&y._sp===id); if(o){ o.modifiePar=me; o.modifieLe=now; if(!o.par) o.par=me; } } };
+    items.ideas.forEach(x=>tamponner('i',x,S.ideas)); items.unified.forEach(x=>tamponner('u',x,S.unified));
+    items=itemsEspace(id);
+    const json=JSON.stringify(items);
+    d.sending=true;
+    try{
+      const data=Object.assign({},d.data||{},{ideas:items.ideas,unified:items.unified});
+      const r=await fetch(API+'docs/s-'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({data,baseRev:d.rev||0})});
+      const b=await r.json().catch(()=>({}));
+      if(r.status===409){ await chargerEspace(id); toast('Idées partagées modifiées ailleurs : version la plus récente reprise.',true); renderAll(); }
+      else if(r.ok){
+        if(b.data&&JSON.stringify(itemsEspace(id))===json){ fusionnerEspace(id,b.data); retenirEspace(id,{rev:b.rev,data:b.data}); softRender(); }
+        else retenirEspace(id,{rev:b.rev,data:b.data||data},items);       /* saisie entre-temps : elle repartira au prochain envoi */
+      }
+    }catch{}
+    finally{ d.sending=false; if(d.again){ d.again=false; setTimeout(pushEspaces,200); } }
+  }
+}
+/* changements reçus des autres membres : repris quand rien n'est en cours ici */
+async function suivreEspaces(){
+  if(!SP.dispo||!idle()) return;
+  let change=false;
+  for(const id of Object.keys(SP.docs)){
+    const d=SP.docs[id]; if(d.sending||JSON.stringify(itemsEspace(id))!==d.last) continue;
+    try{
+      const r=await fetch(API+'docs/s-'+id+'/rev'); if(!r.ok) continue;
+      const {rev}=await r.json(); if(rev<=d.rev) continue;
+      if(!idle()||JSON.stringify(itemsEspace(id))!==d.last) continue;
+      await chargerEspace(id); change=true;
+    }catch{}
+  }
+  if(change){ renderAll(); majRecues(); }
+}
+async function majRecues(){
+  if(!SP.dispo) return;
+  try{ const r=await fetch(API+'partage/recues?limit=60'); if(!r.ok) return;
+    const b=await r.json(); const avant=SP.recues.nonVues; SP.recues=b;
+    if(avant!==b.nonVues){ renderTop(); tellPilot({type:'recues',n:b.nonVues}); }
+    if(ui.sharedOpen) renderModal();
+  }catch{}
+}
+async function voirRecues(){
+  ui.sharedOpen=true; renderModal();
+  try{ const r=await fetch(API+'partage/recues/vues',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}); if(r.ok){ const b=await r.json(); SP.recues.nonVues=b.nonVues; renderTop(); tellPilot({type:'recues',n:b.nonVues}); } }catch{}
+}
+/* partager / retirer du partage */
+function partager(kind,id,sp){
+  const e=espace(sp); if(!e||e.status!=='actif') return;
+  const me=e.member;
+  const mv=x=>{ x._sp=sp; if(!x.par) x.par=me; };
+  if(kind==='idea'){ const i=S.ideas.find(x=>x.id===id&&!x._sp); if(!i) return; mv(i); }
+  else { const u=S.unified.find(x=>x.id===id&&!x._sp); if(!u) return; mv(u); S.ideas.filter(i=>!i._sp&&u.sourceIds.includes(i.id)).forEach(mv); }
+  if(!SP.docs[sp]) SP.docs[sp]={rev:0,data:{},last:'',items:new Map()};
+  renderAll(); toast('Partagée dans « '+e.nom+' »');
+}
+function retirerPartage(kind,id){
+  const list=kind==='idea'?S.ideas:S.unified, x=list.find(y=>y.id===id&&y._sp); if(!x) return;
+  const e=espace(x._sp);
+  if(!confirm('Retirer du partage ?\n\nUne copie revient dans vos idées privées ; elle disparaît de l\'espace « '+(e?e.nom:'')+' » pour tous les membres.')) return;
+  const back=y=>{ delete y._sp; delete y.par; delete y.modifiePar; delete y.modifieLe; };
+  const sp=x._sp; back(x);
+  if(kind==='uni') S.ideas.filter(i=>i._sp===sp&&x.sourceIds.includes(i.id)).forEach(back);
+  ui.drawer=null; renderAll(); toast('Idée revenue dans vos idées privées');
+}
+const visible=x=>ui.portee==='tout'||(ui.portee==='prive'?!x._sp:x._sp===ui.portee);
+function spTag(x){
+  if(!x._sp) return '';
+  const e=espace(x._sp), a=x.par||x.modifiePar;
+  return `<span class="sptag" style="--c:${couleurMembre(x._sp,a)}" title="Partagée dans « ${esc(e?.nom||'')} »${a?', proposée par '+esc(nomMembre(x._sp,a)):''}"><span class="dot"></span>${esc(e?.nom||'partagée')}</span>`;
+}
+function spBox(kind,x){
+  if(!SP.dispo) return '';
+  const lib=kind==='idea'?'cette idée':'cette idée unifiée et ses idées d\'origine';
+  if(x._sp){
+    const e=espace(x._sp), quand=x.modifieLe?new Date(x.modifieLe).toLocaleString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+    return `<div class="spbox"><span class="sptag" style="--c:${couleurMembre(x._sp,x.par)}"><span class="dot"></span></span>
+      Partagée dans <b>« ${esc(e?.nom||'')} »</b>${x.par?', proposée par '+esc(nomMembre(x._sp,x.par)):''}${x.modifiePar&&quand?`. Dernière modification : ${esc(nomMembre(x._sp,x.modifiePar))}, ${esc(quand)}`:''}.
+      <div class="muted">Fiche vivante : ce que vous changez ici apparaît chez les autres membres.</div>
+      <div class="row"><button class="btn small" data-act="sp-retirer" data-k="${kind}" data-id="${x.id}">Retirer du partage</button></div></div>`;
+  }
+  const l=espacesActifs();
+  if(!l.length) return `<div class="spbox muted">Pour partager ${lib}, créez ou rejoignez un espace : onglet Données, bloc Partage.</div>`;
+  return `<div class="spbox">Partager ${lib} dans
+    <div class="row"><select class="field" id="spDest" style="flex:1">${l.map(e=>`<option value="${e.id}">${esc(e.nom)} (${e.membres.filter(m=>m.status!=='retire').length} membres)</option>`).join('')}</select>
+    <button class="btn small primary" data-act="sp-partager" data-k="${kind}" data-id="${x.id}">Partager</button></div></div>`;
+}
+const KIND_RECUE={partage:'a partagé une idée',modifie:'a modifié',cristallise:'a cristallisé',activite:'en a fait une activité',retire:'a retiré du partage'};
+function recuesHTML(){
+  const l=SP.recues.entrees||[];
+  const quand=t=>new Date(t).toLocaleString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  return `<div class="modal" data-act="shared-close-bg"><div class="mbox" role="dialog" aria-label="Reçues">
+    <header><h2 style="margin:0;font-size:18px;color:var(--ink)">Reçues</h2><button class="close" data-act="shared-close" aria-label="Fermer">×</button></header>
+    ${l.length?l.map(x=>{const ok=x.kind!=='retire'&&((x.coll==='ideas'&&S.ideas.some(i=>i.id===x.rid&&i._sp===x.espace&&i.status==='libre'))||(x.coll==='unified'&&S.unified.some(u=>u.id===x.rid&&u._sp===x.espace&&u.status==='unifiee')));
+      return `<div class="recue ${x.vue?'':'nv'}" style="--c:${esc(x.couleur||'#8A90A6')}"><span class="dot"></span>
+      <div><b>${esc(x.auteur)}</b> ${KIND_RECUE[x.kind]||x.kind} : « ${esc(x.titre)} »<div class="muted">dans ${esc(x.espaceNom||'')}</div>
+      ${ok?`<button class="link" data-act="recue-ouvrir" data-c="${x.coll}" data-id="${esc(x.rid)}">Ouvrir</button>`:''}</div>
+      <span class="quand">${quand(x.at)}</span></div>`}).join('')
+      :'<p class="muted">Rien de reçu pour l\'instant. Ce que les autres membres de vos espaces partagent, modifient ou cristallisent apparaîtra ici.</p>'}
+  </div></div>`;
+}
+
 /* ---------- stockage ---------- */
 let DB=null, SAMPLE=null;       /* version serveur : pas de partage claude.ai */
 const EMBED=window.parent!==window||new URLSearchParams(location.search).has('embed');
@@ -335,8 +505,10 @@ function lsGet(){try{const v=localStorage.getItem(KEY);return v?JSON.parse(v):nu
 function lsPending(){try{return JSON.parse(localStorage.getItem(PENDING)||'null');}catch{return null;}}
 function applyState(saved){
   if(saved&&Array.isArray(saved.ideas)){
+    const gi=S.ideas.filter(i=>i._sp), gu=S.unified.filter(u=>u._sp);     /* idées partagées : gérées à part */
     S=Object.assign(blank(),saved,{settings:Object.assign(blank().settings,saved.settings||{})});
     S.settings.claude=Object.assign(blank().settings.claude,(saved.settings||{}).claude||{});
+    S.ideas=S.ideas.filter(i=>!i._sp).concat(gi); S.unified=(S.unified||[]).filter(u=>!u._sp).concat(gu);
   }
 }
 async function srvGet(){
@@ -348,7 +520,8 @@ async function srvGet(){
 let saveT;
 function save(){ clearTimeout(saveT); saveT=setTimeout(()=>push(),700); }
 async function push(force){
-  const json=JSON.stringify(S);
+  if(SP.dispo) await pushEspaces();       /* le partagé d'abord : en cas de coupure, un doublon plutôt qu'une perte */
+  const json=privJson();
   try{localStorage.setItem(KEY,json);}catch{}
   if(!SRV.ready) return;
   if(json===SRV.last&&!force) return;
@@ -357,14 +530,14 @@ async function push(force){
   if(SRV.sending){SRV.again=true;return;}
   SRV.sending=true;
   try{
-    const r=await fetch(API+'docs/ideas',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:S,baseRev:SRV.rev})});
+    const r=await fetch(API+'docs/ideas',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:privState(),baseRev:SRV.rev})});
     const b=await r.json().catch(()=>({}));
     if(r.status===409){ SRV.conflict=true; onConflict(b); }
     else if(r.ok){
       SRV.ok=true; SRV.at=new Date(); try{localStorage.removeItem(PENDING);}catch{}
       if(b.data){
         /* fusion avec des changements venus d'ailleurs : repris si aucune saisie n'a eu lieu entre-temps */
-        if(JSON.stringify(S)===json && idle()){ applyState(b.data); SRV.rev=b.rev; SRV.last=JSON.stringify(S); renderAll(); }
+        if(privJson()===json && idle()){ applyState(b.data); SRV.rev=b.rev; SRV.last=privJson(); renderAll(); }
         else SRV.last=json;            /* ancienne base gardée : le prochain envoi refusionnera */
         if(b.conflicts) toast(b.conflicts+' idée(s) modifiée(s) aussi ailleurs : votre saisie a été gardée.',true);
       } else { SRV.rev=b.rev; SRV.last=json; }
@@ -380,12 +553,12 @@ function idle(){
 }
 /* changements arrivés d'ailleurs (synchronisation, autre onglet) : repris quand rien n'est en cours */
 async function followServer(){
-  if(!SRV.ready||!SRV.ok||SRV.sending||SRV.conflict||!idle()||JSON.stringify(S)!==SRV.last) return;
+  if(!SRV.ready||!SRV.ok||SRV.sending||SRV.conflict||!idle()||privJson()!==SRV.last) return;
   try{
     const r=await fetch(API+'docs/ideas/rev'); if(!r.ok) return;
     const {rev}=await r.json(); if(rev<=SRV.rev) return;
-    const d=await srvGet(); if(!d||!idle()||JSON.stringify(S)!==SRV.last) return;
-    applyState(d.data); SRV.rev=d.rev; SRV.last=JSON.stringify(S); SRV.at=new Date(d.updated_at);
+    const d=await srvGet(); if(!d||!idle()||privJson()!==SRV.last) return;
+    applyState(d.data); SRV.rev=d.rev; SRV.last=privJson(); SRV.at=new Date(d.updated_at);
     try{localStorage.setItem(KEY,SRV.last);}catch{}
     renderAll();
   }catch{}
@@ -396,7 +569,7 @@ function onConflict(b){
   else { SRV.rev=b.rev; SRV.conflict=false; push(true); }
 }
 async function reloadFromServer(){
-  try{ const d=await srvGet(); if(d){applyState(d.data); SRV.rev=d.rev; SRV.last=JSON.stringify(S);} SRV.conflict=false; SRV.ok=true;
+  try{ const d=await srvGet(); if(d){applyState(d.data); SRV.rev=d.rev; SRV.last=privJson();} SRV.conflict=false; SRV.ok=true;
     try{localStorage.removeItem(PENDING);}catch{} ui.drawer=null; renderAll(); }
   catch{ toast('Serveur injoignable : rechargement impossible.',true); }
 }
@@ -435,7 +608,7 @@ function metaTitle(g){
   const t=top.join(' & '); return t.charAt(0).toUpperCase()+t.slice(1);
 }
 function computeMetas(){
-  const free=S.ideas.filter(i=>i.status==='libre'&&!i.solo);
+  const free=S.ideas.filter(i=>i.status==='libre'&&!i.solo&&visible(i));
   const p=free.map((_,k)=>k), f=k=>p[k]===k?k:(p[k]=f(p[k]));
   for(let a=0;a<free.length;a++)for(let b=a+1;b<free.length;b++)
     if(similarity(free[a],free[b])>=S.settings.threshold) p[f(a)]=f(b);
@@ -591,6 +764,10 @@ async function testClaude(){
 async function crystallize(ids){
   const ideas=ids.map(id=>S.ideas.find(i=>i.id===id)).filter(i=>i&&i.status==='libre');
   if(!ideas.length) return;
+  const sps=[...new Set(ideas.map(i=>i._sp).filter(Boolean))];
+  if(sps.length>1){ toast('Ces idées appartiennent à deux espaces partagés différents : cristallisez-les séparément.',true); return; }
+  const sp=sps[0]||null, privees=sp?ideas.filter(i=>!i._sp):[];
+  if(privees.length&&!confirm(`${privees.length>1?privees.length+' idées privées seront partagées':'Une idée privée sera partagée'} dans « ${espace(sp)?.nom||''} » avec le résultat de la cristallisation.\n\nContinuer ?`)) return;
   ui.busy=ids.slice().sort().join('+'); renderAll();
   const cats=S.categories.map(c=>c.name).join(', ');
   const catGuide=S.categories.filter(c=>c.desc).map(c=>`- ${c.name} : ${c.desc}`).join('\n');
@@ -607,6 +784,7 @@ Maximum 4 éléments par liste.${catGuide?'\nDéfinition des catégories :\n'+ca
     const cat=S.categories.find(c=>norm(c.name)===norm(j.categorie))?.id||majorityCat(ideas);
     const u={id:uid(),title:j.titre||'Idée unifiée',synthese:j.synthese||'',objectifs:arr(j.objectifs),etapes:arr(j.premieres_etapes),
       vigilance:arr(j.points_de_vigilance),cat,sourceIds:ideas.map(i=>i.id),created:Date.now(),day:null,status:'unifiee'};
+    if(sp){ u._sp=sp; u.par=moi(sp); privees.forEach(i=>{ i._sp=sp; if(!i.par) i.par=moi(sp); }); }
     S.unified.push(u);
     ideas.forEach(i=>{i.status='absorbee';i.unifiedId=u.id;});
     ui.selected.clear(); ui.drawer={type:'uni',id:u.id}; ui.fresh=u.id;
@@ -619,9 +797,12 @@ Maximum 4 éléments par liste.${catGuide?'\nDéfinition des catégories :\n'+ca
 /* ---------- actions ---------- */
 function addIdea(){
   const t=$('#newTitle').value.trim(); if(!t){$('#newTitle').focus();return;}
-  S.ideas.push({id:uid(),title:t,note:$('#newNote').value.trim(),cat:$('#newCat').value,created:Date.now(),status:'libre',solo:false,shared:false,day:null});
+  const dest=SP.dispo&&!$('#newSpace').hidden?$('#newSpace').value:'';
+  const i={id:uid(),title:t,note:$('#newNote').value.trim(),cat:$('#newCat').value,created:Date.now(),status:'libre',solo:false,day:null};
+  if(dest&&espace(dest)){ i._sp=dest; i.par=moi(dest); if(!SP.docs[dest]) SP.docs[dest]={rev:0,data:{},last:'',items:new Map()}; }
+  S.ideas.push(i);
   $('#newTitle').value=''; $('#newNote').value=''; $('#newTitle').focus();
-  renderAll(); toast('Idée déposée');
+  renderAll(); toast(i._sp?'Idée déposée dans « '+espace(dest).nom+' »':'Idée déposée');
 }
 function seed(){
   const ex=[
@@ -694,6 +875,7 @@ async function makeActivity(u){
       etapes:u.etapes,vigilance:u.vigilance,categorie:catOf(u.cat).name,sources:src,date:u.date||''}});
     if(r.type!=='activite-creee') throw new Error(r.message||'refus');
     u.status='projet'; u.activiteId=r.id; u.activiteCat=r.categorie; u.converted=Date.now();
+    if(u._sp) u.activiteMembre=moi(u._sp);
     ui.drawer=null; renderAll(); toast('Activité créée dans le pilotage ('+r.categorie+')');
   }catch(err){ toast('Création de l\'activité impossible : '+err.message,true); }
 }
@@ -711,7 +893,7 @@ function dissolve(uId){
   S.unified=S.unified.filter(x=>x.id!==uId); ui.drawer=null; renderAll(); toast('Idée unifiée dissoute, les idées d\'origine sont revenues');
 }
 function exportData(){
-  const b=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const b=new Blob([JSON.stringify(privState(),null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='cristallisoir-data.json';
   document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},500);
 }
@@ -724,34 +906,15 @@ $('#importFile').addEventListener('change',e=>{
   r.readAsText(f); e.target.value='';
 });
 
-/* partage */
-function watchShared(){
-  if(!DB) return;
-  DB.collection('shared').orderBy('at','desc').limit(200).onSnapshot(q=>{
-    ui.shared=q.docs.map(d=>d.data()).filter(Boolean);
-    renderFoot(); if(ui.sharedOpen) renderModal();
-  },e=>console.error('Partage',e));
-}
-const unseen=()=>ui.shared.filter(x=>!S.seenShared.includes(x.id)&&!S.ideas.some(i=>i.id===x.id));
-async function shareIdea(id){
-  const i=S.ideas.find(x=>x.id===id); if(!i) return;
-  try{await DB.collection('shared').doc(i.id).set({id:i.id,title:i.title,note:i.note||'',cat:catOf(i.cat).name,author:S.settings.pseudo||'Anonyme',at:Date.now()}); i.shared=true; toast('Idée partagée');}
-  catch{toast('Le partage a échoué. Relancez dans un instant.',true);}
-  renderAll();
-}
-function takeShared(id){
-  const x=ui.shared.find(s=>s.id===id); if(!x) return;
-  const cat=S.categories.find(c=>norm(c.name)===norm(x.cat))?.id||S.categories[0]?.id||'';
-  S.ideas.push({id:uid(),title:x.title,note:(x.note?x.note+'\n':'')+'(partagée par '+x.author+')',cat,created:Date.now(),status:'libre',solo:false,shared:false,day:null});
-  if(!S.seenShared.includes(id)) S.seenShared.push(id);
-  renderAll(); toast('Idée ajoutée à votre boîte');
-}
-
 /* ---------- rendu : barre latérale ---------- */
 function renderNewCat(){
   const sel=$('#newCat'), v=sel.value;
   sel.innerHTML=S.categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')+'<option value="">Sans catégorie</option>';
   if([...sel.options].some(o=>o.value===v)) sel.value=v;
+  const sp=$('#newSpace'), l=espacesActifs(), w=sp.value||(ui.portee!=='tout'&&ui.portee!=='prive'?ui.portee:'');
+  sp.hidden=!l.length;
+  sp.innerHTML='<option value="">Dans mes idées (privé)</option>'+l.map(e=>`<option value="${e.id}">Partagée dans « ${esc(e.nom)} »</option>`).join('');
+  if([...sp.options].some(o=>o.value===w)) sp.value=w;
 }
 function weekItems(){
   const it=[];
@@ -767,14 +930,16 @@ function renderWeek(){
     it.filter(x=>x.d===k).map(x=>`<button class="wchip" style="--c:${catOf(x.c).color}" data-act="${x.act}" data-id="${x.id}" title="${esc(x.t)}">${esc(x.t)}</button>`).join('')
   }</div></div>`).join('')+(it.length?'':'<p class="muted">Planifiez une idée ou un projet depuis sa fiche.</p>');
 }
-function countCat(id){return S.ideas.filter(i=>i.status==='libre'&&i.cat===id).length+S.unified.filter(u=>u.status==='unifiee'&&u.cat===id).length}
+function countCat(id){return S.ideas.filter(i=>i.status==='libre'&&i.cat===id&&visible(i)).length+S.unified.filter(u=>u.status==='unifiee'&&u.cat===id&&visible(u)).length}
 const usage=id=>S.ideas.filter(i=>i.cat===id).length+S.unified.filter(u=>u.cat===id).length+S.projects.filter(p=>p.cat===id).length;
 function renderCats(){
-  $('#cats').innerHTML=`<div class="cats">${S.categories.map(c=>`<button class="cat ${ui.filter.has(c.id)?'on':''}" style="--c:${c.color}" data-act="filter" data-id="${c.id}" aria-pressed="${ui.filter.has(c.id)}" ${c.desc?`title="${esc(c.desc)}"`:''}><span class="dot"></span>${esc(c.name)}<span class="n">${countCat(c.id)}</span></button>`).join('')}</div>
+  const l=espacesActifs();
+  const portee=l.length?`<div class="portee" role="group" aria-label="Idées affichées">${[['tout','Toutes'],['prive','Mes idées'],...l.map(e=>[e.id,e.nom])].map(([v,t])=>
+    `<button class="cat ${ui.portee===v?'on':''}" style="--c:${v==='tout'?'#191C1B':v==='prive'?'#5B6170':'#2B4C6F'}" data-act="portee" data-v="${v}" aria-pressed="${ui.portee===v}">${v!=='tout'&&v!=='prive'?'<span class="dot"></span>':''}${esc(t)}</button>`).join('')}</div>`:'';
+  $('#cats').innerHTML=portee+`<div class="cats">${S.categories.map(c=>`<button class="cat ${ui.filter.has(c.id)?'on':''}" style="--c:${c.color}" data-act="filter" data-id="${c.id}" aria-pressed="${ui.filter.has(c.id)}" ${c.desc?`title="${esc(c.desc)}"`:''}><span class="dot"></span>${esc(c.name)}<span class="n">${countCat(c.id)}</span></button>`).join('')}</div>
   <div class="row" style="margin-top:10px">${ui.filter.size?'<button class="link" data-act="filter-clear">Tout afficher</button>':''}${EMBED?'<button class="link" data-act="pilot-cats">Gérer les catégories</button>':'<button class="link" data-act="settings" data-v="cats">Gérer les catégories</button>'}</div>`;
 }
 function renderFoot(){
-  const n=unseen().length;
   const sync=!SRV.ready?'Connexion au serveur…':SRV.conflict?'Conflit avec une autre version':SRV.ok?'Enregistré'+(SRV.at?' à '+SRV.at.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):''):'Hors ligne, gardé dans ce navigateur';
   if(EMBED){
     $('#foot').innerHTML=`<h2>Regroupement</h2>
@@ -791,7 +956,6 @@ function renderFoot(){
   <input id="thr" class="slider" type="range" min="0.1" max="0.45" step="0.01" value="${S.settings.threshold}">
   <div class="row" style="margin-top:10px">
     <button class="btn small" data-act="settings" data-v="claude"><span class="status" style="--c:${claudeReady()?'#2F8C6A':'#B8901C'}"><i></i>Connexion à Claude</span></button>
-    ${DB?`<button class="btn small" data-act="shared-open">Idées partagées${n?`<span class="badge" aria-label="${n} nouvelles">${n}</span>`:''}</button>`:''}
     <button class="btn small" data-act="export">Exporter</button>
     <button class="btn small" data-act="import">Importer</button>
   </div>`;
@@ -800,7 +964,7 @@ function renderFoot(){
 /* ---------- rendu : principal ---------- */
 function renderTop(){
   const {metas}=computeMetas();
-  const free=S.ideas.filter(i=>i.status==='libre').length, uni=S.unified.filter(u=>u.status==='unifiee').length;
+  const free=S.ideas.filter(i=>i.status==='libre'&&visible(i)).length, uni=S.unified.filter(u=>u.status==='unifiee'&&visible(u)).length;
   const pl=(n,s,p)=>n+' '+(n>1?p:s);
   const counts=ui.view==='idees'
     ? `${pl(free,'idée','idées')}, ${pl(metas.length,'méta-idée','méta-idées')}, ${pl(uni,'idée unifiée','idées unifiées')}`
@@ -812,7 +976,8 @@ function renderTop(){
     <button class="tab" role="tab" aria-selected="${ui.view==='projets'}" data-act="view" data-v="projets">${EMBED?'Devenues activités':'Projets'}</button></div>
     <span class="counts">${counts}</span>
     ${ui.view==='idees'?`<button class="switch" role="switch" aria-checked="${isTable}" aria-label="Basculer entre vue en bulles et vue en tableau" data-act="switch">
-      <span class="lbl ${!isTable?'on':''}">Bulles</span><span class="track"><span class="thumb"></span></span><span class="lbl ${isTable?'on':''}">Tableau</span></button>`:''}`;
+      <span class="lbl ${!isTable?'on':''}">Bulles</span><span class="track"><span class="thumb"></span></span><span class="lbl ${isTable?'on':''}">Tableau</span></button>`:''}
+    ${SP.dispo&&SP.liste.length?`<button class="btn small" data-act="shared-open">Reçues${SP.recues.nonVues?`<span class="badge" aria-label="${SP.recues.nonVues} nouvelles">${SP.recues.nonVues}</span>`:''}</button>`:''}`;
 }
 function renderMain(){
   const v=$('#view');
@@ -831,7 +996,8 @@ function renderBubbles(){
   stage.innerHTML='';
   const W=stage.clientWidth||600,H=stage.clientHeight||480;
   const {metas,ideaMeta}=computeMetas();
-  const ideas=S.ideas.filter(i=>i.status==='libre'), unis=S.unified.filter(u=>u.status==='unifiee');
+  const ideas=S.ideas.filter(i=>i.status==='libre'&&visible(i)), unis=S.unified.filter(u=>u.status==='unifiee'&&visible(u));
+  if(!ideas.length&&!unis.length&&ui.portee!=='tout'){ stage.innerHTML=`<div class="empty"><p>Aucune idée ${ui.portee==='prive'?'privée':'dans cet espace'} pour l'instant.</p></div>`; return; }
   if(!ideas.length&&!unis.length){
     stage.innerHTML=`<div class="empty"><p>Déposez une première idée dans la boîte à idées. Les idées proches se rassembleront d'elles-mêmes en méta-idées.</p><div><button class="btn" data-act="seed">Charger des exemples</button></div></div>`;
     return;
@@ -876,6 +1042,10 @@ function renderBubbles(){
     cr.filter(n=>n.ref.id===ui.fresh).attr('transform','scale(.2) rotate(-60)').transition().duration(700).ease(d3.easeBackOut).attr('transform','scale(1) rotate(0)');
   }
   ui.fresh=null;
+  /* idée partagée : pastille à la couleur de la personne qui l'a proposée */
+  nd.filter(n=>n.ref._sp).append('circle').attr('class','spdot').attr('cx',n=>n.r*.72).attr('cy',n=>-n.r*.72).attr('r',5.5)
+    .attr('fill',n=>couleurMembre(n.ref._sp,n.ref.par)).attr('stroke','#fff').attr('stroke-width',2)
+    .append('title').text(n=>'Partagée dans « '+(espace(n.ref._sp)?.nom||'')+' »'+(n.ref.par?', proposée par '+nomMembre(n.ref._sp,n.ref.par):''));
   nd.append('text').attr('text-anchor','middle').attr('y',n=>n.r+15).attr('font-size',n=>n.kind==='uni'?13.5:12.5)
     .attr('font-weight',n=>n.kind==='uni'?700:500).attr('fill','#1D2133').text(n=>trunc(n.ref.title,n.kind==='uni'?26:20));
 
@@ -909,19 +1079,19 @@ function renderBubbles(){
       mem.select('circle').attr('cx',m=>m.cx).attr('cy',m=>m.cy).attr('r',m=>m.R);
       mem.select('text').attr('x',m=>m.cx).attr('y',m=>m.cy-m.R-7);
     });
-  d3.select(stage).append('div').attr('class','legend').text('Bulle : idée. Membrane : méta-idée. Cristal : idée unifiée.');
+  d3.select(stage).append('div').attr('class','legend').text('Bulle : idée. Membrane : méta-idée. Cristal : idée unifiée.'+(SP.liste.length?' Pastille : idée partagée.':''));
 }
 
 /* tableau */
 function tableHTML(){
   const {metas,ideaMeta}=computeMetas();
-  const f=x=>!ui.filter.size||ui.filter.has(x.cat);
+  const f=x=>(!ui.filter.size||ui.filter.has(x.cat))&&visible(x);
   const tag=c=>{const k=catOf(c);return `<span class="tag" style="--c:${k.color}"><span class="dot"></span>${esc(k.name)}</span>`};
   const day=d=>EMBED?'':d==null?'<span class="muted">Non planifié</span>':DAYS_FULL[d];
   const uday=u=>EMBED?(u.date?new Date(u.date+'T12:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'}):'<span class="muted">À planifier</span>'):day(u.day);
   const row=(i,member,color)=>`<tr class="${member?'member':''} ${ui.selected.has(i.id)?'sel':''}" style="--c:${color||'transparent'}">
     <td><input type="checkbox" data-act="sel" data-id="${i.id}" ${ui.selected.has(i.id)?'checked':''} aria-label="Sélectionner ${esc(i.title)}"></td>
-    <td><button class="link" data-act="open-idea" data-id="${i.id}">${esc(i.title)}</button>${i.note?`<div class="sub">${esc(trunc(i.note,90))}</div>`:''}</td>
+    <td><button class="link" data-act="open-idea" data-id="${i.id}">${esc(i.title)}</button> ${spTag(i)}${i.note?`<div class="sub">${esc(trunc(i.note,90))}</div>`:''}</td>
     <td>${tag(i.cat)}</td><td>${day(i.day)}</td><td class="muted">${fmtDate(i.created)}</td></tr>`;
   let rows='';
   metas.filter(m=>m.ideas.some(f)).forEach(m=>{
@@ -935,7 +1105,7 @@ function tableHTML(){
   const unis=S.unified.filter(u=>u.status==='unifiee'&&f(u));
   if(unis.length){
     rows+=`<tr class="group"><td></td><td colspan="4" class="gt">Idées unifiées</td></tr>`;
-    unis.forEach(u=>rows+=`<tr><td></td><td><span class="crys" style="--c:${catOf(u.cat).color}"></span><button class="link" data-act="open-uni" data-id="${u.id}">${esc(u.title)}</button><div class="sub">${esc(trunc(u.synthese,110))}</div></td>
+    unis.forEach(u=>rows+=`<tr><td></td><td><span class="crys" style="--c:${catOf(u.cat).color}"></span><button class="link" data-act="open-uni" data-id="${u.id}">${esc(u.title)}</button> ${spTag(u)}<div class="sub">${esc(trunc(u.synthese,110))}</div></td>
       <td>${tag(u.cat)}</td><td>${uday(u)}</td><td><button class="btn small" data-act="make-proj" data-id="${u.id}">${EMBED?'Créer l\'activité':'Faire un projet'}</button></td></tr>`);
   }
   if(!rows) return `<div class="tablewrap"><div class="empty" style="position:static;padding:60px 0"><p>Aucune idée à afficher. Déposez-en une dans la boîte à idées${ui.filter.size?', ou retirez le filtre de catégorie':''}.</p>${!S.ideas.length?'<div><button class="btn" data-act="seed">Charger des exemples</button></div>':''}</div></div>`;
@@ -950,11 +1120,13 @@ function tableHTML(){
 function activitiesHTML(){
   const l=S.unified.filter(u=>u.status==='projet'&&u.activiteId).sort((a,b)=>(b.converted||0)-(a.converted||0));
   if(!l.length) return `<div class="projects"><div class="empty" style="position:static;padding:60px 0"><p>Aucune idée n'est encore devenue activité. Cristallisez une méta-idée, puis choisissez « Créer l'activité ».</p><div><button class="btn" data-act="view" data-v="idees">Aller aux idées</button></div></div></div>`;
-  return `<div class="projects">${l.map(u=>`<article class="proj" style="--c:${catOf(u.cat).color}">
-    <header><strong style="font-size:18px;flex:1">${esc(u.title)}</strong><span class="muted">${esc(u.activiteCat||'')}, ${fmtDate(u.converted||u.created)}</span></header>
+  return `<div class="projects">${l.filter(visible).map(u=>{const chezAutre=u._sp&&u.activiteMembre&&u.activiteMembre!==moi(u._sp);
+    return `<article class="proj" style="--c:${catOf(u.cat).color}">
+    <header><strong style="font-size:18px;flex:1">${esc(u.title)}</strong>${spTag(u)}<span class="muted">${esc(u.activiteCat||'')}, ${fmtDate(u.converted||u.created)}</span></header>
     ${u.synthese?`<p class="pdesc">${esc(u.synthese)}</p>`:''}
-    <footer><button class="btn small primary" data-act="open-activity" data-id="${u.activiteId}">Ouvrir l'activité</button>
-    <button class="btn small" data-act="back-to-idea" data-id="${u.id}">Remettre en idée unifiée</button></footer></article>`).join('')}</div>`;
+    <footer>${chezAutre?`<span class="muted">Devenue activité chez ${esc(nomMembre(u._sp,u.activiteMembre))}.</span>`
+      :`<button class="btn small primary" data-act="open-activity" data-id="${u.activiteId}">Ouvrir l'activité</button>
+    <button class="btn small" data-act="back-to-idea" data-id="${u.id}">Remettre en idée unifiée</button>`}</footer></article>`}).join('')}</div>`;
 }
 function projectsHTML(){
   if(EMBED) return activitiesHTML();
@@ -1006,9 +1178,8 @@ function renderDrawer(){
       ${EMBED?'':champ('Planifier',`<select class="field" data-bind="ideas.${i.id}.day">${dayOpts(i.day)}</select>`)}
       <label class="check"><input type="checkbox" data-bind="ideas.${i.id}.solo" ${i.solo?'checked':''}> Exclure du regroupement automatique</label>
       ${m?`<p class="note">Fait partie de la méta-idée <button class="link" data-act="open-meta" data-key="${m.key}">${esc(m.title)}</button>.</p>`:''}
-      ${DB?(i.shared?'<p class="muted">Idée partagée.</p>':`<input id="pseudo" class="field" placeholder="Votre pseudo pour le partage" value="${esc(S.settings.pseudo)}">
-        <button class="btn" data-act="share" data-id="${i.id}">Partager l'idée</button>`):''}`,
-      `<button class="btn danger" data-act="idea-del" data-id="${i.id}">${cf?'Confirmer la suppression':'Supprimer'}</button>`,
+      ${spBox('idea',i)}`,
+      `<button class="btn danger" data-act="idea-del" data-id="${i.id}">${cf?(i._sp?'Confirmer : supprimer pour tous':'Confirmer la suppression'):'Supprimer'}</button>`,
       `<button class="btn primary" data-act="crystal-one" data-id="${i.id}" ${ui.busy?'disabled':''}>${ui.busy===i.id?'Claude raisonne…':'Cristalliser seule'}</button>`);
   } else if(D.type==='meta'){
     const m=computeMetas().metas.find(x=>x.key===D.key); if(!m){ui.drawer=null;return renderDrawer();}
@@ -1030,7 +1201,8 @@ function renderDrawer(){
       </div>
       ${champ('Synthèse',`<textarea class="field" rows="4" data-bind="unified.${u.id}.synthese">${esc(u.synthese)}</textarea>`)}
       <div class="dgrille trois">${liste('Objectifs',u,'objectifs')}${liste('Premières étapes',u,'etapes')}${liste('Points de vigilance',u,'vigilance')}</div>
-      <p class="note">Idées d'origine : ${src.map(i=>esc(i.title)).join(', ')||'—'}.${EMBED?' Les premières étapes deviendront les tâches de l\'activité ; sans date prévue, elle sera à planifier.':''}</p>`,
+      <p class="note">Idées d'origine : ${src.map(i=>esc(i.title)).join(', ')||'—'}.${EMBED?' Les premières étapes deviendront les tâches de l\'activité ; sans date prévue, elle sera à planifier.':''}${u._sp&&EMBED?' L\'activité sera créée dans votre pilotage ; les autres membres verront que l\'idée est devenue activité chez vous.':''}</p>
+      ${spBox('uni',u)}`,
       `<button class="btn danger" data-act="dissolve" data-id="${u.id}">Dissoudre</button>`,
       `<button class="btn primary" data-act="make-proj" data-id="${u.id}">${EMBED?'Créer l\'activité':'Faire un projet'}</button>`);
   }
@@ -1112,14 +1284,7 @@ function renderModal(){
   const h=$('#modalHost');
   if(ui.manual){h.innerHTML=manualHTML();return;}
   if(!ui.sharedOpen){h.innerHTML=ui.settings?settingsHTML():'';return;}
-  const items=[...ui.shared].sort((a,b)=>b.at-a.at);
-  h.innerHTML=`<div class="modal" data-act="shared-close-bg"><div class="mbox" role="dialog" aria-label="Idées partagées">
-    <header><h2 style="margin:0;font-size:18px;color:var(--ink)">Idées partagées</h2><button class="close" data-act="shared-close" aria-label="Fermer">×</button></header>
-    ${items.length?items.map(x=>{const mine=S.ideas.some(i=>i.id===x.id);return `<div class="shared-item"><strong>${esc(x.title)}</strong>
-      ${x.note?`<div class="sub">${esc(trunc(x.note,140))}</div>`:''}<div class="muted">Par ${esc(x.author)}, ${esc(x.cat)}, ${fmtDate(x.at)}</div>
-      <div style="margin-top:6px">${mine?'<span class="muted">Votre idée</span>':`<button class="btn small" data-act="shared-take" data-id="${x.id}">Ajouter à mes idées</button>`}</div></div>`}).join('')
-      :'<p class="muted">Personne n\'a encore partagé d\'idée.</p>'}
-  </div></div>`;
+  h.innerHTML=recuesHTML();
 }
 
 /* ---------- rendu global ---------- */
@@ -1202,11 +1367,14 @@ document.addEventListener('click',e=>{
     case 'step': { const p=S.projects.find(x=>x.id===a.dataset.p); if(p){p.steps[+a.dataset.i].done=a.checked; renderMain(); save();} break; }
     case 'export': exportData(); break;
     case 'import': $('#importFile').click(); break;
-    case 'share': shareIdea(id); break;
-    case 'shared-open': ui.sharedOpen=true; ui.shared.forEach(x=>{if(!S.seenShared.includes(x.id)) S.seenShared.push(x.id)}); renderModal(); renderFoot(); save(); break;
+    case 'shared-open': voirRecues(); break;
+    case 'portee': ui.portee=a.dataset.v; ui.selected.clear(); ui.drawer=null; renderAll(); break;
+    case 'sp-partager': partager(a.dataset.k,id,$('#spDest')?.value); break;
+    case 'sp-retirer': retirerPartage(a.dataset.k,id); break;
+    case 'recue-ouvrir': ui.sharedOpen=false; renderModal(); ui.view='idees'; if(ui.portee!=='tout') ui.portee='tout';
+      ui.drawer={type:a.dataset.c==='unified'?'uni':'idea',id}; renderAll(); break;
     case 'shared-close': ui.sharedOpen=false; renderModal(); break;
     case 'shared-close-bg': if(e.target===a){ui.sharedOpen=false; renderModal();} break;
-    case 'shared-take': takeShared(id); break;
   }
 });
 function onBind(el,isChange){
@@ -1227,7 +1395,6 @@ document.addEventListener('input',e=>{
   }
   if(e.target.dataset.bind) onBind(e.target,false);
   else if(e.target.id==='thr'){S.settings.threshold=+e.target.value; softRender();}
-  else if(e.target.id==='pseudo'){S.settings.pseudo=e.target.value; save();}
   else if(e.target.dataset.cfg&&e.target.type!=='radio'&&e.target.tagName!=='SELECT'){CC()[e.target.dataset.cfg]=e.target.type==='number'?+e.target.value:e.target.value; save();}
   else if(e.target.id==='apikey'){APIKEY=e.target.value.trim(); if(KEEPKEY){try{localStorage.setItem(KEY_LS,APIKEY);}catch{}} renderFoot();}
 });
@@ -1265,7 +1432,7 @@ new ResizeObserver(()=>{clearTimeout(roT); roT=setTimeout(()=>{if(ui.view==='ide
       if(pending&&local&&pending.base!==d.rev&&!confirm('Des idées modifiées hors ligne dans ce navigateur sont en concurrence avec la version du serveur.\n\nOK : garder la version du serveur.\nAnnuler : garder celle de ce navigateur.')){
         SRV.rev=d.rev; await push(true);
       }else{
-        applyState(d.data); SRV.rev=d.rev; SRV.ok=true; SRV.last=JSON.stringify(S); SRV.at=new Date(d.updated_at);
+        applyState(d.data); SRV.rev=d.rev; SRV.ok=true; SRV.last=privJson(); SRV.at=new Date(d.updated_at);
         try{localStorage.removeItem(PENDING);}catch{}
       }
     }
@@ -1278,6 +1445,13 @@ new ResizeObserver(()=>{clearTimeout(roT); roT=setTimeout(()=>{if(ui.view==='ide
     tellPilot({type:'pret',claude:etatClaude()});
   }
   setInterval(()=>{ if(SRV.ready&&!SRV.ok&&!SRV.sending&&!SRV.conflict) push(true); },30000);
+  /* espaces partagés : seulement dans l'application de bureau (le serveur ne peut pas les lire) */
+  if(await majEspaces()){ renderAll(); }
+  if(SP.dispo){
+    majRecues();
+    setInterval(suivreEspaces,5000);
+    setInterval(async()=>{ if(await majEspaces()) renderAll(); majRecues(); },15000);
+  }
 })();
 </script>
 </body>

@@ -125,6 +125,13 @@ Partager avec une personne qui a sa propre installation, chiffré de bout en bou
 - Pour vos propres autres appareils : une invitation « mon autre appareil » (rôle propriétaire).
 - Le serveur ne voit jamais le contenu : seulement des fiches chiffrées, leur nombre, leur taille et leurs dates.
 
+Dans l'onglet **Idées** (0.8.0) :
+- **partager** une idée depuis sa fenêtre, ou la **déposer directement** dans un espace depuis la boîte à idées ;
+- **filtrer** : Toutes, Mes idées, ou un espace ;
+- **Reçues** : ce que les autres membres ont fait. Une pastille sur l'onglet Idées compte les nouveautés, et une notification du système apparaît si l'application est en arrière-plan.
+
+Pour essayer sans toucher à vos données : `node scripts/banc-partage.mjs --pret` lance un serveur hôte et deux appareils (« Stella » et « Paul ») sur votre machine, à ouvrir dans le navigateur.
+
 ## Sauvegardes
 
 Trois niveaux, détaillés dans [docs/SAUVEGARDES.md](docs/SAUVEGARDES.md) :
@@ -148,7 +155,7 @@ web/pilot/     PST·PILOT adapté : index.html généré + perso.js (couche pers
 web/cristallisoir/  le Cristallisoir (onglet Idées)
 web/rejoindre/ page publique qui explique les liens d’invitation
 vendor/        PST·PILOT d'origine, non modifié
-scripts/       construction du pilotage, publication, restauration
+scripts/       construction du pilotage, publication, restauration, banc d’essai du partage
 deploy/        Caddy (HTTPS public) et modèles Litestream
 docs/          architecture, sauvegardes, versions
 ```

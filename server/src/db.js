@@ -55,6 +55,10 @@ const MIGRATIONS = [
      token TEXT NOT NULL, role TEXT NOT NULL, status TEXT NOT NULL, owner_pub TEXT, keys TEXT NOT NULL DEFAULT '{}',
      epoch INTEGER NOT NULL DEFAULT 0, invites TEXT NOT NULL DEFAULT '[]', members TEXT NOT NULL DEFAULT '[]',
      joined_at TEXT NOT NULL, last_ok TEXT, last_error TEXT);`,
+  // v4 : boîte « Reçues » — ce que les autres membres ont fait dans les espaces partagés
+  `CREATE TABLE inbox(id INTEGER PRIMARY KEY AUTOINCREMENT, space TEXT NOT NULL, coll TEXT NOT NULL, rid TEXT NOT NULL,
+     kind TEXT NOT NULL, author TEXT NOT NULL, titre TEXT NOT NULL, at TEXT NOT NULL, seen INTEGER NOT NULL DEFAULT 0);
+   CREATE INDEX inbox_seen ON inbox(seen, at);`,
 ];
 
 const stable = v => JSON.stringify(v);   // l'ordre des clés est celui de l'objet : suffisant ici

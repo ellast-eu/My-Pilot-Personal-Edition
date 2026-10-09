@@ -679,6 +679,9 @@ window.persoBlocPartage=function(){
     +'<button class="b creux" data-pt="rejoindre">Rejoindre un espace</button>'
     +(st.espaces.length?'<button class="b creux" data-pt="sync">Synchroniser les espaces</button>':"")
   +'</div>'
+  +(st.espaces.length?'<div class="ligne" style="margin-top:10px"><label style="font-size:13.5px;display:flex;gap:6px;align-items:center">'
+    +'<input type="checkbox" id="ptNotif"'+(st.notifications&&st.notifications.systeme===false?"":" checked")+'> '
+    +'Notification du système quand un membre partage, modifie ou cristallise une idée (application en arrière-plan)</label></div>':"")
   +'<div class="note-aide">Un espace partagé est hébergé par votre serveur et chiffré de bout en bout : le serveur ne voit que des fiches illisibles. '
     +'La personne invitée garde ses données privées chez elle. Le partage d\'idées depuis l\'onglet Idées arrive avec la prochaine version.</div>';
   return titre+h+'</div></div>';
@@ -755,6 +758,15 @@ function confirmerPartage(titre,texte,bouton,fn){
       fn().then(function(){ fermerModale(); majPartage() }).catch(function(e){ resPartage($("#ptRes"),e.message) });
     }}]);
 }
+document.addEventListener("change",function(e){
+  if(e.target.id!=="ptNotif") return;
+  var on=e.target.checked;
+  api("partage/notifications",{method:"PUT",body:{systeme:on}}).then(function(r){
+    if(r.ok && Partage.st) Partage.st.notifications=r.body;
+    if(on && window.Notification && Notification.permission==="default") Notification.requestPermission();
+    toast(on?"Notifications du système activées":"Notifications du système coupées");
+  });
+});
 document.addEventListener("click",function(e){
   var el=e.target.closest&&e.target.closest("[data-pt]");
   if(!el) return;
@@ -776,6 +788,45 @@ document.addEventListener("click",function(e){
     "Quitter <b>"+esc(d.n)+"</b> ? La copie de l'espace est effacée de cet appareil ; les autres membres gardent la leur.",
     "Quitter",function(){ return appelPartage("espaces/"+encodeURIComponent(d.e)+"/quitter",{forcer:true}) });
 });
+
+/* ===== nouveautés des espaces partagés : pastille sur l'onglet Idées et notification du système ===== */
+var Recues={n:0,dernier:null,pret:false};
+function pastilleIdees(){
+  var b=document.querySelector('#nav [data-vue="idees"]'); if(!b) return;
+  var p=b.querySelector(".pp-pastille");
+  if(!Recues.n){ if(p) p.remove(); b.removeAttribute("title"); return }
+  if(!p){ p=document.createElement("span"); p.className="pp-pastille";
+    p.style.cssText="display:inline-block;min-width:18px;padding:0 5px;margin-left:6px;border-radius:9px;background:var(--rouge,#D8232A);color:#fff;font-size:11px;line-height:18px;text-align:center;letter-spacing:0;font-weight:600";
+    b.appendChild(p) }
+  p.textContent=Recues.n>99?"99+":String(Recues.n);
+  b.title=Recues.n+" nouveauté(s) dans vos espaces partagés";
+}
+var LIB_RECUE={partage:"a partagé une idée",modifie:"a modifié",cristallise:"a cristallisé",activite:"en a fait une activité",retire:"a retiré du partage"};
+function surveillerRecues(){
+  if(Partage.indispo) return;
+  api("partage/recues?limit=20").then(function(r){
+    if(r.status===404){ Partage.indispo=true; return }
+    if(!r.ok) return;
+    var b=r.body, max=b.entrees.reduce(function(m,e){ return Math.max(m,e.id) },0);
+    var neuves=Recues.pret?b.entrees.filter(function(e){ return !e.vue && e.id>(Recues.dernier||0) }):[];
+    Recues.n=b.nonVues; Recues.dernier=Math.max(Recues.dernier||0,max); Recues.pret=true;
+    pastilleIdees();
+    if(!neuves.length) return;
+    var e=neuves[0], titre=neuves.length>1?neuves.length+" nouveautés dans vos espaces partagés":e.auteur+" "+(LIB_RECUE[e.kind]||"")+" : « "+e.titre+" »";
+    var corps=neuves.length>1?neuves.slice(0,3).map(function(x){ return x.auteur+" : "+x.titre }).join("\n"):"Espace « "+e.espaceNom+" »";
+    var dehors=document.hidden || !document.hasFocus();
+    if(dehors && Partage.st && Partage.st.notifications && Partage.st.notifications.systeme!==false && window.Notification){
+      var go=function(){
+        try{ var n=new Notification(titre,{body:corps,tag:"mppe-recues",silent:false});
+          n.onclick=function(){ window.focus(); vueActive="idees"; rendre(); n.close() } }catch(x){}
+      };
+      if(Notification.permission==="granted") go();
+      else if(Notification.permission!=="denied") Notification.requestPermission().then(function(p){ if(p==="granted") go() });
+    } else toast(titre);
+  }).catch(function(){});
+}
+setTimeout(function(){ majPartage(false).then(surveillerRecues) },3000);
+setInterval(surveillerRecues,20000);
 
 window.persoBlocIdees=function(){
   var st=Idees.claude;
@@ -1103,6 +1154,8 @@ window.addEventListener("message",function(e){
       rep({type:"activite-creee",id:c.id,libelle:c.libelle,categorie:catParCle(c.categorie).lib});
       toast("Activité créée : "+c.libelle);
     }catch(err){ rep({type:"erreur",message:err.message}) }
+  }else if(m.type==="recues"){
+    Recues.n=+m.n||0; pastilleIdees();
   }else if(m.type==="ouvrir-activite"){
     if(!chantierPar(m.id)){ toast("Cette activité n'existe plus",true); return }
     vueActive="chantiers"; rendre(); editerChantier(m.id);

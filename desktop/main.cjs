@@ -17,6 +17,8 @@ const ICON = app.isPackaged ? path.join(RES, 'icon.png') : path.join(__dirname, 
 
 if (!app.requestSingleInstanceLock()) { app.quit(); process.exit(0); }
 app.setName(NOM);
+// Windows : nécessaire pour que les notifications (nouveautés des espaces partagés) s'affichent
+if (process.platform === 'win32') app.setAppUserModelId('local.mypilot.personaledition');
 
 /* Claude Code installé par l'utilisateur : une application lancée depuis le menu n'hérite pas
    toujours du PATH du terminal, on ajoute les emplacements d'installation habituels. */

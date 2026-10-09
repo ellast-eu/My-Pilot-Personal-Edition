@@ -65,7 +65,7 @@ test('migration d\'une base v1 (document entier) vers les fiches', async () => {
   db.prepare('INSERT INTO documents VALUES (?,?,?,?)').run('pilot', JSON.stringify(pilot([{ id: 'a', libelle: 'A' }])), 7, new Date().toISOString());
   db.close();
   const s = new Store(f);
-  assert.equal(s.schemaVersion, 3);
+  assert.equal(s.schemaVersion, 4);
   const d = s.getDoc('pilot');
   assert.equal(d.rev, 7);
   assert.equal(d.data.chantiers[0].libelle, 'A');

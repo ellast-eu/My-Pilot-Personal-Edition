@@ -59,6 +59,8 @@ document s-<id> en clair ── sceller (AES-256-GCM) ────▶ /api/space
   - côté hôte : `host_spaces`, `host_members` (jetons stockés hachés), `host_keys`, `host_invites` ;
   - côté appareil : `my_spaces` (jeton, clés, invitations en cours, cache des membres).
 - **Cartes de membres** : nom, couleur, empreinte et nom d'appareil vivent dans la collection `members` de l'espace, donc chiffrés.
+- **Cristallisoir** : les idées des espaces sont fusionnées dans la même liste que les idées privées, avec un marqueur `_sp`. À l'envoi, chacune repart vers son document : `ideas` pour le privé, `s-<id>` pour le partagé, le partagé en premier. Chaque modification faite ici porte `modifiePar` / `modifieLe` ; `par` désigne le membre qui a proposé l'idée.
+- **Boîte « Reçues »** (table `inbox`) : alimentée à la réception des fiches d'un espace, avant de les appliquer, par comparaison avec la version locale. Les catégories sont partage, modification, cristallisation, activité et retrait. Le premier échange après l'arrivée n'est pas signalé, et les gestes d'un membre qui porte votre nom (votre autre appareil) sont écartés.
 
 ## Exposition sur Internet
 
@@ -94,6 +96,8 @@ document s-<id> en clair ── sceller (AES-256-GCM) ────▶ /api/space
 | PUT | `/api/partage/identite` | appareil : nom affiché, couleur |
 | POST | `/api/partage/espaces`, `/api/partage/rejoindre`, `/api/partage/sync` | appareil : créer, rejoindre, synchroniser |
 | POST | `/api/partage/espaces/:id/invitations`, `…/membres/:m/retirer`, `…/quitter` | appareil : inviter, retirer, quitter |
+| GET / POST | `/api/partage/recues`, `/api/partage/recues/vues` | appareil : boîte « Reçues », marquer comme vues |
+| PUT | `/api/partage/notifications` | appareil : notifications du système activées ou non |
 | GET | `/api/claude/status` | Claude Code disponible ? |
 | POST | `/api/claude` | `{prompt, json, model}` → `{json}` ou `{text}` |
 

@@ -172,6 +172,7 @@ export class Espaces {
     this.store.dropDoc(PREFIXE_ESPACE + sp.id);
     this.db.prepare('DELETE FROM sync_state WHERE remote=?').run(this.remote(sp));
     this.db.prepare('DELETE FROM my_spaces WHERE id=?').run(sp.id);
+    this.db.prepare('DELETE FROM inbox WHERE space=?').run(sp.id);
     return { ok: true };
   }
 
@@ -266,6 +267,7 @@ export class Espaces {
   /** Échange de fiches : on envoie les nôtres chiffrées, on reçoit et déchiffre celles des autres. */
   async synchroniser(sp) {
     const store = this.store, doc = PREFIXE_ESPACE + sp.id, remote = this.remote(sp);
+    const premier = store.getSyncState(remote).pulled_cursor === 0;   // arrivée : pas de notification pour l'existant
     let rejetees = 0;
     for (let round = 0; round < 200; round++) {
       const st = store.getSyncState(remote);
@@ -283,11 +285,72 @@ export class Espaces {
             data: c.data === null ? null : ouvrir(sp.keys, { doc, coll: c.coll, id: c.id, hlc: c.hlc }, c.data) });
         } catch { rejetees++; }
       }
+      if (!premier) this.noterRecues(sp, claires);
       store.applyRemote(claires, { pendingAfter: st.pushed_seq, source: 'espace ' + sp.name });
       store.setSyncState(remote, { pushed_seq: changes.length ? changes[changes.length - 1].seq : st.pushed_seq, pulled_cursor: +body.cursor || st.pulled_cursor });
       if (changes.length < BATCH && !body.more) break;
     }
     if (rejetees) sp.alerte = `${rejetees} fiche(s) reçue(s) illisible(s) ou altérée(s) : ignorée(s)`;
+  }
+
+  /* ---------- boîte « Reçues » ---------- */
+  /** Avant d'appliquer des fiches reçues : ce qu'un autre membre a partagé, modifié, cristallisé ou retiré. */
+  noterRecues(sp, fiches) {
+    const doc = PREFIXE_ESPACE + sp.id, at = nowIso();
+    const ins = this.db.prepare('INSERT INTO inbox(space, coll, rid, kind, author, titre, at) VALUES (?,?,?,?,?,?,?)');
+    for (const c of fiches) {
+      if (c.coll !== 'ideas' && c.coll !== 'unified') continue;
+      const avant = this.store.getRecord(doc, c.coll, c.id), apres = c.data;
+      let kind;
+      if (!apres) { if (!avant) continue; kind = 'retire'; }
+      else if (!avant) kind = c.coll === 'unified' ? 'cristallise' : 'partage';
+      else if (c.coll === 'ideas' && apres.status === 'absorbee') continue;          // signalé par la cristallisation
+      else if (c.coll === 'unified' && apres.status === 'projet' && avant.status !== 'projet') kind = 'activite';
+      else if (JSON.stringify(withoutStamps(avant)) === JSON.stringify(withoutStamps(apres))) continue;
+      else kind = 'modifie';
+      const titre = String((apres && (apres.title || apres.titre)) || (avant && (avant.title || avant.titre)) || 'Sans titre').slice(0, 200);
+      const author = String((apres && apres.modifiePar) || c.origin || '').slice(0, 40);
+      if (kind === 'modifie') {
+        const deja = this.db.prepare("SELECT id FROM inbox WHERE space=? AND rid=? AND kind='modifie' AND seen=0").get(sp.id, c.id);
+        if (deja) { this.db.prepare('UPDATE inbox SET at=?, author=?, titre=? WHERE id=?').run(at, author, titre, deja.id); continue; }
+      }
+      ins.run(sp.id, c.coll, c.id, kind, author, titre, at);
+    }
+    this.db.prepare('DELETE FROM inbox WHERE id NOT IN (SELECT id FROM inbox ORDER BY id DESC LIMIT 500)').run();
+  }
+
+  /** Entrées de la boîte, avec le nom de l'auteur ; ce qui vient de soi (même nom, autre appareil) est écarté. */
+  recues({ limit = 100 } = {}) {
+    const moi = this.identite().nom;
+    const cartes = {}, noms = {};
+    for (const sp of this.liste()) {
+      noms[sp.id] = sp.name;
+      const d = this.store.getDoc(PREFIXE_ESPACE + sp.id);
+      for (const c of (d && d.data.members) || []) {
+        if (!c || !c.id) continue;
+        if (c.id === '_espace') noms[sp.id] = c.nom || sp.name; else cartes[sp.id + '|' + c.id] = c;
+      }
+    }
+    const lignes = this.db.prepare('SELECT * FROM inbox ORDER BY id DESC LIMIT ?').all(Math.min(Math.max(+limit || 100, 1), 500))
+      .filter(r => noms[r.space] !== undefined)
+      .map(r => {
+        const c = cartes[r.space + '|' + r.author] || {};
+        return { id: r.id, espace: r.space, espaceNom: noms[r.space], coll: r.coll, rid: r.rid, kind: r.kind,
+          auteur: c.nom || 'Un membre', couleur: c.couleur || '', titre: r.titre, at: r.at, vue: !!r.seen };
+      })
+      .filter(r => !moi || r.auteur !== moi);
+    return { nonVues: lignes.filter(r => !r.vue).length, entrees: lignes };
+  }
+  marquerVues(ids) {
+    if (Array.isArray(ids) && ids.length) {
+      const st = this.db.prepare('UPDATE inbox SET seen=1 WHERE id=?');
+      for (const id of ids.slice(0, 500)) st.run(+id);
+    } else this.db.prepare('UPDATE inbox SET seen=1 WHERE seen=0').run();
+    return this.recues();
+  }
+  notifications(v) {
+    if (v !== undefined) this.store.setMeta('notif_systeme', v ? '1' : '0');
+    return { systeme: this.store.getMeta('notif_systeme') !== '0' };
   }
 
   /** Carte de membre (nom, couleur, empreinte), chiffrée comme le reste de l'espace. */
@@ -322,8 +385,15 @@ export class Espaces {
 
   status() {
     const id = this.identite();
-    return { identite: { nom: id.nom, couleur: id.couleur, empreinte: id.empreinte }, running: !!this.running, espaces: this.liste().map(sp => this.vue(sp)) };
+    return { identite: { nom: id.nom, couleur: id.couleur, empreinte: id.empreinte }, running: !!this.running,
+      notifications: this.notifications(), espaces: this.liste().map(sp => this.vue(sp)) };
   }
+}
+
+function withoutStamps(o) {
+  if (!o || typeof o !== 'object') return o;
+  const { modifiePar, modifieLe, ...rest } = o;
+  return rest;
 }
 
 function lire(r) {

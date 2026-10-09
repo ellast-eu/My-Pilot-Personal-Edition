@@ -296,6 +296,9 @@ export function createApp(opts = {}) {
     if (parts[0] === 'espaces' && !parts[1] && m === 'POST') { const b = await readJson(req); return ok(() => espaces.creer(b.nom)); }
     if (parts[0] === 'rejoindre' && m === 'POST') { const b = await readJson(req); return ok(() => espaces.rejoindre(b.lien)); }
     if (parts[0] === 'sync' && m === 'POST') { await espaces.run('manuel'); return send(res, 200, espaces.status()); }
+    if (parts[0] === 'recues' && !parts[1] && m === 'GET') return send(res, 200, espaces.recues({ limit: +new URL(req.url, 'http://l').searchParams.get('limit') || 100 }));
+    if (parts[0] === 'recues' && parts[1] === 'vues' && m === 'POST') { const b = await readJson(req); return send(res, 200, espaces.marquerVues(b.ids)); }
+    if (parts[0] === 'notifications' && m === 'PUT') { const b = await readJson(req); return send(res, 200, espaces.notifications(!!b.systeme)); }
     if (parts[0] === 'espaces' && parts[1]) {
       const id = parts[1];
       if (parts[2] === 'invitations' && m === 'POST') { const b = await readJson(req); return ok(() => espaces.inviter(id, b)); }
