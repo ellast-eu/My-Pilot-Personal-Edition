@@ -4,6 +4,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+## [0.13.0] - 2026-10-10
+
 ### Ajouts
 - **Veilles : sources spécialisées**, au choix pour chaque source d'une veille :
   - **Failles exploitées (CISA KEV)** : ajouts récents au catalogue des failles activement exploitées, avec l'action demandée, l'échéance et l'usage par des rançongiciels ;
