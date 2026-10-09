@@ -188,7 +188,8 @@ function envoyer(raison,forcer){
   var genEnvoi=Sync.gen||0;
   D.meta.modifie_le=D.meta.modifie_le||new Date().toISOString();
   D.meta.app="My Pilot Personal Edition"; D.meta.app_version=Sync.version; D.meta.version=VERSION;
-  return api("docs/"+DOC,{method:"PUT",body:{data:D,baseRev:Sync.rev,reason:raison}})
+  affecterPartages();
+  return pousserPartages().then(function(){ return api("docs/"+DOC,{method:"PUT",body:{data:privD(),baseRev:Sync.rev,reason:raison}}) })
   .then(function(r){
     if(r.status===409){ Sync.etat="conflit"; conflit(r.body); return false }
     if(!r.ok) throw new Error((r.body&&r.body.message)||("HTTP "+r.status));
@@ -225,7 +226,7 @@ function calme(){
   return true;
 }
 function adopter(data,rev){
-  D=normaliser(data); M=D.carte;
+  D=avecPartages(normaliser(data)); M=D.carte;
   Sync.rev=rev; sale=false; poserSync(null); ecrireLocal();
   rendre();
 }
@@ -267,7 +268,7 @@ function recharger(){
   }).catch(function(){ toast("Serveur injoignable : rechargement impossible",true) });
 }
 function adopterServeur(doc){
-  D=normaliser(doc.data); M=D.carte;
+  D=avecPartages(normaliser(doc.data)); M=D.carte;
   Sync.rev=doc.rev; Sync.etat="ok"; Sync.dernier=new Date(doc.updated_at);
   sale=false; poserSync(null); ecrireLocal(); rendre();
 }
@@ -789,41 +790,307 @@ document.addEventListener("click",function(e){
     "Quitter",function(){ return appelPartage("espaces/"+encodeURIComponent(d.e)+"/quitter",{forcer:true}) });
 });
 
+/* ===== activités partagées (application de bureau) =====
+   Une activité partagée, ses notes et ses tâches vivent dans le document de l'espace (« s-<id> »).
+   Elles sont fusionnées dans D.chantiers / D.notes avec un marqueur _sp : tout le pilotage les traite
+   comme les autres. À l'envoi, chacune repart vers son document. Une note suit toujours son activité. */
+var PA={docs:{}};
+function espaceP(id){ return ((Partage.st&&Partage.st.espaces)||[]).filter(function(e){ return e.id===id })[0] }
+function espacesActifsP(){ return ((Partage.st&&Partage.st.espaces)||[]).filter(function(e){ return e.status==="actif" }) }
+function moiP(sp){ var e=espaceP(sp); return e?e.member:"" }
+function membreP(sp,mid){ var e=espaceP(sp); return e?e.membres.filter(function(m){ return m.member===mid })[0]:null }
+function nomP(sp,mid){ var m=membreP(sp,mid); return m?(m.moi?"vous":(m.nom||"un membre")):"un membre" }
+function couleurP(sp,mid){ var m=membreP(sp,mid); return (m&&m.couleur)||"#8A90A6" }
+var TAMPONS_P=["_sp","modifiePar","modifieLe"];
+function propreP(o){ var c={},k; for(k in o) if(o.hasOwnProperty(k) && TAMPONS_P.indexOf(k)<0) c[k]=o[k]; return c }
+function sansSp(o){ var c=Object.assign({},o); delete c._sp; return c }
+/* une note suit son activité */
+function affecterPartages(){
+  /* D remplacé ailleurs (import de fichier…) : on remet les activités partagées connues, pour ne
+     jamais envoyer à l'espace une liste vidée par accident */
+  if(PA.D!==D){
+    Object.keys(PA.docs).forEach(function(id){
+      var d=PA.docs[id];
+      if(d.last && !D.chantiers.some(function(c){ return c._sp===id }) && !D.notes.some(function(n){ return n._sp===id })) fusionnerP(id,JSON.parse(d.last));
+    });
+    PA.D=D;
+  }
+  D.notes.forEach(function(n){
+    var c=n.chantier_id?chantierPar(n.chantier_id):null;
+    if(c && c._sp) n._sp=c._sp; else delete n._sp;
+  });
+}
+function privD(){
+  return Object.assign({},D,{chantiers:D.chantiers.filter(function(c){ return !c._sp }),notes:D.notes.filter(function(n){ return !n._sp })});
+}
+function itemsP(id){
+  return {chantiers:D.chantiers.filter(function(c){ return c._sp===id }).map(sansSp),notes:D.notes.filter(function(n){ return n._sp===id }).map(sansSp)};
+}
+function avecPartages(nd){
+  if(typeof D==="undefined" || !D || !D.chantiers) return nd;
+  nd.chantiers=nd.chantiers.filter(function(c){ return !c._sp }).concat(D.chantiers.filter(function(c){ return c._sp }));
+  nd.notes=nd.notes.filter(function(n){ return !n._sp }).concat(D.notes.filter(function(n){ return n._sp }));
+  PA.D=nd;
+  return nd;
+}
+function fusionnerP(id,data){
+  PA.D=D;
+  var tag=function(x){ return Object.assign({},x,{_sp:id}) };
+  D.chantiers=D.chantiers.filter(function(c){ return c._sp!==id }).concat(((data&&data.chantiers)||[]).filter(function(x){ return x&&x.id }).map(tag));
+  D.notes=D.notes.filter(function(n){ return n._sp!==id }).concat(((data&&data.notes)||[]).filter(function(x){ return x&&x.id }).map(tag));
+}
+function retenirP(id,doc,items){
+  items=items||itemsP(id);
+  var d=PA.docs[id]||(PA.docs[id]={});
+  d.rev=doc.rev; d.data=doc.data||{}; d.last=JSON.stringify(items); d.items={};
+  items.chantiers.forEach(function(x){ d.items["c"+x.id]=JSON.stringify(propreP(x)) });
+  items.notes.forEach(function(x){ d.items["n"+x.id]=JSON.stringify(propreP(x)) });
+}
+function chargerP(id){
+  return api("docs/s-"+id).then(function(r){
+    if(r.status===404) return null;
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    fusionnerP(id,r.body.data); retenirP(id,r.body); return r.body;
+  });
+}
+/* espaces rejoints ou quittés : on charge ou retire leurs activités */
+function majEspacesP(){
+  if(Partage.indispo || !fichierCharge) return Promise.resolve(false);
+  return majPartage(false).then(function(){
+    if(Partage.indispo) return false;
+    var actifs={},change=false,attente=[];
+    espacesActifsP().forEach(function(e){ actifs[e.id]=1 });
+    Object.keys(PA.docs).forEach(function(id){ if(!actifs[id]){ delete PA.docs[id]; fusionnerP(id,null); change=true } });
+    Object.keys(actifs).forEach(function(id){ if(!PA.docs[id]) attente.push(chargerP(id).then(function(d){ if(d) change=true }).catch(function(){})) });
+    return Promise.all(attente).then(function(){ return change });
+  });
+}
+function pousserPartages(){
+  var ids=Object.keys(PA.docs);
+  return ids.reduce(function(p,id){ return p.then(function(){ return pousserP(id) }) },Promise.resolve());
+}
+function pousserP(id){
+  var d=PA.docs[id]; if(!d || d.envoi) { if(d) d.encore=true; return Promise.resolve() }
+  var items=itemsP(id);
+  if(JSON.stringify(items)===d.last) return Promise.resolve();
+  var me=moiP(id),now=Date.now();
+  var tamponner=function(k,x,liste){
+    if(d.items[k+x.id]===JSON.stringify(propreP(x))) return;
+    liste.forEach(function(o){ if(o.id===x.id && o._sp===id){ o.modifiePar=me; o.modifieLe=now; if(!o.par) o.par=me } });
+  };
+  items.chantiers.forEach(function(x){ tamponner("c",x,D.chantiers) });
+  items.notes.forEach(function(x){ tamponner("n",x,D.notes) });
+  items=itemsP(id);
+  var json=JSON.stringify(items), data=Object.assign({},d.data||{},{chantiers:items.chantiers,notes:items.notes});
+  d.envoi=true;
+  return api("docs/s-"+id,{method:"PUT",body:{data:data,baseRev:d.rev||0}}).then(function(r){
+    if(r.status===409) return chargerP(id).then(function(){ rendre(); toast("Activités partagées modifiées ailleurs : version la plus récente reprise",true) });
+    if(!r.ok) return;
+    if(r.body.data && JSON.stringify(itemsP(id))===json && calme()){ fusionnerP(id,r.body.data); retenirP(id,{rev:r.body.rev,data:r.body.data}); rendre() }
+    else retenirP(id,{rev:r.body.rev,data:r.body.data||data},items);
+  }).catch(function(){}).then(function(){
+    d.envoi=false;
+    if(d.encore){ d.encore=false; setTimeout(function(){ pousserP(id) },200) }
+  });
+}
+/* changements des autres membres : repris quand rien n'est en cours de saisie */
+function suivrePartages(){
+  if(Partage.indispo || !calme()) return;
+  var ids=Object.keys(PA.docs), change=false;
+  ids.reduce(function(p,id){ return p.then(function(){
+    var d=PA.docs[id]; if(!d || d.envoi || JSON.stringify(itemsP(id))!==d.last) return;
+    return api("docs/s-"+id+"/rev").then(function(r){
+      if(!r.ok || r.body.rev<=d.rev || !calme() || JSON.stringify(itemsP(id))!==d.last) return;
+      return chargerP(id).then(function(){ change=true });
+    }).catch(function(){});
+  }) },Promise.resolve()).then(function(){ if(change) rendre() });
+}
+setInterval(suivrePartages,5000);
+setTimeout(function(){ majEspacesP().then(function(c){ if(c) rendre() }) },1500);
+setInterval(function(){ majEspacesP().then(function(c){ if(c) rendre() }) },20000);
+
+/* les tâches attribuées à un autre membre ne figurent pas dans vos listes « En attente » */
+var suitesOuvertes0=suitesOuvertes;
+suitesOuvertes=function(){
+  return suitesOuvertes0().filter(function(n){ return !(n._sp && n.suite.pour && n.suite.pour!==moiP(n._sp)) });
+};
+
+/* partager / retirer une activité */
+function partagerActivite(id,sp){
+  var c=chantierPar(id), e=espaceP(sp); if(!c || !e) return;
+  var n=D.notes.filter(function(x){ return x.chantier_id===id }).length;
+  lireChantier(c);
+  c._sp=sp; if(!c.par) c.par=e.member; c.categorie_lib=catDe(c).lib;
+  if(!PA.docs[sp]) PA.docs[sp]={rev:0,data:{},last:"",items:{}};
+  affecterPartages(); fermerModale(); modifie(); rendre(); editerChantier(id);
+  toast("Activité partagée dans « "+e.nom+" »"+(n?" avec ses "+n+" note(s) et tâche(s)":""));
+}
+function retirerActivite(id){
+  var c=chantierPar(id); if(!c || !c._sp) return;
+  var e=espaceP(c._sp);
+  if(!confirm("Retirer cette activité du partage ?\n\nUne copie, avec ses notes et tâches, reste dans votre pilotage privé ; elle disparaît de l'espace « "+(e?e.nom:"")+" » pour tous les membres.")) return;
+  lireChantier(c);
+  ["_sp","par","modifiePar","modifieLe"].forEach(function(k){ delete c[k] });
+  D.notes.forEach(function(n){ if(n.chantier_id===id){ ["par","modifiePar","modifieLe"].forEach(function(k){ delete n[k] }); if(n.suite) delete n.suite.pour } });
+  affecterPartages(); fermerModale(); modifie(); rendre(); editerChantier(id);
+  toast("Activité revenue dans votre pilotage privé");
+}
+function quandP(t){ return t?new Date(t).toLocaleString("fr-FR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"" }
+function boitePartageActivite(c){
+  if(Partage.indispo || !Partage.st) return "";
+  if(c._sp){
+    var e=espaceP(c._sp);
+    return '<hr class="sep"><div class="pp-part" style="border:1px dashed var(--trait);padding:10px 12px;font-size:13.5px">'
+      +'<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+esc(couleurP(c._sp,c.par))+';margin-right:6px"></span>'
+      +'Partagée dans <b>« '+esc(e?e.nom:"")+' »</b>'+(c.par?', proposée par '+esc(nomP(c._sp,c.par)):"")
+      +(c.modifiePar?'. Dernière modification : '+esc(nomP(c._sp,c.modifiePar))+', '+esc(quandP(c.modifieLe)):"")+'.'
+      +'<div class="note-aide" style="margin:4px 0 8px">Les notes et tâches de cette activité sont partagées avec elle, signées par leur auteur. '
+      +'Une tâche peut être attribuée à un membre depuis la note qui la porte.</div>'
+      +'<button class="b mini creux" data-pa="retirer" data-id="'+esc(c.id)+'">Retirer du partage</button></div>';
+  }
+  var l=espacesActifsP();
+  if(!l.length) return "";
+  return '<hr class="sep"><div class="ligne" style="font-size:13.5px">Partager cette activité, avec ses notes et tâches, dans '
+    +'<select id="paDest">'+l.map(function(e){ return '<option value="'+esc(e.id)+'">'+esc(e.nom)+'</option>' }).join("")+'</select>'
+    +'<button class="b mini" data-pa="partager" data-id="'+esc(c.id)+'">Partager</button></div>';
+}
+var editerChantier0=editerChantier;
+editerChantier=function(id){
+  editerChantier0(id);
+  var c=chantierPar(id), corps=$("#modCorps");
+  if(!c || !corps) return;
+  var box=boitePartageActivite(c);
+  if(box){ var o=corps.querySelector("#ficheAjout"); (o?o.parentNode:corps).insertAdjacentHTML(o?"beforeend":"beforeend",box) }
+  decorerNotes(corps);
+};
+/* « Pour » sur une tâche d'une activité partagée */
+var editerNote0=editerNote;
+editerNote=function(id){
+  editerNote0(id);
+  var n=notePar(id), c=n&&n.chantier_id?chantierPar(n.chantier_id):null;
+  if(!n || !c || !c._sp) return;
+  var e=espaceP(c._sp); if(!e) return;
+  var pour=(n.suite&&n.suite.pour)||"";
+  var ech=$("#modCorps").querySelector('[name="suite_ech"]');
+  if(!ech) return;
+  ech.closest(".grille").insertAdjacentHTML("beforeend",'<label class="champ">Pour<select id="paPour"><option value="">Tout le monde</option>'
+    +e.membres.filter(function(m){ return m.status!=="retire" }).map(function(m){
+      return '<option value="'+esc(m.member)+'"'+(m.member===pour?" selected":"")+'>'+esc((m.nom||"membre")+(m.moi?" (vous)":""))+'</option>' }).join("")
+    +'</select></label>');
+  if(n.par || n.modifiePar) $("#modCorps").insertAdjacentHTML("afterbegin",'<div class="note-aide" style="margin:0 0 8px">Note '
+    +(n.par?'de '+esc(nomP(c._sp,n.par)):"")+(n.modifiePar&&n.modifiePar!==n.par?', modifiée par '+esc(nomP(c._sp,n.modifiePar)):"")
+    +(n.modifieLe?', '+esc(quandP(n.modifieLe)):"")+' — activité partagée dans « '+esc(e.nom)+' ».</div>');
+};
+var lireNote0=lireNote;
+lireNote=function(n){
+  var r=lireNote0(n), s=$("#paPour");
+  if(s && n.suite){ if(s.value) n.suite.pour=s.value; else delete n.suite.pour }
+  return r;
+};
+/* auteurs et attributions affichés sur les notes et tâches partagées */
+function decorerNotes(racine){
+  if(!racine) return;
+  Array.prototype.forEach.call(racine.querySelectorAll(".note"),function(el){
+    if(el.querySelector(".pp-sig")) return;
+    var b=el.matches("[data-note]")?el:el.querySelector("[data-note],[data-fait]");
+    var id=b&&(b.dataset.note||b.dataset.fait); if(!id) return;
+    var n=notePar(id); if(!n || !n._sp) return;
+    var auteur=n.par||n.modifiePar, pour=n.suite&&n.suite.pour;
+    var t=(auteur?"par "+nomP(n._sp,auteur):"partagée")+(pour?" · pour "+nomP(n._sp,pour):"");
+    var h=el.querySelector(".h")||el;
+    h.insertAdjacentHTML("beforeend",' <span class="pp-sig" style="font-size:11.5px;color:var(--gris,#6b706c)">'
+      +'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+esc(couleurP(n._sp,auteur))+';margin:0 3px 0 6px"></span>'+esc(t)+'</span>');
+  });
+}
+function decorerActivites(racine){
+  Array.prototype.forEach.call(racine.querySelectorAll("tr[data-chantier]"),function(tr){
+    var c=chantierPar(tr.dataset.chantier); if(!c || !c._sp || tr.querySelector(".pp-sig")) return;
+    var td=tr.children[2]||tr.children[0], e=espaceP(c._sp);
+    td.insertAdjacentHTML("beforeend",' <span class="pp-sig" title="Activité partagée'+(c.par?', proposée par '+esc(nomP(c._sp,c.par)):"")+'" style="font-size:11.5px;color:var(--gris,#6b706c);white-space:nowrap">'
+      +'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+esc(couleurP(c._sp,c.par))+';margin:0 3px 0 4px"></span>'+esc(e?e.nom:"partagée")+'</span>');
+  });
+}
+document.addEventListener("click",function(e){
+  var el=e.target.closest&&e.target.closest("[data-pa]");
+  if(!el) return;
+  if(el.dataset.pa==="partager") partagerActivite(el.dataset.id,($("#paDest")||{}).value);
+  else if(el.dataset.pa==="retirer") retirerActivite(el.dataset.id);
+  else if(el.dataset.pa==="recue"){
+    var n=notePar(el.dataset.id), cible=el.dataset.c==="notes"?(n&&n.chantier_id):el.dataset.id;
+    if(cible && chantierPar(cible)) editerChantier(cible); else toast("Cette activité n'est plus partagée",true);
+  }
+  else if(el.dataset.pa==="recues-vues") marquerRecuesP();
+});
+
 /* ===== nouveautés des espaces partagés : pastille sur l'onglet Idées et notification du système ===== */
-var Recues={n:0,dernier:null,pret:false};
-function pastilleIdees(){
-  var b=document.querySelector('#nav [data-vue="idees"]'); if(!b) return;
+var Recues={idees:0,activites:0,entrees:[],dernier:null,pret:false};
+var COLL_IDEES={ideas:1,unified:1};
+function estRecueIdee(e){ return !!COLL_IDEES[e.coll] }
+function pastille(vue,n,quoi){
+  var b=document.querySelector('#nav [data-vue="'+vue+'"]'); if(!b) return;
   var p=b.querySelector(".pp-pastille");
-  if(!Recues.n){ if(p) p.remove(); b.removeAttribute("title"); return }
+  if(!n){ if(p) p.remove(); b.removeAttribute("title"); return }
   if(!p){ p=document.createElement("span"); p.className="pp-pastille";
     p.style.cssText="display:inline-block;min-width:18px;padding:0 5px;margin-left:6px;border-radius:9px;background:var(--rouge,#D8232A);color:#fff;font-size:11px;line-height:18px;text-align:center;letter-spacing:0;font-weight:600";
     b.appendChild(p) }
-  p.textContent=Recues.n>99?"99+":String(Recues.n);
-  b.title=Recues.n+" nouveauté(s) dans vos espaces partagés";
+  p.textContent=n>99?"99+":String(n);
+  b.title=n+" nouveauté(s) "+quoi;
 }
-var LIB_RECUE={partage:"a partagé une idée",modifie:"a modifié",cristallise:"a cristallisé",activite:"en a fait une activité",retire:"a retiré du partage"};
+function pastilleIdees(){
+  pastille("idees",Recues.idees,"dans les idées partagées");
+  pastille("chantiers",Recues.activites,"dans les activités partagées");
+}
+var LIB_RECUE={partage:"a partagé une idée",modifie:"a modifié",cristallise:"a cristallisé",activite:"en a fait une activité",retire:"a retiré du partage",
+  activite_partagee:"a partagé l'activité",activite_modifiee:"a modifié l'activité",activite_retiree:"a retiré l'activité",
+  note:"a ajouté une note",tache:"a ajouté une tâche",tache_pour_vous:"vous a attribué une tâche",tache_faite:"a terminé une tâche"};
 function surveillerRecues(){
-  if(Partage.indispo) return;
-  api("partage/recues?limit=20").then(function(r){
+  if(Partage.indispo) return Promise.resolve();
+  return api("partage/recues?limit=100").then(function(r){
     if(r.status===404){ Partage.indispo=true; return }
     if(!r.ok) return;
     var b=r.body, max=b.entrees.reduce(function(m,e){ return Math.max(m,e.id) },0);
     var neuves=Recues.pret?b.entrees.filter(function(e){ return !e.vue && e.id>(Recues.dernier||0) }):[];
-    Recues.n=b.nonVues; Recues.dernier=Math.max(Recues.dernier||0,max); Recues.pret=true;
+    var avant=Recues.activites;
+    Recues.entrees=b.entrees;
+    Recues.idees=b.entrees.filter(function(e){ return !e.vue && estRecueIdee(e) }).length;
+    Recues.activites=b.entrees.filter(function(e){ return !e.vue && !estRecueIdee(e) }).length;
+    Recues.dernier=Math.max(Recues.dernier||0,max); Recues.pret=true;
     pastilleIdees();
+    if(vueActive==="chantiers" && avant!==Recues.activites) rendreDonneesSiCalme();
     if(!neuves.length) return;
     var e=neuves[0], titre=neuves.length>1?neuves.length+" nouveautés dans vos espaces partagés":e.auteur+" "+(LIB_RECUE[e.kind]||"")+" : « "+e.titre+" »";
     var corps=neuves.length>1?neuves.slice(0,3).map(function(x){ return x.auteur+" : "+x.titre }).join("\n"):"Espace « "+e.espaceNom+" »";
+    var cible=estRecueIdee(e)?"idees":"chantiers";
     var dehors=document.hidden || !document.hasFocus();
     if(dehors && Partage.st && Partage.st.notifications && Partage.st.notifications.systeme!==false && window.Notification){
       var go=function(){
         try{ var n=new Notification(titre,{body:corps,tag:"mppe-recues",silent:false});
-          n.onclick=function(){ window.focus(); vueActive="idees"; rendre(); n.close() } }catch(x){}
+          n.onclick=function(){ window.focus(); vueActive=cible; rendre(); n.close() } }catch(x){}
       };
       if(Notification.permission==="granted") go();
       else if(Notification.permission!=="denied") Notification.requestPermission().then(function(p){ if(p==="granted") go() });
     } else toast(titre);
   }).catch(function(){});
+}
+/* vue Activités : ce que les autres membres ont fait dans les activités partagées */
+function afficherRecuesActivites(v){
+  var l=Recues.entrees.filter(function(e){ return !estRecueIdee(e) && !e.vue });
+  if(!l.length) return;
+  var q=function(t){ return new Date(t).toLocaleString("fr-FR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}) };
+  v.insertAdjacentHTML("afterbegin",'<div class="bloc" style="margin-bottom:18px"><div class="bloc-tete"><h2>Reçues — activités partagées</h2><span class="compte">'+l.length+'</span></div><div class="bloc-corps">'
+    +l.slice(0,15).map(function(e){
+      return '<div style="display:flex;gap:10px;align-items:baseline;padding:5px 0;border-bottom:1px dashed var(--trait);font-size:13.5px">'
+        +'<span style="width:9px;height:9px;border-radius:50%;flex:none;background:'+esc(e.couleur||"#8A90A6")+'"></span>'
+        +'<span><b>'+esc(e.auteur)+'</b> '+esc(LIB_RECUE[e.kind]||e.kind)+' : « '+esc(e.titre)+' » <span class="note-aide" style="margin:0">dans '+esc(e.espaceNom||"")+'</span></span>'
+        +(e.kind!=="activite_retiree"?'<button class="lien" data-pa="recue" data-c="'+esc(e.coll)+'" data-id="'+esc(e.rid)+'" style="margin-left:auto">Ouvrir</button>':'<span style="margin-left:auto"></span>')
+        +'<span class="mono" style="font-size:11.5px;white-space:nowrap">'+esc(q(e.at))+'</span></div>';
+    }).join("")
+    +'<div class="ligne" style="margin-top:10px"><button class="b mini creux" data-pa="recues-vues">Tout marquer comme vu</button></div></div></div>');
+}
+function marquerRecuesP(){
+  var ids=Recues.entrees.filter(function(e){ return !estRecueIdee(e) && !e.vue }).map(function(e){ return e.id });
+  if(!ids.length) return;
+  api("partage/recues/vues",{method:"POST",body:{ids:ids}}).then(function(){ return surveillerRecues() }).then(function(){ rendre() });
 }
 setTimeout(function(){ majPartage(false).then(surveillerRecues) },3000);
 setInterval(surveillerRecues,20000);
@@ -969,6 +1236,8 @@ rendre=function(){
   b.style.display="none"; v.style.display="";
   document.documentElement.style.overflow="";
   rendre0();
+  decorerNotes(v);
+  if(vueActive==="chantiers"){ decorerActivites(v); afficherRecuesActivites(v) }
   if(vueActive==="donnees"){
     var blocs=v.querySelectorAll(".bloc"),i;
     for(i=0;i<blocs.length;i++){
@@ -1124,6 +1393,8 @@ function creerActivite(p){
   else if((p.objectifs||[]).length) c.commentaire+="\n\nObjectifs :\n- "+p.objectifs.join("\n- ");
   if(champs.vigilance) c.vigilance=(p.vigilance||[]).join("\n");
   else if((p.vigilance||[]).length) c.commentaire+="\n\nPoints de vigilance :\n- "+p.vigilance.join("\n- ");
+  var esp=p.espace?espacesActifsP().filter(function(e){ return e.id===p.espace })[0]:null;
+  if(esp){ c._sp=esp.id; c.par=esp.member; c.categorie_lib=K.lib; if(!PA.docs[esp.id]) PA.docs[esp.id]={rev:0,data:{},last:"",items:{}} }
   D.chantiers.push(c);
   (p.etapes||[]).forEach(function(t){
     D.notes.push({id:uid(),date:auj(),heure:hNow(),type:"",chantier_id:c.id,rubrique_id:"",
@@ -1155,7 +1426,7 @@ window.addEventListener("message",function(e){
       toast("Activité créée : "+c.libelle);
     }catch(err){ rep({type:"erreur",message:err.message}) }
   }else if(m.type==="recues"){
-    Recues.n=+m.n||0; pastilleIdees();
+    surveillerRecues();
   }else if(m.type==="ouvrir-activite"){
     if(!chantierPar(m.id)){ toast("Cette activité n'existe plus",true); return }
     vueActive="chantiers"; rendre(); editerChantier(m.id);

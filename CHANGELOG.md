@@ -4,6 +4,21 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+### Ajouts
+- **Activités partagées** (application de bureau) : depuis la fenêtre d'une activité, « Partager cette activité, avec ses notes et tâches, dans… ».
+  - L'activité, ses notes et ses tâches sont communes aux membres de l'espace. Une note ou une tâche ajoutée à une activité partagée est partagée avec elle.
+  - **Auteurs** : chaque note et tâche partagée est signée (« par Paul »). La fenêtre de l'activité indique qui l'a proposée et qui l'a modifiée en dernier.
+  - **Attribution** : champ « Pour » dans la fenêtre d'une tâche partagée. Une tâche attribuée à un autre membre n'apparaît plus dans vos listes « En attente » ; celles qui vous sont attribuées sont marquées « pour vous ».
+  - **Retirer du partage** : une copie, avec ses notes et tâches, revient dans le pilotage privé, et l'activité disparaît de l'espace pour tous.
+  - Repère « partagée » à côté du libellé dans la liste des activités.
+- **Depuis une idée partagée** : en créant l'activité, proposition de la partager dans le même espace.
+- **Reçues — activités partagées**, en tête de l'onglet Activités : activité partagée, modifiée ou retirée, nouvelle note ou tâche, tâche qui vous est attribuée, tâche terminée. Pastille sur l'onglet Activités, notification du système.
+- Les notes et tâches arrivées en même temps qu'une activité ne sont pas signalées une par une.
+
+### Modifications
+- La pastille de l'onglet Idées ne compte plus que les nouveautés des idées. La boîte « Reçues » de l'onglet Idées n'affiche plus que les idées.
+- Garde-fou : si les données du pilotage sont remplacées (import de fichier), les activités partagées connues sont remises en place avant tout envoi, pour ne jamais vider un espace par accident.
+
 ## [0.8.0] - 2026-10-09
 
 ### Ajouts

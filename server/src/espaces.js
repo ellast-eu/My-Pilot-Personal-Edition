@@ -298,20 +298,43 @@ export class Espaces {
   noterRecues(sp, fiches) {
     const doc = PREFIXE_ESPACE + sp.id, at = nowIso();
     const ins = this.db.prepare('INSERT INTO inbox(space, coll, rid, kind, author, titre, at) VALUES (?,?,?,?,?,?,?)');
+    const memeContenu = (a, b) => JSON.stringify(withoutStamps(a)) === JSON.stringify(withoutStamps(b));
+    const lot = new Map(fiches.filter(c => c.coll === 'chantiers' && c.data).map(c => [c.id, c.data]));
+    const activite = id => (id && (lot.get(id) || this.store.getRecord(doc, 'chantiers', id))) || null;
+    // activité qui arrive dans ce lot : ses notes et tâches ne sont pas signalées une par une
+    const nouvelles = new Set(fiches.filter(c => c.coll === 'chantiers' && c.data && !this.store.getRecord(doc, 'chantiers', c.id)).map(c => c.id));
+    const court = (t, n = 80) => { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
     for (const c of fiches) {
-      if (c.coll !== 'ideas' && c.coll !== 'unified') continue;
       const avant = this.store.getRecord(doc, c.coll, c.id), apres = c.data;
-      let kind;
-      if (!apres) { if (!avant) continue; kind = 'retire'; }
-      else if (!avant) kind = c.coll === 'unified' ? 'cristallise' : 'partage';
-      else if (c.coll === 'ideas' && apres.status === 'absorbee') continue;          // signalé par la cristallisation
-      else if (c.coll === 'unified' && apres.status === 'projet' && avant.status !== 'projet') kind = 'activite';
-      else if (JSON.stringify(withoutStamps(avant)) === JSON.stringify(withoutStamps(apres))) continue;
-      else kind = 'modifie';
-      const titre = String((apres && (apres.title || apres.titre)) || (avant && (avant.title || avant.titre)) || 'Sans titre').slice(0, 200);
+      let kind, titre;
+      if (c.coll === 'ideas' || c.coll === 'unified') {
+        if (!apres) { if (!avant) continue; kind = 'retire'; }
+        else if (!avant) kind = c.coll === 'unified' ? 'cristallise' : 'partage';
+        else if (c.coll === 'ideas' && apres.status === 'absorbee') continue;          // signalé par la cristallisation
+        else if (c.coll === 'unified' && apres.status === 'projet' && avant.status !== 'projet') kind = 'activite';
+        else if (memeContenu(avant, apres)) continue;
+        else kind = 'modifie';
+        titre = (apres && (apres.title || apres.titre)) || (avant && (avant.title || avant.titre)) || 'Sans titre';
+      } else if (c.coll === 'chantiers') {
+        if (!apres) { if (!avant) continue; kind = 'activite_retiree'; }
+        else if (!avant) kind = 'activite_partagee';
+        else if (memeContenu(avant, apres)) continue;
+        else kind = 'activite_modifiee';
+        titre = (apres && apres.libelle) || (avant && avant.libelle) || 'Activité';
+      } else if (c.coll === 'notes') {
+        if (!apres) continue;
+        const s1 = apres.suite && apres.suite.texte ? apres.suite : null, s0 = avant && avant.suite && avant.suite.texte ? avant.suite : null;
+        if (s1 && s1.pour === sp.member && (!s0 || s0.pour !== sp.member)) kind = 'tache_pour_vous';
+        else if (!avant) { if (nouvelles.has(apres.chantier_id)) continue; kind = s1 ? 'tache' : 'note'; }
+        else if (s1 && s1.fait && !(s0 && s0.fait)) kind = 'tache_faite';
+        else continue;                                                                 // simple retouche d'une note : pas de bruit
+        const a = activite(apres.chantier_id);
+        titre = (a ? court(a.libelle, 50) + ' — ' : '') + court(s1 ? s1.texte : apres.contenu, 80);
+      } else continue;
+      titre = String(titre).slice(0, 200);
       const author = String((apres && apres.modifiePar) || c.origin || '').slice(0, 40);
-      if (kind === 'modifie') {
-        const deja = this.db.prepare("SELECT id FROM inbox WHERE space=? AND rid=? AND kind='modifie' AND seen=0").get(sp.id, c.id);
+      if (kind === 'modifie' || kind === 'activite_modifiee') {
+        const deja = this.db.prepare('SELECT id FROM inbox WHERE space=? AND rid=? AND kind=? AND seen=0').get(sp.id, c.id, kind);
         if (deja) { this.db.prepare('UPDATE inbox SET at=?, author=?, titre=? WHERE id=?').run(at, author, titre, deja.id); continue; }
       }
       ins.run(sp.id, c.coll, c.id, kind, author, titre, at);

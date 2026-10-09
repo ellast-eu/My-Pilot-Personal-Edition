@@ -430,14 +430,19 @@ async function suivreEspaces(){
 async function majRecues(){
   if(!SP.dispo) return;
   try{ const r=await fetch(API+'partage/recues?limit=60'); if(!r.ok) return;
-    const b=await r.json(); const avant=SP.recues.nonVues; SP.recues=b;
+    const b=await r.json(); const avant=SP.recues.nonVues;
+    b.entrees=b.entrees.filter(e=>e.coll==='ideas'||e.coll==='unified'); b.nonVues=b.entrees.filter(e=>!e.vue).length;   /* les activités : onglet Activités */
+    SP.recues=b;
     if(avant!==b.nonVues){ renderTop(); tellPilot({type:'recues',n:b.nonVues}); }
     if(ui.sharedOpen) renderModal();
   }catch{}
 }
 async function voirRecues(){
   ui.sharedOpen=true; renderModal();
-  try{ const r=await fetch(API+'partage/recues/vues',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}); if(r.ok){ const b=await r.json(); SP.recues.nonVues=b.nonVues; renderTop(); tellPilot({type:'recues',n:b.nonVues}); } }catch{}
+  const ids=(SP.recues.entrees||[]).filter(e=>!e.vue).map(e=>e.id);
+  if(!ids.length) return;
+  try{ const r=await fetch(API+'partage/recues/vues',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});
+    if(r.ok){ SP.recues.nonVues=0; renderTop(); tellPilot({type:'recues'}); } }catch{}
 }
 /* partager / retirer du partage */
 function partager(kind,id,sp){
@@ -870,12 +875,14 @@ function askPilot(msg,timeout=8000){
 }
 async function makeActivity(u){
   const src=S.ideas.filter(i=>u.sourceIds.includes(i.id)).map(i=>i.title);
+  const e=u._sp&&espace(u._sp);
+  const enPartage=!!(e&&e.status==='actif'&&confirm(`Partager aussi l'activité dans « ${e.nom} » ?\n\nOK : l'activité, ses tâches et ses notes seront communes aux membres de l'espace.\nAnnuler : l'activité sera créée dans votre seul pilotage.`));
   try{
     const r=await askPilot({type:'creer-activite',payload:{titre:u.title,synthese:u.synthese,objectifs:u.objectifs,
-      etapes:u.etapes,vigilance:u.vigilance,categorie:catOf(u.cat).name,sources:src,date:u.date||''}});
+      etapes:u.etapes,vigilance:u.vigilance,categorie:catOf(u.cat).name,sources:src,date:u.date||'',espace:enPartage?u._sp:''}});
     if(r.type!=='activite-creee') throw new Error(r.message||'refus');
     u.status='projet'; u.activiteId=r.id; u.activiteCat=r.categorie; u.converted=Date.now();
-    if(u._sp) u.activiteMembre=moi(u._sp);
+    if(u._sp){ u.activiteMembre=moi(u._sp); u.activitePartagee=enPartage; }
     ui.drawer=null; renderAll(); toast('Activité créée dans le pilotage ('+r.categorie+')');
   }catch(err){ toast('Création de l\'activité impossible : '+err.message,true); }
 }
@@ -901,7 +908,7 @@ $('#importFile').addEventListener('change',e=>{
   const f=e.target.files[0]; if(!f) return;
   const r=new FileReader();
   r.onload=()=>{try{const o=JSON.parse(r.result); if(!Array.isArray(o.ideas)) throw 0;
-    S=Object.assign(blank(),o); S.settings=Object.assign(blank().settings,o.settings||{}); S.settings.claude=Object.assign(blank().settings.claude,(o.settings||{}).claude||{}); ui.drawer=null; renderAll(); toast('Données importées');}
+    applyState(o); ui.drawer=null; renderAll(); toast('Données importées');}
     catch{toast('Fichier non reconnu : choisissez un export du Cristallisoir.',true);}};
   r.readAsText(f); e.target.value='';
 });
@@ -1120,7 +1127,7 @@ function tableHTML(){
 function activitiesHTML(){
   const l=S.unified.filter(u=>u.status==='projet'&&u.activiteId).sort((a,b)=>(b.converted||0)-(a.converted||0));
   if(!l.length) return `<div class="projects"><div class="empty" style="position:static;padding:60px 0"><p>Aucune idée n'est encore devenue activité. Cristallisez une méta-idée, puis choisissez « Créer l'activité ».</p><div><button class="btn" data-act="view" data-v="idees">Aller aux idées</button></div></div></div>`;
-  return `<div class="projects">${l.filter(visible).map(u=>{const chezAutre=u._sp&&u.activiteMembre&&u.activiteMembre!==moi(u._sp);
+  return `<div class="projects">${l.filter(visible).map(u=>{const chezAutre=u._sp&&u.activiteMembre&&u.activiteMembre!==moi(u._sp)&&!u.activitePartagee;
     return `<article class="proj" style="--c:${catOf(u.cat).color}">
     <header><strong style="font-size:18px;flex:1">${esc(u.title)}</strong>${spTag(u)}<span class="muted">${esc(u.activiteCat||'')}, ${fmtDate(u.converted||u.created)}</span></header>
     ${u.synthese?`<p class="pdesc">${esc(u.synthese)}</p>`:''}
@@ -1201,7 +1208,7 @@ function renderDrawer(){
       </div>
       ${champ('Synthèse',`<textarea class="field" rows="4" data-bind="unified.${u.id}.synthese">${esc(u.synthese)}</textarea>`)}
       <div class="dgrille trois">${liste('Objectifs',u,'objectifs')}${liste('Premières étapes',u,'etapes')}${liste('Points de vigilance',u,'vigilance')}</div>
-      <p class="note">Idées d'origine : ${src.map(i=>esc(i.title)).join(', ')||'—'}.${EMBED?' Les premières étapes deviendront les tâches de l\'activité ; sans date prévue, elle sera à planifier.':''}${u._sp&&EMBED?' L\'activité sera créée dans votre pilotage ; les autres membres verront que l\'idée est devenue activité chez vous.':''}</p>
+      <p class="note">Idées d'origine : ${src.map(i=>esc(i.title)).join(', ')||'—'}.${EMBED?' Les premières étapes deviendront les tâches de l\'activité ; sans date prévue, elle sera à planifier.':''}${u._sp&&EMBED?' Vous pourrez partager l\'activité dans le même espace au moment de la créer.':''}</p>
       ${spBox('uni',u)}`,
       `<button class="btn danger" data-act="dissolve" data-id="${u.id}">Dissoudre</button>`,
       `<button class="btn primary" data-act="make-proj" data-id="${u.id}">${EMBED?'Créer l\'activité':'Faire un projet'}</button>`);

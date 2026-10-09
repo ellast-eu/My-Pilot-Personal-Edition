@@ -117,6 +117,28 @@ test('boîte « Reçues » : ce que l\'autre a fait, sans l\'existant à l\'arri
   assert.equal((await partage('p1')).notifications.systeme, false);
 });
 
+test('activités partagées : activité, tâche attribuée et tâche faite arrivent dans « Reçues »', async () => {
+  await call('s1', '/api/partage/recues/vues', 'POST', {}); await call('p1', '/api/partage/recues/vues', 'POST', {});
+  const paul = (await partage('s1')).espaces[0].membres.find(m => m.nom === 'Paul').member;
+  let d = await getDoc('s1', doc);
+  d.data.chantiers = [{ id: 'a1', libelle: 'Monter le potager', categorie: 'projet' }];
+  d.data.notes = [{ id: 'n1', chantier_id: 'a1', contenu: '', suite: { texte: 'Acheter les planches', echeance: '', fait: false, pour: paul } },
+    { id: 'n2', chantier_id: 'a1', contenu: 'Devis demandé', suite: null }];
+  assert.equal((await call('s1', '/api/docs/' + doc, 'PUT', { data: d.data, baseRev: d.rev })).status, 200);
+  await run('s1'); await run('p1');
+  let r = (await call('p1', '/api/partage/recues')).body;
+  assert.deepEqual(r.entrees.filter(e => !e.vue).map(e => e.kind + ':' + e.titre).sort(),
+    ['activite_partagee:Monter le potager', 'tache_pour_vous:Monter le potager — Acheter les planches']);   // la note arrivée avec l'activité n'est pas signalée à part
+  d = await getDoc('p1', doc);
+  d.data.notes.find(n => n.id === 'n1').suite.fait = true;
+  await call('p1', '/api/docs/' + doc, 'PUT', { data: d.data, baseRev: d.rev });
+  await run('p1'); await run('s1');
+  r = (await call('s1', '/api/partage/recues')).body;
+  assert.deepEqual(r.entrees.filter(e => !e.vue).map(e => e.kind + ':' + e.auteur), ['tache_faite:Paul']);
+  // un document privé de Paul ne reçoit rien de tout cela
+  assert.equal(((await getDoc('p1', 'pilot')) || { data: { chantiers: [] } }).data.chantiers.length, 0);
+});
+
 test('chiffrement de bout en bout : l\'hôte ne stocke aucun contenu lisible', async () => {
   const rows = N.S.app.store.db.prepare('SELECT coll, data FROM records WHERE doc=? AND deleted=0').all(doc);
   assert.ok(rows.length >= 4);

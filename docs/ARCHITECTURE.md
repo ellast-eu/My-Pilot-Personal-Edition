@@ -60,6 +60,7 @@ document s-<id> en clair ── sceller (AES-256-GCM) ────▶ /api/space
   - côté appareil : `my_spaces` (jeton, clés, invitations en cours, cache des membres).
 - **Cartes de membres** : nom, couleur, empreinte et nom d'appareil vivent dans la collection `members` de l'espace, donc chiffrés.
 - **Cristallisoir** : les idées des espaces sont fusionnées dans la même liste que les idées privées, avec un marqueur `_sp`. À l'envoi, chacune repart vers son document : `ideas` pour le privé, `s-<id>` pour le partagé, le partagé en premier. Chaque modification faite ici porte `modifiePar` / `modifieLe` ; `par` désigne le membre qui a proposé l'idée.
+- **Pilotage** : même principe pour les activités. `D.chantiers` et `D.notes` contiennent les fiches des espaces, avec `_sp`. Une note prend toujours l'espace de son activité (`affecterPartages`), et `privD()` est ce qui part vers le document `pilot`. `suitesOuvertes` est filtré : une tâche partagée attribuée (`suite.pour`) à un autre membre n'apparaît pas dans « En attente ». Le fil de discussion d'une activité, ce sont ses notes, signées par leur auteur (pas de collection séparée).
 - **Boîte « Reçues »** (table `inbox`) : alimentée à la réception des fiches d'un espace, avant de les appliquer, par comparaison avec la version locale. Les catégories sont partage, modification, cristallisation, activité et retrait. Le premier échange après l'arrivée n'est pas signalé, et les gestes d'un membre qui porte votre nom (votre autre appareil) sont écartés.
 
 ## Exposition sur Internet

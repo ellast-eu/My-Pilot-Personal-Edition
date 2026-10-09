@@ -1,6 +1,6 @@
 # Partage et travail à plusieurs — conception
 
-Statut : **0.8.0 implémentée** (identités, espaces, invitations, chiffrement, synchro, sécurisation Caddy, partage d'idées, boîte « Reçues », notifications). Suite : 0.9 (activités).
+Statut : **0.9.0 implémentée** (identités, espaces, invitations, chiffrement, synchro, sécurisation Caddy, partage d'idées et d'activités, attribution des tâches, boîte « Reçues », notifications). Suite : 0.10 (fusion champ par champ, nouvelle clé au retrait d'un membre, rôle lecteur).
 
 ## Décisions
 
@@ -35,7 +35,7 @@ Installation de Stella                                  Installation de Paul
 
 ## Espaces
 
-- Document `space:<uuid>` découpé en fiches comme `pilot` et `ideas`. Collections : `ideas`, `unified`, `projects` (Cristallisoir), puis `chantiers`, `notes`, `comments` (activités), et `members` (nom, couleur et clé publique de chaque membre, chiffrés).
+- Document `s-<id>` découpé en fiches comme `pilot` et `ideas`. Collections : `ideas`, `unified`, `projects` (Cristallisoir), puis `chantiers`, `notes`, `comments` (activités), et `members` (nom, couleur et clé publique de chaque membre, chiffrés).
 - Fusion fiche par fiche, horodatage HLC et journal des conflits : inchangés.
 - Rôles : **propriétaire** (invite, retire, supprime l'espace) et **membre** (lit, crée, modifie). Un rôle lecteur pourra venir plus tard.
 
@@ -108,7 +108,7 @@ Installation de Stella                                  Installation de Paul
 - Champs ajoutés :
   - `auteur` et `modifiéPar` sur chaque fiche ;
   - `attribuéeÀ` sur les tâches ;
-  - collection `comments` pour le fil de discussion.
+  - fil de discussion : les notes de l’activité, signées par leur auteur (choix fait en 0.9.0 ; la collection `comments` reste réservée).
 - Vues Aujourd'hui / Prochain jour : filtre « mes tâches ». Notifications pour une tâche attribuée, un commentaire, une échéance proche.
 - **Fusion champ par champ** sur l'appareil, qui déchiffre et garde la dernière version reçue comme base. Deux changements sur des champs différents de la même fiche sont tous les deux conservés. Le conflit, journalisé, ne reste que pour un même champ.
 - « Partager une activité » emmène avec elle ses tâches et notes, avec une confirmation qui les liste.

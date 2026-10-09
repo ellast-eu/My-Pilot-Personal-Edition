@@ -130,6 +130,11 @@ Dans l'onglet **Idées** (0.8.0) :
 - **filtrer** : Toutes, Mes idées, ou un espace ;
 - **Reçues** : ce que les autres membres ont fait. Une pastille sur l'onglet Idées compte les nouveautés, et une notification du système apparaît si l'application est en arrière-plan.
 
+Dans l'onglet **Activités** (0.9.0) :
+- **partager** une activité depuis sa fenêtre : ses notes et tâches suivent ;
+- **attribuer** une tâche à un membre (champ « Pour ») ;
+- **Reçues — activités partagées** en tête de l'onglet.
+
 Pour essayer sans toucher à vos données : `node scripts/banc-partage.mjs --pret` lance un serveur hôte et deux appareils (« Stella » et « Paul ») sur votre machine, à ouvrir dans le navigateur.
 
 ## Sauvegardes
