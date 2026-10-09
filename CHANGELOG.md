@@ -4,6 +4,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+## [0.9.0] - 2026-10-09
+
 ### Ajouts
 - **Activités partagées** (application de bureau) : depuis la fenêtre d'une activité, « Partager cette activité, avec ses notes et tâches, dans… ».
   - L'activité, ses notes et ses tâches sont communes aux membres de l'espace. Une note ou une tâche ajoutée à une activité partagée est partagée avec elle.
