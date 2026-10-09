@@ -79,7 +79,7 @@ export async function status() {
       versionCache = { available: false, reason: e.code || 'error' };
     }
     // On réessaie au prochain appel si l'outil n'était pas là (installation en cours, etc.).
-    if (!versionCache.available) setTimeout(() => { versionCache = null; }, 30000);
+    if (!versionCache.available) setTimeout(() => { versionCache = null; }, 30000).unref?.();
   }
   return { ...versionCache, apiKeyIgnored: !!process.env.ANTHROPIC_API_KEY && process.env.CLAUDE_ALLOW_API_KEY !== '1' };
 }

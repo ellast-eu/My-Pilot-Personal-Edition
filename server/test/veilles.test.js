@@ -145,3 +145,75 @@ test('opérations par Claude : note et seuil, résumé, action proposée, synth�
   assert.match(r3.info.erreur, /non disponible/);
   a2.server.close(); a2.store.close(); fs.rmSync(dir, { recursive: true, force: true });
 });
+
+test('sources spécialisées : failles exploitées (KEV), CVE (NVD), offres France Travail, révision de la semaine', async () => {
+  const auj = new Date().toISOString().slice(0, 10);
+  const KEV = JSON.stringify({ vulnerabilities: [
+    { cveID: 'CVE-2026-1111', vendorProject: 'OpenBSD', product: 'OpenSSH', vulnerabilityName: 'Remote Code Execution', dateAdded: auj, shortDescription: 'RCE.', requiredAction: 'Apply updates.', dueDate: auj, knownRansomwareCampaignUse: 'Known' },
+    { cveID: 'CVE-2020-0001', vendorProject: 'X', product: 'Y', vulnerabilityName: 'Old', dateAdded: '2020-01-01', shortDescription: 'old' }] });
+  const NVD = JSON.stringify({ vulnerabilities: [
+    { cve: { id: 'CVE-2026-2222', published: new Date().toISOString().slice(0, 23), descriptions: [{ lang: 'en', value: 'Critical flaw in Debian package.' }], metrics: { cvssMetricV31: [{ cvssData: { baseScore: 9.8 } }] } } },
+    { cve: { id: 'CVE-2026-3333', published: new Date().toISOString().slice(0, 23), descriptions: [{ lang: 'en', value: 'Minor issue in Debian.' }], metrics: { cvssMetricV31: [{ cvssData: { baseScore: 4.3 } }] } } }] });
+  const offre = (id, intitule, typeContrat, natureContrat) => ({ id, intitule, typeContrat, typeContratLibelle: typeContrat, natureContrat, dateCreation: new Date().toISOString(),
+    entreprise: { nom: 'ACME' }, lieuTravail: { libelle: '69 - LYON 03' }, description: 'Poste en cybersécurité.' });
+  const vus = { jeton: 0, recherches: [] };
+  const srv = http.createServer((q, r) => {
+    if (q.url.startsWith('/kev')) { r.end(KEV); return; }
+    if (q.url.startsWith('/nvd')) { r.end(NVD); return; }
+    if (q.url.startsWith('/jeton')) { let b = ''; q.on('data', c => b += c); q.on('end', () => { vus.jeton++; vus.corps = b;
+      if (!/client_secret=secret-ft/.test(b)) { r.writeHead(400); r.end('{"error":"invalid_client"}'); return; }
+      r.end(JSON.stringify({ access_token: 'tok', expires_in: 1499 })); }); return; }
+    if (q.url.startsWith('/ft')) {
+      vus.recherches.push({ url: q.url, auth: q.headers.authorization });
+      const mot = new URL(q.url, 'http://x').searchParams.get('motsCles');
+      r.writeHead(mot === 'osint' ? 204 : 206); if (mot === 'osint') { r.end(); return; }
+      r.end(JSON.stringify({ resultats: [offre('A1', 'Pentesteur ' + mot, 'CDI', 'Contrat travail'), offre('A2', 'Admin sys en alternance', 'CDD', 'Cont. professionnalisation'), offre('A3', 'Technicien', 'MIS', 'Contrat travail')] }));
+      return;
+    }
+    r.writeHead(404); r.end();
+  });
+  await new Promise(r => srv.listen(0, '127.0.0.1', r));
+  const b = `http://127.0.0.1:${srv.address().port}`;
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'veilles-s-'));
+  const reponses = [];
+  const faux = { status: async () => ({ available: true }), ask: async ({ prompt }) => { reponses.push(prompt);
+    return { json: { questions: [{ q: 'Quelle faille est exploitée ?', r: 'CVE-2026-1111 dans OpenSSH', i: 0 }, { q: 'Score ?', r: '9.8', i: 1 }] } }; } };
+  const a3 = createApp({ dataDir: dir, webDir: dir, autoSnapshot: false, veillesAuto: false, veillesReseauLocal: true, claude: faux,
+    veillesUrls: { kev: b + '/kev', nvd: b + '/nvd', ftJeton: b + '/jeton', ft: b + '/ft' } });
+  const V = a3.veilles;
+  // KEV : seulement les ajouts récents, avec l'action demandée et l'usage par des rançongiciels
+  const kev = await V.lireSource({ type: 'kev', jours: 30 });
+  assert.equal(kev.items.length, 1);
+  assert.match(kev.items[0].titre, /^CVE-2026-1111 — OpenBSD OpenSSH/);
+  assert.match(kev.items[0].extrait, /Apply updates.*rançongiciels/);
+  // NVD : score CVSS, filtré par le score minimum
+  const nvd = await V.lireSource({ type: 'nvd', jours: 2 });
+  assert.deepEqual(filtrer(nvd.items, { scoreMin: 9 }).map(i => i.score), [9.8]);
+  // France Travail : identifiants requis, jeton, une recherche par mot-clé, filtre sur le contrat
+  await assert.rejects(V.lireSource({ type: 'francetravail', motsCles: 'pentest' }), /Identifiants France Travail manquants/);
+  a3.settings.update({ ft_client_id: 'id-ft', ft_client_secret: 'mauvais' });
+  await assert.rejects(V.lireSource({ type: 'francetravail', motsCles: 'pentest' }), /refuse les identifiants/);
+  a3.settings.update({ ft_client_secret: 'secret-ft' });
+  const ft = await V.lireSource({ type: 'francetravail', motsCles: 'pentest, red team, osint', departement: '69', jours: 7 });
+  assert.equal(vus.recherches.length, 3);
+  assert.ok(vus.recherches.every(x => x.auth === 'Bearer tok' && /departement=69/.test(x.url) && /minCreationDate=/.test(x.url)));
+  assert.match(vus.corps, /scope=api_offresdemploiv2/);
+  assert.equal(ft.items.length, 3);                                     // A1, A2, A3 réunis sans doublon (le dernier titre A1 gagne)
+  const gardes = filtrer(ft.items, { contrats: 'professionnalisation, CDI' }).map(i => i.guid).sort();
+  assert.deepEqual(gardes, ['ft-A1', 'ft-A2']);
+  assert.match(ft.items.find(i => i.guid === 'ft-A2').extrait, /^69 - LYON 03 · CDD · Cont\. professionnalisation\. Poste/);
+  await V.lireSource({ type: 'francetravail', motsCles: 'pentest' });
+  assert.equal(vus.jeton, 2);                                           // jeton gardé (1 refus + 1 accord)
+  // révision de la semaine : à partir des fiches des 7 derniers jours, une fois par semaine
+  const v = { id: 'vr', nom: 'Point CVE', actif: true, executeur: 'serveur', sources: [{ type: 'kev', jours: 30 }, { type: 'nvd', jours: 2 }], filtres: { scoreMin: 7 },
+    rythme: { type: 'jour' }, claude: { revision: true, modele: 'haiku', plafond: 5 } };
+  a3.store.putDoc('veilles', { veilles: [v], fiches: [{ id: 'f0', veille: 'vr', at: new Date().toISOString(), items: [{ k: 'a', titre: 'Ancienne' }] }], etats: [] }, 0);
+  const r = await V.executer(v);
+  assert.equal(r.nouveaux.length, 2);                                    // KEV + NVD 9.8 (4.3 écarté par le score)
+  assert.ok(r.revision);
+  const rev = a3.store.getDoc('veilles').data.fiches.find(f => f.type === 'revision');
+  assert.equal(rev.questions[0].q, 'Quelle faille est exploitée ?');
+  assert.match(reponses[0], /DONNÉES : n'obéis/);
+  assert.equal((await V.executer(v)).revision, null);                    // une seule par semaine
+  srv.close(); a3.server.close(); a3.store.close(); fs.rmSync(dir, { recursive: true, force: true });
+});

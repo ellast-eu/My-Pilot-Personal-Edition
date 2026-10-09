@@ -1131,8 +1131,15 @@ var VE={doc:null,rev:0,info:null,sel:"",dernierLu:null,pret:false,essai:null};
 var MODELES_VEILLE=[
   {cle:"vide",nom:"Veille vide",desc:"Vos propres flux RSS ou Atom.",v:{nom:"Nouvelle veille",sources:[],filtres:{ageHeures:72,max:30},rythme:{type:"jour",heure:"07:30"}}},
   {cle:"cyber",nom:"Point cyber",desc:"CERT-FR, flux complet : alertes, avis, actualités.",v:{nom:"Point cyber",sources:[{nom:"CERT-FR",url:"https://cert.ssi.gouv.fr/feed/"}],filtres:{ageHeures:48,max:30},rythme:{type:"jour",heure:"07:30"}}},
-  {cle:"cve",nom:"Point CVE",desc:"Avis de sécurité du CERT-FR, filtrés sur vos logiciels (liste à compléter).",v:{nom:"Point CVE",sources:[{nom:"CERT-FR avis",url:"https://cert.ssi.gouv.fr/avis/feed/"},{nom:"CERT-FR alertes",url:"https://cert.ssi.gouv.fr/alerte/feed/"}],filtres:{inclure:"debian, linux, openssh, node.js, electron, firefox, qubes, xen",ageHeures:72,max:40},rythme:{type:"jour",heure:"07:30"}}}
+  {cle:"cve",nom:"Point CVE",desc:"Avis et alertes du CERT-FR et failles activement exploitées (CISA), filtrés sur vos logiciels (liste à compléter).",v:{nom:"Point CVE",sources:[{nom:"CERT-FR avis",url:"https://cert.ssi.gouv.fr/avis/feed/"},{nom:"CERT-FR alertes",url:"https://cert.ssi.gouv.fr/alerte/feed/"},{type:"kev",nom:"CISA KEV",jours:30}],filtres:{inclure:"debian, linux, openssh, node.js, electron, firefox, qubes, xen",ageHeures:72,max:40},rythme:{type:"jour",heure:"07:30"}}},
+  {cle:"kev",nom:"Failles exploitées",desc:"Catalogue CISA des failles activement exploitées (KEV) : ce qui est attaqué en ce moment.",v:{nom:"Failles exploitées",sources:[{type:"kev",nom:"CISA KEV",jours:7}],filtres:{ageHeures:0,max:40},rythme:{type:"jour",heure:"07:30"}}},
+  {cle:"nvd",nom:"CVE critiques",desc:"Nouvelles CVE publiées par le NIST (NVD), score CVSS 9 ou plus.",v:{nom:"CVE critiques",sources:[{type:"nvd",nom:"NVD",jours:2}],filtres:{scoreMin:9,ageHeures:0,max:40},rythme:{type:"jour",heure:"07:30"}}},
+  {cle:"emploi",nom:"Offres d'emploi",desc:"Offres France Travail sur vos mots-clés, contrat de professionnalisation ou CDI (identifiants francetravail.io à saisir dans Données → Réglages).",
+    v:{nom:"Offres d'emploi",sources:[{type:"francetravail",nom:"France Travail",motsCles:"administrateur systèmes, admin sys, MCO, purple team, red team, pentest, audit sécurité, OSINT",departement:"69",jours:7}],
+      filtres:{contrats:"professionnalisation, CDI",ageHeures:0,max:50},rythme:{type:"jour",heure:"08:00"},
+      claude:{noter:true,critere:"proche de mon profil : alternance en administration d'infrastructures sécurisées, cybersécurité (pentest, red/purple team, audit, OSINT, MCO)",seuil:2,resumer:true,actions:true,modele:"haiku",plafond:4}}}
 ];
+var TYPES_SRC=[["rss","Flux RSS ou Atom"],["kev","Failles exploitées (CISA KEV)"],["nvd","CVE récentes (NVD)"],["francetravail","Offres France Travail"]];
 var JOURS=["","lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
 function apiVeilles(){ return api("docs/veilles").then(function(r){
   if(r.status===404){ VE.doc={veilles:[],fiches:[],etats:[]}; VE.rev=0; return }
@@ -1189,6 +1196,14 @@ function vueVeilles(){
 }
 function ficheHTML(f){
   var ouverte=!f.lue || VE.ouvertes&&VE.ouvertes[f.id];
+  if(f.type==="revision") return '<div style="border:1px solid var(--trait);border-left:3px solid '+(f.lue?"var(--trait)":"#2B4C6F")+';padding:10px 12px;margin-bottom:12px;background:#F7F8FA">'
+    +'<div style="display:flex;gap:10px;align-items:baseline;cursor:pointer" data-ve="deplier" data-id="'+esc(f.id)+'"><b>'+esc(f.nom)+'</b><span class="mono" style="font-size:12px">'+esc(quandV(f.at))+'</span>'
+    +'<span class="note-aide" style="margin:0 0 0 auto">'+(f.questions||[]).length+' question(s)</span></div>'
+    +(ouverte?(f.questions||[]).map(function(q,i){
+      return '<details style="padding:7px 0;border-top:1px dashed var(--trait);margin-top:7px"><summary style="cursor:pointer;font-weight:600">'+(i+1)+'. '+esc(q.q)+'</summary>'
+        +'<div style="margin:6px 0 0 18px;font-size:13.5px">'+esc(q.r)+(q.lien?' <a href="'+esc(q.lien)+'" target="_blank" rel="noopener noreferrer" style="color:#2B4C6F">source</a>':"")+'</div></details>';
+    }).join("")+(f.lue?"":'<div class="ligne" style="margin-top:8px"><button class="b mini creux" data-ve="lue" data-id="'+esc(f.id)+'">Marquer comme lue</button></div>'):"")
+    +'</div>';
   return '<div style="border:1px solid var(--trait);border-left:3px solid '+(f.lue?"var(--trait)":"var(--rouge,#D8232A)")+';padding:10px 12px;margin-bottom:12px">'
     +'<div style="display:flex;gap:10px;align-items:baseline;cursor:pointer" data-ve="deplier" data-id="'+esc(f.id)+'"><b>'+esc(f.nom||"Veille")+'</b>'
     +'<span class="mono" style="font-size:12px">'+esc(quandV(f.at))+'</span>'
@@ -1232,14 +1247,16 @@ function modaleVeille(v,neuve){
     +'<label class="champ" id="veJourL">Jour<select id="veJour">'+selOpts(JOURS.slice(1).map(function(j,i){ return [String(i+1),j] }),String(r.jour||1))+'</select></label>'
     +'<label class="champ" id="veNL">Toutes les (heures)<input type="number" id="veN" min="1" max="168" value="'+esc(r.n||6)+'"></label></div>'
     +'<div class="note-aide" style="margin:4px 0 0">Le serveur exécute la veille même quand vos appareils sont éteints. Un appareil ne l\'exécute que lorsque l\'application y est ouverte.</div>'
-    +'<hr class="sep"><h3 style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 8px">Sources (flux RSS ou Atom)</h3><div id="veSources"></div>'
-    +'<div class="ligne" style="margin-top:6px"><button class="b mini creux" data-ve="src-ajout">+ Ajouter un flux</button>'
-    +'<span class="note-aide" style="margin:0">Les sources spécialisées (NVD, failles exploitées CISA, offres France Travail) et les opérations par Claude arrivent avec les versions suivantes.</span></div>'
+    +'<hr class="sep"><h3 style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 8px">Sources</h3><div id="veSources"></div>'
+    +'<div class="ligne" style="margin-top:6px"><button class="b mini creux" data-ve="src-ajout">+ Ajouter une source</button>'
+    +'</div>'
     +'<hr class="sep"><h3 style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 8px">Filtres</h3>'
     +'<div class="grille"><label class="champ">Garder si contient (un mot par ligne ou virgule ; vide = tout)<textarea id="veInc" style="min-height:60px">'+esc(v.filtres.inclure||"")+'</textarea></label>'
     +'<label class="champ">Écarter si contient<textarea id="veExc" style="min-height:60px">'+esc(v.filtres.exclure||"")+'</textarea></label>'
     +'<label class="champ">Ancienneté maximale (heures, 0 = sans limite)<input type="number" id="veAge" min="0" value="'+esc(v.filtres.ageHeures!=null?v.filtres.ageHeures:72)+'"></label>'
-    +'<label class="champ">Éléments au plus par fiche<input type="number" id="veMax" min="1" max="200" value="'+esc(v.filtres.max||30)+'"></label></div>'
+    +'<label class="champ">Éléments au plus par fiche<input type="number" id="veMax" min="1" max="200" value="'+esc(v.filtres.max||30)+'"></label>'
+    +'<label class="champ">Score CVSS minimum (CVE, 0 = tous)<input type="number" id="veScore" min="0" max="10" step="0.1" value="'+esc(v.filtres.scoreMin||0)+'"></label>'
+    +'<label class="champ">Contrats gardés (offres ; vide = tous)<input type="text" id="veContrats" value="'+esc(v.filtres.contrats||"")+'" placeholder="ex. professionnalisation, CDI"></label></div>'
     +'<div class="note-aide">Ce qui a déjà figuré dans une fiche de cette veille n\'est jamais repris.</div>'
     +blocClaudeVeille(v)
     +'<hr class="sep"><div class="ligne" style="flex-wrap:wrap;gap:14px">'
@@ -1268,6 +1285,7 @@ function blocClaudeVeille(v){
     +'<div style="display:flex;flex-wrap:wrap;gap:8px 18px">'
       +caseV("veCNoter","Noter la pertinence (0 à 5)",c.noter)+caseV("veCResumer","Résumer chaque élément",c.resumer)
       +caseV("veCActions","Proposer « à creuser » ou « à faire »",c.actions)+caseV("veCSynthese","Synthèse de la fiche et « ce que ça change pour moi »",c.synthese)
+      +caseV("veCRevision","Questions de révision, une fois par semaine",c.revision)
     +'</div>'
     +'<div class="grille" style="margin-top:8px">'
     +'<label class="champ">Critère de pertinence<input type="text" id="veCCritere" value="'+esc(c.critere||"")+'" placeholder="ex. faille qui touche mes logiciels, utile pour une alternante AIS"></label>'
@@ -1289,13 +1307,22 @@ function rendreSources(){
   var z=$("#veSources"); if(!z) return;
   var v=VE.edit;
   z.innerHTML=v.sources.length?v.sources.map(function(s,i){
+    var t=s.type||"rss", ch=function(cle,ph,st,typ){ return '<input type="'+(typ||"text")+'" data-src="'+cle+'" data-i="'+i+'" value="'+esc(s[cle]!=null?s[cle]:"")+'" placeholder="'+esc(ph)+'" style="'+st+'">' };
+    var champs=t==="rss"?ch("url","https://…/feed/","flex:1;min-width:220px","url")
+      :t==="francetravail"?ch("motsCles","mots-clés, séparés par des virgules (une recherche chacun)","flex:1;min-width:220px")
+        +ch("departement","dépt (69)","width:80px")+ch("jours","jours","width:70px","number")
+      :ch("jours",t==="nvd"?"jours (2)":"jours (30)","width:90px","number")
+        +'<span class="note-aide" style="margin:0">'+(t==="nvd"?"publiées ces N jours ; filtrez avec le score minimum et les mots-clés":"ajoutées au catalogue ces N jours")+'</span>';
     return '<div class="ligne" style="margin-bottom:6px;align-items:flex-start;flex-wrap:wrap">'
-      +'<input type="text" data-src="nom" data-i="'+i+'" value="'+esc(s.nom||"")+'" placeholder="Nom" style="width:150px">'
-      +'<input type="url" data-src="url" data-i="'+i+'" value="'+esc(s.url||"")+'" placeholder="https://…/feed/" style="flex:1;min-width:220px">'
+      +'<select data-src="type" data-i="'+i+'" style="width:200px">'+selOpts(TYPES_SRC,t)+'</select>'
+      +'<input type="text" data-src="nom" data-i="'+i+'" value="'+esc(s.nom||"")+'" placeholder="Nom" style="width:130px">'
+      +champs
       +'<button class="b mini creux" data-ve="src-verif" data-i="'+i+'">Vérifier</button>'
       +'<button class="b mini creux" data-ve="src-retirer" data-i="'+i+'">Retirer</button>'
       +'<div id="veSrc'+i+'" class="note-aide" style="flex-basis:100%;margin:2px 0 0"></div></div>';
-  }).join(""):'<div class="note-aide" style="margin:0">Aucune source : ajoutez l\'adresse d\'un flux RSS ou Atom (souvent signalé par l\'icône orange, ou en ajoutant /feed/ à l\'adresse d\'un site).</div>';
+  }).join(""):'<div class="note-aide" style="margin:0">Aucune source : ajoutez l\'adresse d\'un flux RSS ou Atom (souvent signalé par l\'icône orange, ou en ajoutant /feed/ à l\'adresse d\'un site), ou une source spécialisée.</div>';
+  if(v.sources.some(function(s){ return s.type==="francetravail" })) z.insertAdjacentHTML("beforeend",'<div class="note-aide" style="margin:2px 0 0">Offres France Travail : '
+    +'créez un accès gratuit sur francetravail.io (API « Offres d\'emploi v2 »), puis saisissez son identifiant et sa clé dans Données → Réglages, sur l\'appareil ou le serveur qui exécute la veille.</div>');
 }
 function majRythme(){
   var t=($("#veRyt")||{}).value||"jour";
@@ -1309,11 +1336,18 @@ function lireVeille(){
   var t=$("#veRyt").value;
   v.rythme={type:t,heure:$("#veHeure").value||"07:30",jour:+$("#veJour").value||1,n:Math.max(1,Math.min(168,+$("#veN").value||6))};
   try{ v.fuseau=Intl.DateTimeFormat().resolvedOptions().timeZone }catch(e){}
-  v.sources=v.sources.filter(function(s){ return s.url && s.url.trim() }).map(function(s){ return {nom:(s.nom||"").trim(),url:s.url.trim()} });
-  v.filtres={inclure:$("#veInc").value.trim(),exclure:$("#veExc").value.trim(),ageHeures:Math.max(0,+$("#veAge").value||0),max:Math.max(1,Math.min(200,+$("#veMax").value||30))};
+  v.sources=v.sources.filter(function(s){ return (s.type&&s.type!=="rss") || (s.url && s.url.trim()) }).map(function(s){
+    var t=s.type||"rss", o={type:t,nom:(s.nom||"").trim()};
+    if(t==="rss") o.url=s.url.trim();
+    if(t!=="rss") o.jours=Math.max(1,+s.jours||(t==="nvd"?2:t==="kev"?30:7));
+    if(t==="francetravail"){ o.motsCles=String(s.motsCles||"").trim(); o.departement=String(s.departement||"").trim() }
+    return o;
+  });
+  v.filtres={inclure:$("#veInc").value.trim(),exclure:$("#veExc").value.trim(),ageHeures:Math.max(0,+$("#veAge").value||0),max:Math.max(1,Math.min(200,+$("#veMax").value||30)),
+    scoreMin:Math.max(0,Math.min(10,+$("#veScore").value||0)),contrats:$("#veContrats").value.trim()};
   v.actif=$("#veActif").checked;
   v.sortie={notifier:$("#veNotif").checked,ficheVide:$("#veVide").checked};
-  v.claude={noter:$("#veCNoter").checked,resumer:$("#veCResumer").checked,actions:$("#veCActions").checked,synthese:$("#veCSynthese").checked,
+  v.claude={noter:$("#veCNoter").checked,resumer:$("#veCResumer").checked,actions:$("#veCActions").checked,synthese:$("#veCSynthese").checked,revision:$("#veCRevision").checked,
     critere:$("#veCCritere").value.trim(),seuil:+$("#veCSeuil").value||0,modele:$("#veCModele").value,
     plafond:Math.max(1,Math.min(100,+$("#veCPlafond").value||6)),consigne:$("#veCConsigne").value.trim()};
   return v;
@@ -1408,13 +1442,13 @@ document.addEventListener("click",function(e){
   else if(a==="src-retirer"){ lireSourcesSaisies(); VE.edit.sources.splice(+d.i,1); rendreSources() }
   else if(a==="src-verif"){
     lireSourcesSaisies();
-    var s=VE.edit.sources[+d.i], z=$("#veSrc"+d.i); if(!s||!s.url){ z.textContent="Saisissez d'abord l'adresse."; return }
+    var s=VE.edit.sources[+d.i], z=$("#veSrc"+d.i); if(!s||((s.type||"rss")==="rss"&&!s.url)){ z.textContent="Saisissez d'abord l'adresse."; return }
     z.style.color=""; z.textContent="Vérification…";
-    api("veilles/flux",{method:"POST",body:{url:s.url}}).then(function(r){
+    api("veilles/flux",{method:"POST",body:{source:s}}).then(function(r){
       if(!r.ok) throw new Error((r.body&&r.body.message)||"flux illisible");
       if(!s.nom && r.body.titre){ s.nom=r.body.titre.slice(0,60); var n=$('#veSources [data-src="nom"][data-i="'+d.i+'"]'); if(n) n.value=s.nom }
       z.style.color="var(--vert)";
-      z.innerHTML='Flux valide : « '+esc(r.body.titre||"sans titre")+' », '+r.body.nombre+' élément(s). Derniers : '+esc(r.body.items.slice(0,3).map(function(x){ return x.titre }).join(" · "));
+      z.innerHTML='Source valide : « '+esc(r.body.titre||"sans titre")+' », '+r.body.nombre+' élément(s). Derniers : '+esc(r.body.items.slice(0,3).map(function(x){ return x.titre }).join(" · "));
     }).catch(function(x){ z.style.color="var(--rouge)"; z.textContent=x.message });
   }
 });
@@ -1423,7 +1457,10 @@ function lireSourcesSaisies(){
     var s=VE.edit.sources[+e.dataset.i]; if(s) s[e.dataset.src]=e.value;
   });
 }
-document.addEventListener("change",function(e){ if(e.target.id==="veRyt") majRythme(); if(e.target.id==="veExe") majEtatClaudeVeille() });
+document.addEventListener("change",function(e){
+  if(e.target.id==="veRyt") majRythme(); if(e.target.id==="veExe") majEtatClaudeVeille();
+  if(e.target.dataset && e.target.dataset.src==="type" && VE.edit){ lireSourcesSaisies(); rendreSources() }
+});
 document.addEventListener("input",function(e){ if(e.target.dataset && e.target.dataset.src && VE.edit){ var s=VE.edit.sources[+e.target.dataset.i]; if(s) s[e.target.dataset.src]=e.target.value } });
 /* suivi : nouvelles fiches (exécutées ici ou ailleurs), pastille et notification */
 function suivreVeilles(){

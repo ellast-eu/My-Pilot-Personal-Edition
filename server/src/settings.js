@@ -8,6 +8,8 @@ export const SETTINGS = [
   { key: 'app_user', env: 'APP_USER', label: 'Identifiant de connexion', group: 'Accès à l\'interface web', type: 'text', def: 'pilot', scope: 'serveur' },
   { key: 'app_password', env: 'APP_PASSWORD', label: 'Mot de passe', group: 'Accès à l\'interface web', type: 'secret', def: '', scope: 'serveur' },
   { key: 'sync_token', env: 'SYNC_TOKEN', label: 'Jeton de synchronisation des applications', group: 'Synchronisation', type: 'secret', def: '', scope: 'serveur' },
+  { key: 'ft_client_id', env: 'FRANCETRAVAIL_CLIENT_ID', label: 'Identifiant client France Travail (francetravail.io)', group: 'Veilles : offres France Travail', type: 'text', def: '', scope: 'tous' },
+  { key: 'ft_client_secret', env: 'FRANCETRAVAIL_CLIENT_SECRET', label: 'Clé secrète France Travail', group: 'Veilles : offres France Travail', type: 'secret', def: '', scope: 'tous' },
   { key: 'claude_token', env: 'CLAUDE_CODE_OAUTH_TOKEN', label: 'Jeton Claude Code (claude setup-token)', group: 'Claude Code', type: 'secret', def: '', scope: 'tous' },
   { key: 'revision_interval', env: 'REVISION_INTERVAL', label: 'Écart minimal entre deux versions (secondes)', group: 'Sauvegardes', type: 'int', def: 300, min: 30, max: 86400, scope: 'tous' },
   { key: 'keep_revisions', env: 'KEEP_REVISIONS', label: 'Versions gardées par document', group: 'Sauvegardes', type: 'int', def: 300, min: 10, max: 5000, scope: 'tous' },

@@ -4,6 +4,23 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+### Ajouts
+- **Veilles : sources spécialisées**, au choix pour chaque source d'une veille :
+  - **Failles exploitées (CISA KEV)** : ajouts récents au catalogue des failles activement exploitées, avec l'action demandée, l'échéance et l'usage par des rançongiciels ;
+  - **CVE récentes (NVD)** : CVE publiées ces N derniers jours, avec leur score CVSS ;
+  - **Offres France Travail** (API Offres d'emploi v2) : une recherche par mot-clé, par département, sur les N derniers jours. Il faut les identifiants gratuits de francetravail.io, à saisir dans Données → Réglages (ou `FRANCETRAVAIL_CLIENT_ID` / `FRANCETRAVAIL_CLIENT_SECRET` dans le `.env`).
+- **Filtres** : score CVSS minimum, et contrats gardés pour les offres (ex. « professionnalisation, CDI »).
+- **Questions de révision** : une fois par semaine, quelques questions et leurs réponses, tirées de ce que la veille a trouvé ces 7 derniers jours. Elles s'affichent dans une fiche à déplier.
+- **Nouveaux modèles** :
+  - **Offres d'emploi** : vos mots-clés (admin sys, MCO, purple team, red team, pentest, audit, OSINT), contrat de professionnalisation ou CDI, département 69, note de pertinence par Claude selon votre profil ;
+  - **Failles exploitées** ;
+  - **CVE critiques** (CVSS 9 ou plus).
+- **Point CVE** inclut désormais les failles exploitées (CISA).
+- **Vérifier** fonctionne pour tous les types de source.
+
+### Corrections
+- Un délai de Claude Code non relâché pouvait retarder la fin du processus (et des tests) de 30 s.
+
 ## [0.12.0] - 2026-10-10
 
 ### Ajouts

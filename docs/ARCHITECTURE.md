@@ -113,6 +113,15 @@ document s-<id> en clair ── sceller (AES-256-GCM) ────▶ /api/space
 - Les éléments sont transmis en JSON entre balises `<elements>`, présentés comme des données.
 - La réponse est filtrée par `lireReponse`.
 - Le plafond quotidien est compté dans `etats[].appels`.
+
+**Sources spécialisées** (0.13) : `lireSource` selon `type`.
+- `rss` : flux RSS ou Atom.
+- `kev` : JSON du catalogue CISA, ajouts des N derniers jours (`lireKev`).
+- `nvd` : API NVD 2.0, `pubStartDate` / `pubEndDate`, jusqu'à 2 000 résultats, score CVSS dans `score` (`lireNvd`).
+- `francetravail` : jeton OAuth2 `client_credentials` (realm `/partenaire`, scope `api_offresdemploiv2 o2dsoffre`), gardé jusqu'à expiration. Une recherche `offres/search` par mot-clé (`motsCles`, `departement`, `minCreationDate` / `maxCreationDate`, `range=0-149`). Le contrat de l'offre est placé dans `contrat` (`lireOffres`).
+- Filtres supplémentaires : `scoreMin`, `contrats`.
+
+**Révision** : `revisionSiDue` produit au plus une fiche `type: 'revision'` par semaine (questions et réponses), comptée dans le plafond.
 - Les éléments sous le seuil sont écartés et comptés dans `stats.ecartesNote`.
 
 ## Exposition sur Internet

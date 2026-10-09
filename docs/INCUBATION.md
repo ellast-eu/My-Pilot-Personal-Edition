@@ -1,6 +1,6 @@
 # Incubation — proposition
 
-Statut : **en cours sous le nom « Veilles »**. 0.11 : socle sans Claude, livré (onglet Veilles, flux RSS/Atom, filtres, rythme, exécutant au choix entre le serveur et un appareil, essai à blanc, fiches, notifications, vers Idées/Activités). 0.12 : opérations Claude, livrées (note et seuil, résumés, actions proposées, synthèse, consigne, modèle, plafond quotidien). Suite : 0.13 sources spécialisées (NVD, CISA KEV, France Travail) et questions de révision.
+Statut : **en cours sous le nom « Veilles »**. 0.11 : socle sans Claude, livré (onglet Veilles, flux RSS/Atom, filtres, rythme, exécutant au choix entre le serveur et un appareil, essai à blanc, fiches, notifications, vers Idées/Activités). 0.12 : opérations Claude, livrées (note et seuil, résumés, actions proposées, synthèse, consigne, modèle, plafond quotidien). 0.13 : sources spécialisées (CISA KEV, NVD, France Travail), filtres score CVSS et contrats, questions de révision hebdomadaires, modèles Offres d'emploi / Failles exploitées / CVE critiques — livrées. Le découpage proposé est entièrement réalisé.
 
 Décisions : nom « Veilles » ; chaque veille est exécutée, au choix, par le serveur ou par une application de bureau donnée.
 
@@ -72,7 +72,11 @@ Sans source, le sujet bascule en mode exploratoire.
 3. **Offres d'emploi** : API France Travail, score de pertinence, suivi des candidatures.
 4. **Sujets personnalisés** : agent exploratoire, synthèse de la semaine, révision.
 
-## Points à préciser avant de commencer
+## Points réglés
+
+- Critères des offres : contrat de professionnalisation ou CDI ; admin sys, MCO, purple team, red team, pentest, audit de sécurisation, OSINT ; département 69 par défaut (modifiable).
+
+## Points à préciser avant de commencer (historique)
 
 - Critères des offres suivies : alternance, CDI, zone géographique.
 - Liste des logiciels à surveiller pour le Point CVE.

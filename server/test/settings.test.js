@@ -63,7 +63,7 @@ test('application de bureau : seuls les réglages qui la concernent', async () =
   const a2 = createApp({ dataDir: t2, webDir: t2, autoSnapshot: false, syncEngine: false, mode: 'application' });
   await new Promise(r => a2.server.listen(0, '127.0.0.1', r));
   const r = await (await fetch(`http://127.0.0.1:${a2.server.address().port}/api/settings`)).json();
-  assert.deepEqual(r.items.map(i => i.key).sort(), ['claude_token', 'keep_revisions', 'keep_snapshots', 'revision_interval', 'snapshot_hours']);
+  assert.deepEqual(r.items.map(i => i.key).sort(), ['claude_token', 'ft_client_id', 'ft_client_secret', 'keep_revisions', 'keep_snapshots', 'revision_interval', 'snapshot_hours']);
   const h = await (await fetch(`http://127.0.0.1:${a2.server.address().port}/api/health`)).json();
   assert.equal(h.firstRun, false);
   a2.server.close(); a2.store.close(); fs.rmSync(t2, { recursive: true, force: true });

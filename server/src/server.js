@@ -11,7 +11,7 @@ import { Settings, baseFromEnv } from './settings.js';
 import { Garde, adresseClient } from './garde.js';
 import { Hote } from './espaces-hote.js';
 import { Espaces } from './espaces.js';
-import { Veilles, lireFlux, telecharger, opsClaude } from './veilles.js';
+import { Veilles, opsClaude } from './veilles.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(here, '../..');
@@ -93,7 +93,8 @@ export function createApp(opts = {}) {
     : null;
   // Veilles : chaque instance exécute celles qui lui sont attribuées (serveur, ou cette application)
   const veilles = opts.veilles === false ? null
-    : new Veilles(store, { mode, reseauLocal: opts.veillesReseauLocal, log: m => console.log(m), claude: opts.claude || claude });
+    : new Veilles(store, { mode, reseauLocal: opts.veillesReseauLocal, log: m => console.log(m), claude: opts.claude || claude,
+        reglage: k => settings.get(k), urls: opts.veillesUrls });
   if (veilles && opts.veillesAuto !== false) veilles.start();
   // Derrière Caddy : adresse réelle du visiteur, et freinage des essais d'identifiants
   const trustProxy = opts.trustProxy ?? process.env.TRUST_PROXY === '1';
@@ -136,7 +137,7 @@ export function createApp(opts = {}) {
       if (parts[1] === 'flux' && m === 'POST') {          // vérifier un flux avant de l'ajouter
         const b = await readJson(req);
         try {
-          const f = lireFlux(await telecharger(String(b.url || ''), { reseauLocal: veilles.reseauLocal }));
+          const f = await veilles.lireSource(b.source || { type: 'rss', url: String(b.url || '') });
           return send(res, 200, { titre: f.titre, nombre: f.items.length, items: f.items.slice(0, 5) });
         } catch (e) { ko(e); }
       }
