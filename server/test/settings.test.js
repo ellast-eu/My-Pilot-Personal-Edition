@@ -49,7 +49,8 @@ test('réglages appliqués sans redémarrage : sauvegardes, jeton de synchro, mo
   assert.equal(await essai('nouveau-jeton-tres-long'), 200);
   // mot de passe : l'interface exige désormais l'authentification
   await call('/api/settings', 'PUT', { app_password: 'motdepasse-solide' });
-  assert.equal((await call('/api/health')).status, 401);
+  assert.equal((await call('/api/docs')).status, 401);
+  assert.deepEqual((await call('/api/health')).body, { ok: true });   // public, sans détail
   assert.equal((await call('/api/health', 'GET', null, basic('pilot', 'motdepasse-solide'))).body.firstRun, false);
   // retour aux valeurs du .env (null)
   const r = await call('/api/settings', 'PUT', { sync_token: null, revision_interval: null }, basic('pilot', 'motdepasse-solide'));

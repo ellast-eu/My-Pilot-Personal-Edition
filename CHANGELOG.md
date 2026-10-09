@@ -4,6 +4,23 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+### Ajouts
+- **Espaces partagés chiffrés de bout en bout** (première étape) : onglet Données, bloc Partage.
+  - Nom affiché, empreinte de l'appareil.
+  - Créer un espace hébergé par votre serveur, inviter une personne ou un autre de vos appareils par un lien à usage unique, rejoindre un espace, liste des membres, retrait, quitter.
+  - Le serveur hôte ne stocke que des fiches chiffrées (AES-256-GCM). Les clés sont remises par échange X25519, après vérification que l'arrivant détient le lien.
+  - Le partage d'idées depuis l'onglet Idées vient avec la 0.8.0.
+- Page publique `/rejoindre/` qui explique quoi faire d'un lien d'invitation.
+- **Exposition sur Internet avec Caddy** : `deploy/Caddyfile`, profil `docker compose --profile caddy`, variables `PILOT_DOMAIN` et `TRUST_PROXY`.
+
+### Sécurité
+- Essais d'identifiants en série freinés puis bloqués par adresse (mot de passe, jetons, invitations), avec journalisation.
+- Derrière Caddy (`TRUST_PROXY=1`), le serveur refuse de démarrer sans mot de passe.
+- `/api/health` sans identifiants ne répond plus que `{"ok":true}`.
+
+### Modifications
+- Schéma de la base v3 (migration automatique) : tables des espaces côté hôte et côté appareil.
+
 ## [0.7.1] - 2026-10-08
 
 ### Corrections

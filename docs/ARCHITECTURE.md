@@ -36,6 +36,35 @@ curseurs « envoyé » et « reçu » mis à jour
 - Une fiche locale envoyée ou en attente, remplacée par une version plus récente venue d'ailleurs, est copiée dans le **journal des conflits** avant d'être écrasée.
 - Les suppressions voyagent comme des fiches marquées supprimées.
 - Le hub authentifie les appareils par le jeton `SYNC_TOKEN`.
+- Les documents d'espaces partagés (`s-…`) sont exclus de cet échange, dans les deux sens : ils ont leur propre canal chiffré.
+
+## Espaces partagés (chiffrés de bout en bout)
+
+Conception et décisions : [PARTAGE.md](PARTAGE.md).
+
+```
+appareil membre                                         hôte de l'espace (serveur de la propriétaire)
+document s-<id> en clair ── sceller (AES-256-GCM) ────▶ /api/spaces/<id>/sync : fiches chiffrées,
+           ◀──────────────── ouvrir ─────────────────── la plus récente (HLC) gagne, origine = membre
+```
+
+- **Membre = appareil** : chaque appareil a sa paire X25519 (table `meta`, jamais synchronisée). Rôles : propriétaire (invite, retire) ou membre. Statuts : `en_attente`, `actif`, `retire`.
+- **Fiche** : AES-256-GCM avec la clé de l'époque en cours. Données associées : `doc|coll|id|hlc`, si bien que l'hôte ne peut ni échanger deux fiches ni rejouer une ancienne version. Une fiche illisible est ignorée et signalée.
+- **Invitation** : lien `https://hôte/rejoindre/#v1.<espace>.<invitation>.<secret>.<empreinte>.<nom>`.
+  - Tout ce qui suit `#` reste côté client.
+  - L'hôte ne reçoit que l'identifiant d'invitation, à usage unique et valable 7 jours.
+  - L'arrivant envoie sa clé publique et une preuve : HMAC du secret sur l'espace, l'invitation et sa clé publique.
+- **Remise de la clé** : l'appareil propriétaire qui a créé l'invitation vérifie la preuve. Une clé publique substituée par l'hôte est donc refusée. Il enveloppe ensuite la clé d'espace par Diffie-Hellman statique (sa clé privée, la clé publique de l'arrivant), puis HKDF et AES-GCM. L'arrivant n'accepte qu'une clé remise par l'appareil dont le lien donnait l'empreinte.
+- **Tables** :
+  - côté hôte : `host_spaces`, `host_members` (jetons stockés hachés), `host_keys`, `host_invites` ;
+  - côté appareil : `my_spaces` (jeton, clés, invitations en cours, cache des membres).
+- **Cartes de membres** : nom, couleur, empreinte et nom d'appareil vivent dans la collection `members` de l'espace, donc chiffrés.
+
+## Exposition sur Internet
+
+- **Caddy** ([deploy/Caddyfile](../deploy/Caddyfile)) fait le HTTPS et les en-têtes de sécurité. L'authentification reste dans l'application.
+- **`TRUST_PROXY=1`** : l'adresse du visiteur est lue dans la dernière valeur de `X-Forwarded-For`. Sans mot de passe, le serveur refuse alors de démarrer.
+- **`garde.js`** freine les identifiants faux : mot de passe, jeton de synchronisation, jeton de membre, invitation. 5 échecs passent sans délai, puis l'attente double de 1 à 60 s, puis l'adresse est bloquée 15 min au 20ᵉ échec. Une requête sans identifiant (premier accès d'un navigateur) ne compte pas.
 
 ## Application de bureau
 
@@ -45,7 +74,7 @@ curseurs « envoyé » et « reçu » mis à jour
 
 | Méthode | Chemin | Rôle |
 |---|---|---|
-| GET | `/api/health` | version, schéma |
+| GET | `/api/health` | public : `{ok}` ; avec identifiants : version, schéma, mode |
 | GET | `/api/docs` | liste des documents |
 | GET / PUT | `/api/docs/:id` | lire / écrire (fusion à trois voies si la version de départ est dépassée) |
 | GET | `/api/docs/:id/rev` | numéro de version, pour suivre les changements |
@@ -56,6 +85,15 @@ curseurs « envoyé » et « reçu » mis à jour
 | GET / PUT | `/api/sync/status`, `/api/sync/config` | état et réglages de la synchronisation de cet appareil |
 | POST | `/api/sync/now` | lancer un échange |
 | GET / POST | `/api/sync/conflicts`, `/api/sync/conflicts/seen` | journal des conflits |
+| POST | `/api/spaces` | hôte : créer un espace (jeton `SYNC_TOKEN`) |
+| POST | `/api/spaces/:id/join` | hôte : rejoindre avec une invitation (sans jeton, freiné) |
+| GET | `/api/spaces/:id/members`, `/api/spaces/:id/key` | hôte : membres, clés enveloppées pour ce membre |
+| POST | `/api/spaces/:id/invites`, `…/members/:m/approve`, `…/members/:m/revoke` | hôte : inviter, remettre la clé, retirer (propriétaires) |
+| POST | `/api/spaces/:id/sync` | hôte : échange de fiches chiffrées (jeton de membre) |
+| GET | `/api/partage` | appareil : identité et espaces rejoints |
+| PUT | `/api/partage/identite` | appareil : nom affiché, couleur |
+| POST | `/api/partage/espaces`, `/api/partage/rejoindre`, `/api/partage/sync` | appareil : créer, rejoindre, synchroniser |
+| POST | `/api/partage/espaces/:id/invitations`, `…/membres/:m/retirer`, `…/quitter` | appareil : inviter, retirer, quitter |
 | GET | `/api/claude/status` | Claude Code disponible ? |
 | POST | `/api/claude` | `{prompt, json, model}` → `{json}` ou `{text}` |
 

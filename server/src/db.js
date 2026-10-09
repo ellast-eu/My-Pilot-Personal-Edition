@@ -15,6 +15,11 @@ export const COLLECTIONS = {
   pilot: ['chantiers', 'notes', 'vigilances', 'contacts', 'organisations'],
   ideas: ['ideas', 'unified', 'projects'],
 };
+/* espaces partagés : documents « s-<identifiant> », chiffrés de bout en bout lors de la synchronisation */
+export const PREFIXE_ESPACE = 's-';
+export const COLLECTIONS_ESPACE = ['ideas', 'unified', 'projects', 'chantiers', 'notes', 'comments', 'members'];
+export const estEspace = doc => typeof doc === 'string' && doc.startsWith(PREFIXE_ESPACE);
+const collectionsDe = doc => (estEspace(doc) ? COLLECTIONS_ESPACE : COLLECTIONS[doc] || []);
 const SINGLE = '_';          // collection des réglages globaux d'un document
 const LOCAL_KEYS = ['meta']; // propre à chaque appareil, jamais synchronisé
 
@@ -37,6 +42,19 @@ const MIGRATIONS = [
      pulled_cursor INTEGER NOT NULL DEFAULT 0, last_ok TEXT, last_error TEXT);
    CREATE TABLE conflicts(id INTEGER PRIMARY KEY AUTOINCREMENT, doc TEXT NOT NULL, coll TEXT NOT NULL, rid TEXT NOT NULL,
      kept TEXT, lost TEXT, source TEXT NOT NULL, at TEXT NOT NULL, seen INTEGER NOT NULL DEFAULT 0);`,
+  // v3 : espaces partagés — côté hôte (espaces hébergés ici) et côté appareil (espaces rejoints)
+  `CREATE TABLE host_spaces(id TEXT PRIMARY KEY, created_at TEXT NOT NULL);
+   CREATE TABLE host_members(space TEXT NOT NULL, member TEXT NOT NULL, role TEXT NOT NULL, status TEXT NOT NULL,
+     token_hash TEXT NOT NULL UNIQUE, pub TEXT NOT NULL, invite TEXT, proof TEXT, joined_at TEXT NOT NULL, revoked_at TEXT,
+     PRIMARY KEY(space, member));
+   CREATE TABLE host_keys(space TEXT NOT NULL, epoch INTEGER NOT NULL, member TEXT NOT NULL, wrap TEXT NOT NULL,
+     PRIMARY KEY(space, epoch, member));
+   CREATE TABLE host_invites(id_hash TEXT PRIMARY KEY, space TEXT NOT NULL, role TEXT NOT NULL, created_by TEXT NOT NULL,
+     created_at TEXT NOT NULL, expires_at TEXT NOT NULL, used_by TEXT);
+   CREATE TABLE my_spaces(id TEXT PRIMARY KEY, host TEXT NOT NULL, name TEXT NOT NULL, member TEXT NOT NULL,
+     token TEXT NOT NULL, role TEXT NOT NULL, status TEXT NOT NULL, owner_pub TEXT, keys TEXT NOT NULL DEFAULT '{}',
+     epoch INTEGER NOT NULL DEFAULT 0, invites TEXT NOT NULL DEFAULT '[]', members TEXT NOT NULL DEFAULT '[]',
+     joined_at TEXT NOT NULL, last_ok TEXT, last_error TEXT);`,
 ];
 
 const stable = v => JSON.stringify(v);   // l'ordre des clés est celui de l'objet : suffisant ici
@@ -131,7 +149,7 @@ export class Store {
 
   /* ---------- découpage / assemblage ---------- */
   split(doc, data) {
-    const colls = COLLECTIONS[doc] || [];
+    const colls = collectionsDe(doc);
     const items = new Map(), local = {};
     let assigned = false;
     for (const [k, v] of Object.entries(data || {})) {
@@ -164,7 +182,7 @@ export class Store {
     const row = this.db.prepare('SELECT local FROM docs WHERE id=?').get(doc);
     if (!row) return null;
     const out = {};
-    const colls = COLLECTIONS[doc] || [];
+    const colls = collectionsDe(doc);
     for (const c of colls) out[c] = [];
     for (const r of this.db.prepare('SELECT coll, id, data FROM records WHERE doc=? AND deleted=0 ORDER BY ord').all(doc)) {
       const v = JSON.parse(r.data);
@@ -317,9 +335,11 @@ export class Store {
 
   /* ---------- synchronisation ---------- */
   /** Modifications locales postérieures à `since` (séquence), au format d'échange. */
-  changesSince(since, { limit = 1000, origin = null, excludeOrigin = null } = {}) {
+  changesSince(since, { limit = 1000, origin = null, excludeOrigin = null, doc = null, sansEspaces = false } = {}) {
     let sql = 'SELECT doc, coll, id, data, deleted, hlc, origin, seq FROM records WHERE seq > ?';
     const args = [since];
+    if (doc) { sql += ' AND doc = ?'; args.push(doc); }
+    if (sansEspaces) { sql += " AND doc NOT LIKE 's-%'"; }
     if (origin) { sql += ' AND origin = ?'; args.push(origin); }
     if (excludeOrigin) { sql += ' AND origin <> ?'; args.push(excludeOrigin); }
     sql += ' ORDER BY seq LIMIT ?'; args.push(limit);
@@ -383,9 +403,39 @@ export class Store {
       last_ok=excluded.last_ok, last_error=excluded.last_error`).run(remote, s.pushed_seq, s.pulled_cursor, s.last_ok, s.last_error);
     return s;
   }
-  pendingCount(remote) {
+  pendingCount(remote, doc = null) {
     const s = this.getSyncState(remote);
-    return this.db.prepare('SELECT count(*) AS n FROM records WHERE seq > ? AND origin = ?').get(s.pushed_seq, this.deviceId).n;
+    if (doc) return this.db.prepare('SELECT count(*) AS n FROM records WHERE seq > ? AND origin = ? AND doc = ?').get(s.pushed_seq, this.deviceId, doc).n;
+    return this.db.prepare("SELECT count(*) AS n FROM records WHERE seq > ? AND origin = ? AND doc NOT LIKE 's-%'").get(s.pushed_seq, this.deviceId).n;
+  }
+
+  /** Écrit une fiche isolée (hors page), par exemple sa propre carte de membre dans un espace. */
+  putRecord(doc, coll, id, data) {
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      if (!this.db.prepare('SELECT 1 FROM docs WHERE id=?').get(doc)) {
+        this.db.prepare('INSERT INTO docs(id, rev, updated_at, local) VALUES (?,0,?,?)').run(doc, nowIso(), '{}');
+      }
+      this.writeRecord(doc, coll, id, data === null ? null : stable(data), this.nextHlc());
+      this.db.prepare('UPDATE docs SET rev=rev+1, updated_at=? WHERE id=?').run(nowIso(), doc);
+      const d = this.db.prepare('SELECT rev FROM docs WHERE id=?').get(doc);
+      this.saveBase(doc, d.rev, this.assemble(doc));
+      this.db.exec('COMMIT');
+    } catch (e) { try { this.db.exec('ROLLBACK'); } catch {} throw e; }
+    this.emit({ type: 'local-change', doc });
+  }
+  getRecord(doc, coll, id) {
+    const r = this.db.prepare('SELECT data, deleted FROM records WHERE doc=? AND coll=? AND id=?').get(doc, coll, id);
+    return r && !r.deleted ? JSON.parse(r.data) : null;
+  }
+  /** Efface toutes les fiches d'un document localement (quitter un espace) — sans propagation. */
+  dropDoc(doc) {
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      for (const t of ['records', 'bases', 'revisions']) this.db.prepare(`DELETE FROM ${t} WHERE doc=?`).run(doc);
+      this.db.prepare('DELETE FROM docs WHERE id=?').run(doc);
+      this.db.exec('COMMIT');
+    } catch (e) { try { this.db.exec('ROLLBACK'); } catch {} throw e; }
   }
 
   /* ---------- événements (pour relancer la synchronisation) ---------- */

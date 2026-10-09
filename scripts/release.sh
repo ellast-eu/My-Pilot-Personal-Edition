@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 v="${1:?Usage : scripts/release.sh X.Y.Z}"
-[[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Version attendue au format X.Y.Z" >&2; exit 1; }
+[[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]] || { echo "Version attendue au format X.Y.Z (ou X.Y.Z-a)" >&2; exit 1; }
 git diff --quiet && git diff --cached --quiet || { echo "Des modifications ne sont pas commitées." >&2; exit 1; }
 grep -q "^## \[Non publié\]" CHANGELOG.md || { echo "Aucune section « [Non publié] » dans CHANGELOG.md." >&2; exit 1; }
 ( cd server && npm test --silent )

@@ -1,6 +1,6 @@
 # Partage et travail à plusieurs — conception
 
-Statut : **conception validée sur les principes, non implémentée**. Cible : 0.8 (idées), 0.9 (activités).
+Statut : **0.8.0-a implémentée** (identités, espaces, invitations, chiffrement, synchro, sécurisation Caddy). Suite : 0.8.0 (idées), 0.9 (activités).
 
 ## Décisions
 
@@ -28,8 +28,9 @@ Installation de Stella                                  Installation de Paul
 
 ## Identité
 
-- Chaque personne a une **identité** créée au premier partage : nom affiché, couleur, paire de clés X25519 (chiffrement) et Ed25519 (signature), générées localement avec `node:crypto` (aucune dépendance).
-- L'identité est partagée entre les appareils d'une même personne par sa synchronisation privée (son serveur, sous son contrôle).
+- Chaque **appareil** a son identité : paire X25519 générée localement avec `node:crypto` (aucune dépendance), jamais synchronisée. Nom affiché et couleur sont propres à la personne, saisis sur chaque appareil.
+- Choix fait en 0.8.0-a : un membre = un appareil. Les autres appareils d'une même personne rejoignent l'espace avec une invitation « mon autre appareil » (rôle propriétaire). Ainsi aucune clé privée ne transite, même vers son propre serveur.
+- L'authenticité de la remise de clé repose sur un Diffie-Hellman statique entre l'appareil qui invite et l'arrivant : pas besoin de signature séparée.
 - **Empreinte** : 4 groupes de 4 caractères dérivés de la clé publique, que les deux personnes peuvent comparer (téléphone, de vive voix) pour s'assurer qu'aucun intermédiaire ne s'est glissé.
 
 ## Espaces
@@ -53,11 +54,11 @@ Installation de Stella                                  Installation de Paul
 
 ### Invitation (poignée de main)
 
-1. Stella : « Inviter dans l'espace… ». L'application crée un **code d'invitation** à usage unique, valable 7 jours, et un lien `adresse-du-serveur + espace + code`. Le lien ne contient aucune clé.
-2. Paul colle le lien dans son application. Elle envoie sa clé publique à l'hôte avec le code, et reçoit son **jeton de membre** personnel.
-3. À sa prochaine synchronisation, l'application de Stella voit le membre en attente, affiche son empreinte, enveloppe la clé d'espace pour lui. Paul reçoit alors le contenu.
-   - Si Stella confirme l'empreinte, le membre est marqué « vérifié ».
-   - L'invitation s'active donc dès que Stella est en ligne : pas d'attente si elle l'est.
+1. Stella : « Inviter une personne ». L'application crée une invitation à usage unique (7 jours) et un lien `https://hôte/rejoindre/#v1.<espace>.<invitation>.<secret>.<empreinte de Stella>.<nom>`. Le lien ne contient aucune clé. Tout ce qui suit `#` n'est jamais envoyé à un serveur.
+2. Paul colle le lien dans son application. Elle envoie à l'hôte l'invitation, sa clé publique et une **preuve** (HMAC du secret), et reçoit son **jeton de membre** personnel.
+3. À sa prochaine synchronisation, l'application de Stella vérifie la preuve. Si l'hôte avait substitué une autre clé publique, la preuve ne correspond pas et la clé n'est pas remise. Sinon, elle enveloppe la clé d'espace pour Paul, et Paul reçoit le contenu.
+4. Paul n'accepte qu'une clé enveloppée par l'appareil dont le lien donnait l'empreinte.
+- Les empreintes de chacun restent affichées dans la liste des membres, pour une comparaison de vive voix si on le souhaite.
 
 ### Retrait d'un membre
 

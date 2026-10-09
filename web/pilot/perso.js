@@ -623,6 +623,160 @@ document.addEventListener("click",function(e){
   else if(a==="conflit-remettre") remettreConflit(+el.dataset.i);
 });
 
+/* ===== Partage : identité de l'appareil et espaces partagés (application de bureau) ===== */
+var Partage={st:null,charge:false,indispo:false};
+function majPartage(rendu){
+  return api("partage").then(function(r){
+    if(r.status===404){ Partage.indispo=true; return }
+    if(!r.ok) return;
+    var avant=JSON.stringify(Partage.st); Partage.st=r.body;
+    if(rendu!==false && vueActive==="donnees" && avant!==JSON.stringify(r.body)) rendreDonneesSiCalme();
+  }).catch(function(){});
+}
+setInterval(function(){ if(vueActive==="donnees" && !Partage.indispo) majPartage() },15000);
+var STATUT_ESPACE={actif:["ok","actif"],en_attente:["","en attente de la clé (remise à la prochaine synchronisation de la personne qui invite)"],retire:["ko","retiré de l'espace"]};
+var STATUT_MEMBRE={actif:"",en_attente:" · en attente",retire:" · retiré"};
+window.persoBlocPartage=function(){
+  if(!Partage.charge){ Partage.charge=true; majPartage() }
+  var titre='<div class="bloc" style="margin-top:18px"><div class="bloc-tete"><h2>Partage</h2></div><div class="bloc-corps">';
+  if(Partage.indispo) return titre+'<div class="note-aide" style="margin:0">Les espaces partagés se créent et se rejoignent depuis l\'application de bureau. '
+    +'Ce serveur les héberge chiffrés : il ne peut pas en lire le contenu.</div></div></div>';
+  var st=Partage.st;
+  if(!st) return titre+'<div class="note-aide" style="margin:0">Chargement…</div></div></div>';
+  var id=st.identite, h='<div class="diag" style="margin-bottom:10px">'
+    +'<div>Votre nom affiché<b>'+(id.nom?(id.couleur?'<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+esc(id.couleur)+';margin-right:6px"></span>':"")+esc(id.nom):'<span class="ko">à choisir</span>')+'</b></div>'
+    +'<div>Empreinte de cet appareil<b class="mono">'+esc(id.empreinte)+'</b></div></div>';
+  st.espaces.forEach(function(e){
+    var se=STATUT_ESPACE[e.status]||["",e.status], prop=e.role==="proprietaire" && e.status==="actif";
+    h+='<div style="border:1px solid var(--trait);border-radius:2px;padding:10px 12px;margin:10px 0">'
+      +'<div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap"><b style="font-size:15px">'+esc(e.nom)+'</b>'
+        +'<span class="note-aide" style="margin:0">'+(e.role==="proprietaire"?"propriétaire":"membre")+' · hébergé par <span class="mono">'+esc(e.host.replace(/^https?:\/\//,""))+'</span></span></div>'
+      +'<div class="diag" style="margin:6px 0">'
+        +'<div>État<b class="'+se[0]+'">'+esc(se[1])+'</b></div>'
+        +(e.last_error?'<div>Alerte<b class="ko">'+esc(e.last_error)+'</b></div>':"")
+        +'<div>Fiches partagées<b>'+e.fiches+(e.pending?' · '+e.pending+' à envoyer':"")+'</b></div>'
+        +(e.last_ok?'<div>Dernier échange<b>'+esc(new Date(e.last_ok).toLocaleString("fr-FR"))+'</b></div>':"")
+      +'</div>'
+      +'<div style="font-size:13.5px;margin:8px 0 4px">Membres</div>'
+      +e.membres.map(function(m){
+        return '<div style="display:flex;gap:8px;align-items:center;padding:3px 0;font-size:13.5px'+(m.status==="retire"?';opacity:.55':"")+'">'
+          +'<span style="width:10px;height:10px;border-radius:50%;flex:none;background:'+esc(m.couleur||"var(--trait)")+'"></span>'
+          +'<span>'+esc(m.nom||"(nom pas encore reçu)")+(m.moi?" (cet appareil)":"")+(m.appareil&&!m.moi?' <span class="note-aide" style="margin:0">'+esc(m.appareil)+'</span>':"")
+          +' <span class="note-aide" style="margin:0">'+(m.role==="proprietaire"?"propriétaire":"membre")+(STATUT_MEMBRE[m.status]||"")+'</span></span>'
+          +'<span class="mono" style="margin-left:auto;font-size:12px">'+esc(m.empreinte||"")+'</span>'
+          +(prop && !m.moi && m.status!=="retire"?'<button class="b mini creux" data-pt="retirer" data-e="'+esc(e.id)+'" data-m="'+esc(m.member)+'" data-n="'+esc(m.nom||"ce membre")+'">Retirer</button>':"")
+          +'</div>';
+      }).join("")
+      +'<div class="ligne" style="margin-top:8px">'
+        +(prop?'<button class="b" data-pt="inviter" data-e="'+esc(e.id)+'" data-r="membre">Inviter une personne</button>'
+          +'<button class="b creux" data-pt="inviter" data-e="'+esc(e.id)+'" data-r="proprietaire">Ajouter mon autre appareil</button>':"")
+        +'<button class="b creux" data-pt="quitter" data-e="'+esc(e.id)+'" data-n="'+esc(e.nom)+'">'+(e.status==="retire"?"Effacer de cet appareil":"Quitter")+'</button>'
+      +'</div></div>';
+  });
+  h+='<div class="ligne" style="margin-top:10px">'
+    +'<button class="b'+(id.nom?" creux":"")+'" data-pt="identite">'+(id.nom?"Modifier mon nom":"Choisir mon nom affiché")+'</button>'
+    +'<button class="b creux" data-pt="creer">Créer un espace</button>'
+    +'<button class="b creux" data-pt="rejoindre">Rejoindre un espace</button>'
+    +(st.espaces.length?'<button class="b creux" data-pt="sync">Synchroniser les espaces</button>':"")
+  +'</div>'
+  +'<div class="note-aide">Un espace partagé est hébergé par votre serveur et chiffré de bout en bout : le serveur ne voit que des fiches illisibles. '
+    +'La personne invitée garde ses données privées chez elle. Le partage d\'idées depuis l\'onglet Idées arrive avec la prochaine version.</div>';
+  return titre+h+'</div></div>';
+};
+function resPartage(z,msg,ok){ z.textContent=msg; z.style.color=ok?"var(--vert)":"var(--rouge)" }
+function appelPartage(chemin,corps,z){
+  if(z) resPartage(z,"En cours…",true), z.style.color="";
+  return api("partage/"+chemin,{method:"POST",body:corps||{}}).then(function(r){
+    if(!r.ok) throw new Error((r.body&&r.body.message)||"opération refusée");
+    return r.body;
+  });
+}
+function modaleIdentite(){
+  var id=(Partage.st||{}).identite||{};
+  ouvrirModale("Votre nom affiché",
+    '<label class="champ">Nom vu par les autres membres<input type="text" id="ptNom" maxlength="60" value="'+esc(id.nom||"")+'" placeholder="ex. Stella"></label>'
+    +'<label class="champ" style="margin-top:10px">Couleur<input type="color" id="ptCoul" value="'+esc(id.couleur||"#2f6f8f")+'" style="width:60px;height:32px;padding:0"></label>'
+    +'<div class="note-aide">Le nom et la couleur ne circulent que chiffrés, dans les espaces dont vous êtes membre.</div>'
+    +'<div id="ptRes" class="note-aide" role="status"></div>',
+    [{txt:"Annuler",classe:"creux",fn:fermerModale},{txt:"Enregistrer",droite:true,fn:function(){
+      var z=$("#ptRes");
+      api("partage/identite",{method:"PUT",body:{nom:$("#ptNom").value,couleur:$("#ptCoul").value}}).then(function(r){
+        if(!r.ok) throw new Error((r.body&&r.body.message)||"refusé");
+        Partage.st=r.body; fermerModale(); rendre();
+      }).catch(function(e){ resPartage(z,e.message) });
+    }}]);
+}
+function modaleCreer(){
+  ouvrirModale("Créer un espace partagé",
+    '<label class="champ">Nom de l\'espace<input type="text" id="ptEsp" maxlength="80" placeholder="ex. Maison, Projets avec Paul"></label>'
+    +'<div class="note-aide">L\'espace est hébergé par le serveur de votre synchronisation ('+esc((SyncDist.st&&SyncDist.st.url)||"à configurer dans le bloc Synchronisation")+'). '
+      +'Il doit être joignable en HTTPS par les personnes que vous inviterez.</div>'
+    +'<div id="ptRes" class="note-aide" role="status"></div>',
+    [{txt:"Annuler",classe:"creux",fn:fermerModale},{txt:"Créer",droite:true,fn:function(){
+      var z=$("#ptRes");
+      appelPartage("espaces",{nom:$("#ptEsp").value},z).then(function(){ fermerModale(); toast("Espace créé"); majPartage() })
+        .catch(function(e){ resPartage(z,e.message) });
+    }}]);
+}
+function inviter(espace,role){
+  appelPartage("espaces/"+encodeURIComponent(espace)+"/invitations",{role:role}).then(function(r){
+    var autre=role==="proprietaire";
+    ouvrirModale(autre?"Lien pour votre autre appareil":"Lien d'invitation",
+      '<textarea id="ptLien" readonly style="width:100%;height:96px;font-family:var(--data);font-size:12.5px;word-break:break-all">'+esc(r.lien)+'</textarea>'
+      +'<div class="ligne" style="margin-top:8px"><button class="b" data-pt="copier-lien">Copier le lien</button><span id="ptRes" class="note-aide" role="status" style="margin:0"></span></div>'
+      +'<div class="note-aide">'
+        +(autre?'Sur votre autre appareil : Données → Partage → « Rejoindre un espace », puis collez ce lien. Il deviendra propriétaire de l\'espace comme celui-ci.'
+          :'Envoyez ce lien à la personne par un canal que vous jugez sûr (messagerie chiffrée, de vive voix…). '
+           +'Elle le colle dans son application : Données → Partage → « Rejoindre un espace ».')
+        +' Le lien sert une seule fois et expire le '+esc(new Date(r.expires_at).toLocaleDateString("fr-FR"))+'. '
+        +'La clé de l\'espace est remise automatiquement à la prochaine synchronisation de cet appareil, après vérification que l\'arrivant détient bien ce lien.</div>',
+      [{txt:"Fermer",droite:true,fn:function(){ fermerModale(); majPartage() }}]);
+  }).catch(function(e){ toast(e.message,true) });
+}
+function modaleRejoindre(){
+  ouvrirModale("Rejoindre un espace partagé",
+    '<label class="champ">Lien d\'invitation reçu<textarea id="ptLienR" style="width:100%;height:96px;font-family:var(--data);font-size:12.5px" placeholder="https://…/rejoindre/#v1…"></textarea></label>'
+    +((Partage.st&&Partage.st.identite.nom)?"":'<label class="champ" style="margin-top:10px">Votre nom affiché<input type="text" id="ptNomR" maxlength="60"></label>')
+    +'<div class="note-aide">Vos données privées restent sur cet appareil et votre serveur. Seul le contenu de l\'espace est partagé, chiffré.</div>'
+    +'<div id="ptRes" class="note-aide" role="status"></div>',
+    [{txt:"Annuler",classe:"creux",fn:fermerModale},{txt:"Rejoindre",droite:true,fn:function(){
+      var z=$("#ptRes"), nom=$("#ptNomR");
+      (nom?api("partage/identite",{method:"PUT",body:{nom:nom.value}}).then(function(r){ if(!r.ok) throw new Error((r.body&&r.body.message)||"nom refusé") }):Promise.resolve())
+        .then(function(){ return appelPartage("rejoindre",{lien:$("#ptLienR").value.trim()},z) })
+        .then(function(e){
+          fermerModale(); majPartage();
+          toast(e.status==="actif"?"Espace « "+e.nom+" » rejoint":"Demande envoyée : la clé arrivera à la prochaine synchronisation de la personne qui vous a invité·e");
+        }).catch(function(e){ resPartage(z,e.message) });
+    }}]);
+}
+function confirmerPartage(titre,texte,bouton,fn){
+  ouvrirModale(titre,'<p style="margin:0;font-size:14px">'+texte+'</p><div id="ptRes" class="note-aide" role="status"></div>',
+    [{txt:"Annuler",classe:"creux",fn:fermerModale},{txt:bouton,droite:true,fn:function(){
+      fn().then(function(){ fermerModale(); majPartage() }).catch(function(e){ resPartage($("#ptRes"),e.message) });
+    }}]);
+}
+document.addEventListener("click",function(e){
+  var el=e.target.closest&&e.target.closest("[data-pt]");
+  if(!el) return;
+  var a=el.dataset.pt, d=el.dataset;
+  if(a==="identite") modaleIdentite();
+  else if(a==="creer") modaleCreer();
+  else if(a==="rejoindre") modaleRejoindre();
+  else if(a==="inviter") inviter(d.e,d.r);
+  else if(a==="sync") api("partage/sync",{method:"POST"}).then(function(r){ if(r.ok){ Partage.st=r.body; rendreDonneesSiCalme(); toast("Espaces synchronisés") } });
+  else if(a==="copier-lien"){
+    var t=$("#ptLien"); t.select();
+    (navigator.clipboard?navigator.clipboard.writeText(t.value):Promise.reject()).then(function(){ resPartage($("#ptRes"),"Copié.",true) },
+      function(){ try{ document.execCommand("copy"); resPartage($("#ptRes"),"Copié.",true) }catch(x){ resPartage($("#ptRes"),"Copiez-le à la main.") } });
+  }
+  else if(a==="retirer") confirmerPartage("Retirer un membre",
+    "Retirer <b>"+esc(d.n)+"</b> de l'espace ? Son accès est coupé immédiatement. Ce qu'il ou elle a déjà reçu reste sur son appareil.",
+    "Retirer",function(){ return appelPartage("espaces/"+encodeURIComponent(d.e)+"/membres/"+encodeURIComponent(d.m)+"/retirer") });
+  else if(a==="quitter") confirmerPartage("Quitter l'espace",
+    "Quitter <b>"+esc(d.n)+"</b> ? La copie de l'espace est effacée de cet appareil ; les autres membres gardent la leur.",
+    "Quitter",function(){ return appelPartage("espaces/"+encodeURIComponent(d.e)+"/quitter",{forcer:true}) });
+});
+
 window.persoBlocIdees=function(){
   var st=Idees.claude;
   return '<div class="bloc" style="margin-top:18px"><div class="bloc-tete"><h2>Idées et Claude</h2></div><div class="bloc-corps">'
@@ -768,7 +922,7 @@ rendre=function(){
     var blocs=v.querySelectorAll(".bloc"),i;
     for(i=0;i<blocs.length;i++){
       var h=blocs[i].querySelector(".bloc-tete h2");
-      if(h && h.textContent==="Données et sauvegardes"){ blocs[i].insertAdjacentHTML("afterend",window.persoBlocSync()+window.persoBlocReglages()+window.persoBlocIdees()); break }
+      if(h && h.textContent==="Données et sauvegardes"){ blocs[i].insertAdjacentHTML("afterend",window.persoBlocSync()+window.persoBlocPartage()+window.persoBlocReglages()+window.persoBlocIdees()); break }
     }
   }
 };

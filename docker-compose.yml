@@ -1,5 +1,6 @@
 # Démarrage : cp .env.example .env (puis compléter) ; docker compose up -d --build
 # Réplication distante : docker compose --profile replication up -d  (voir docs/SAUVEGARDES.md)
+# HTTPS public avec Caddy : docker compose --profile caddy up -d  (voir README, « Accès à distance »)
 name: my-pilot-personal-edition
 
 services:
@@ -20,6 +21,7 @@ services:
       CLAUDE_BRIDGE: ${CLAUDE_BRIDGE:-on}
       CLAUDE_TIMEOUT: ${CLAUDE_TIMEOUT:-180}
       SYNC_TOKEN: ${SYNC_TOKEN:-}
+      TRUST_PROXY: ${TRUST_PROXY:-0}
       SNAPSHOT_HOURS: ${SNAPSHOT_HOURS:-24}
       KEEP_SNAPSHOTS: ${KEEP_SNAPSHOTS:-30}
       REVISION_INTERVAL: ${REVISION_INTERVAL:-300}
@@ -51,6 +53,25 @@ services:
       - ./deploy/litestream.yml:/etc/litestream.yml:ro
       - ./deploy/keys:/keys:ro
 
+  # HTTPS public (Let's Encrypt) : nécessite un nom de domaine pointant vers ce serveur, ports 80 et 443 ouverts.
+  caddy:
+    image: caddy:2.10
+    profiles: ["caddy"]
+    restart: unless-stopped
+    depends_on: [app]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      PILOT_DOMAIN: ${PILOT_DOMAIN:-}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
 volumes:
   pilot-data:
   claude-config:
+  caddy-data:
+  caddy-config:

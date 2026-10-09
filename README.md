@@ -93,7 +93,37 @@ Si Claude Code n'est pas disponible, le mode copier-coller via une conversation 
 
 ## Accès à distance
 
-Le port est lié à `127.0.0.1` par défaut. Pour y accéder depuis d'autres appareils, passer par un VPN (Tailscale, WireGuard) ou un proxy HTTPS (Caddy, Traefik) devant le conteneur, et définir `APP_PASSWORD`. L'authentification Basic ne doit jamais circuler en HTTP clair sur Internet.
+Le port est lié à `127.0.0.1` par défaut : rien n'est joignable de l'extérieur tant qu'on ne l'a pas décidé. Deux façons d'ouvrir l'accès :
+
+- **VPN** (Tailscale, WireGuard) : seuls vos appareils y accèdent.
+- **Caddy, en HTTPS public** : nécessaire pour qu'une autre personne rejoigne un espace partagé hébergé par votre serveur.
+
+### Avec Caddy
+
+1. Un nom de domaine qui pointe vers le serveur (enregistrement DNS A/AAAA, par exemple `pilot.ellast.eu`), et les ports 80 et 443 ouverts.
+2. Dans `.env` : `PILOT_DOMAIN=pilot.ellast.eu`, `TRUST_PROXY=1`, un `APP_PASSWORD` solide et un `SYNC_TOKEN` (`openssl rand -hex 32`).
+3. `docker compose --profile caddy up -d`. Caddy obtient et renouvelle seul le certificat ([deploy/Caddyfile](deploy/Caddyfile)).
+
+L'authentification reste celle de l'application ; Caddy ne fait que le HTTPS et les en-têtes de sécurité. **N'ajoutez pas de `basic_auth` dans Caddy** : il intercepterait les jetons de synchronisation.
+
+Protections de l'application :
+- **mot de passe obligatoire** : avec `TRUST_PROXY=1`, le serveur refuse de démarrer sans `APP_PASSWORD`, sinon le premier visiteur pourrait le choisir ;
+- **essais en série freinés** : après 5 échecs (mot de passe, jeton, invitation) depuis une même adresse, attente croissante de 1 à 60 s ; au 20ᵉ, adresse bloquée 15 min. Les échecs apparaissent dans `docker compose logs app` ;
+- **seules routes sans mot de passe** : `/api/health` (répond `{"ok":true}`, rien d'autre), la page `/rejoindre/` qui explique les liens d'invitation, et les routes des espaces, protégées par les jetons de membre.
+
+## Espaces partagés (0.8)
+
+Partager avec une personne qui a sa propre installation, chiffré de bout en bout. Conception : [docs/PARTAGE.md](docs/PARTAGE.md).
+
+- L'espace est hébergé par **votre serveur** (celui de votre synchronisation privée), qui doit être joignable en HTTPS (Caddy ci-dessus).
+- Tout se gère dans l'**application de bureau**, onglet Données, bloc **Partage** :
+  - **votre nom affiché** ;
+  - **créer un espace** ;
+  - **inviter** : un lien à usage unique, valable 7 jours, à transmettre par le canal de votre choix ;
+  - **rejoindre un espace** à partir d'un lien reçu ;
+  - **membres** : liste avec empreintes, retrait d'un membre.
+- Pour vos propres autres appareils : une invitation « mon autre appareil » (rôle propriétaire).
+- Le serveur ne voit jamais le contenu : seulement des fiches chiffrées, leur nombre, leur taille et leurs dates.
 
 ## Sauvegardes
 
@@ -116,9 +146,10 @@ server/        API et stockage (Node, node:sqlite, aucune dépendance)
 desktop/       application de bureau (Electron) et construction des paquets
 web/pilot/     PST·PILOT adapté : index.html généré + perso.js (couche personnelle)
 web/cristallisoir/  le Cristallisoir (onglet Idées)
+web/rejoindre/ page publique qui explique les liens d’invitation
 vendor/        PST·PILOT d'origine, non modifié
 scripts/       construction du pilotage, publication, restauration
-deploy/        modèles de configuration Litestream
+deploy/        Caddy (HTTPS public) et modèles Litestream
 docs/          architecture, sauvegardes, versions
 ```
 

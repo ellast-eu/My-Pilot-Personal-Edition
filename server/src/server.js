@@ -8,6 +8,9 @@ import { Store } from './db.js';
 import * as claude from './claude.js';
 import { SyncEngine, hubExchange } from './sync.js';
 import { Settings, baseFromEnv } from './settings.js';
+import { Garde, adresseClient } from './garde.js';
+import { Hote } from './espaces-hote.js';
+import { Espaces } from './espaces.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(here, '../..');
@@ -82,6 +85,15 @@ export function createApp(opts = {}) {
     planifierInstantanes();
   }
   const sync = opts.syncEngine === false ? null : new SyncEngine(store, { log: m => console.log(m) }).start();
+  // Espaces partagés : hôte sur le serveur, membre dans l'application de bureau
+  const hote = mode === 'application' ? null : new Hote(store);
+  const espaces = mode === 'application' && opts.espaces !== false
+    ? new Espaces(store, { configPrivee: () => (sync ? sync.config() : { url: '', token: '' }), log: m => console.log(m) }).start()
+    : null;
+  // Derrière Caddy : adresse réelle du visiteur, et freinage des essais d'identifiants
+  const trustProxy = opts.trustProxy ?? process.env.TRUST_PROXY === '1';
+  const garde = opts.garde ?? new Garde();
+  const bearer = req => { const h = req.headers.authorization || ''; return h.startsWith('Bearer ') ? h.slice(7) : ''; };
 
   function cookie(req, name) {
     const m = new RegExp('(?:^|;\\s*)' + name + '=([^;]+)').exec(req.headers.cookie || '');
@@ -109,6 +121,8 @@ export function createApp(opts = {}) {
       return send(res, 200, { ok: true, version: VERSION, schema: store.schemaVersion, auth: !!pass(), mode, device: store.deviceId,
         firstRun: mode !== 'application' && !pass() });
     }
+
+    if (parts[0] === 'partage') return apiPartage(req, res, parts.slice(1), m);
 
     if (parts[0] === 'docs') {
       const id = parts[1];
@@ -235,6 +249,62 @@ export function createApp(opts = {}) {
     throw new HttpError(404, 'not_found', 'Route inconnue');
   }
 
+  /* ----- espaces partagés : rôle hôte (authentification propre : jeton de membre) ----- */
+  async function apiEspaces(req, res, url, ip) {
+    const parts = url.pathname.split('/').filter(Boolean).slice(2); // sans "api/spaces"
+    const m = req.method;
+    if (!hote) throw new HttpError(404, 'not_found', 'Les espaces sont hébergés par le serveur, pas par l\'application');
+    const refuse = (quoi) => { garde.echec(ip, quoi); throw new HttpError(401, 'unauthorized', 'Accès refusé'); };
+    const run = fn => { try { return fn(); } catch (e) { if (e.status) throw new HttpError(e.status, e.code, e.message); throw e; } };
+    if (!parts.length && m === 'POST') {
+      const jeton = syncToken();
+      if (!jeton || !safeEqual(bearer(req), jeton)) refuse('création d\'espace');
+      garde.reussite(ip);
+      const body = await readJson(req);
+      return send(res, 200, run(() => hote.creer(body)));
+    }
+    const [space, action, cible, sous] = parts;
+    if (action === 'join' && m === 'POST') {
+      const body = await readJson(req);
+      try { return send(res, 200, run(() => hote.rejoindre(space, body))); }
+      catch (e) { if (e.status === 403 || e.status === 404) garde.echec(ip, 'invitation'); throw e; }
+    }
+    const membre = hote.membre(space, bearer(req));
+    if (!membre) refuse('jeton de membre');
+    garde.reussite(ip);
+    if (action === 'members' && !cible && m === 'GET') return send(res, 200, run(() => hote.membres(membre)));
+    if (action === 'invites' && m === 'POST') { const b = await readJson(req); return send(res, 200, run(() => hote.inviter(membre, b))); }
+    if (action === 'members' && cible && sous === 'approve' && m === 'POST') { const b = await readJson(req); return send(res, 200, run(() => hote.approuver(membre, cible, b))); }
+    if (action === 'members' && cible && sous === 'revoke' && m === 'POST') return send(res, 200, run(() => hote.retirer(membre, cible)));
+    if (action === 'key' && m === 'GET') {
+      if (membre.status !== 'actif') throw new HttpError(403, 'pending', 'En attente de la clé de l\'espace');
+      return send(res, 200, hote.cles(membre));
+    }
+    if (action === 'sync' && m === 'POST') { const b = await readJson(req); return send(res, 200, run(() => hote.echange(membre, b))); }
+    throw new HttpError(404, 'not_found', 'Route inconnue');
+  }
+
+  /* ----- espaces partagés : rôle appareil (pages de l'application) ----- */
+  async function apiPartage(req, res, parts, m) {
+    if (!espaces) throw new HttpError(404, 'not_found', 'Le partage se gère depuis l\'application de bureau');
+    const ok = async fn => { try { return send(res, 200, await fn()); } catch (e) {
+      const st = { bad_request: 400, forbidden: 403, not_found: 404 }[e.code] || (e.status === 429 ? 429 : e.status ? 502 : 400);
+      throw new HttpError(st, e.code || 'partage', e.message);
+    } };
+    if (!parts.length && m === 'GET') return send(res, 200, espaces.status());
+    if (parts[0] === 'identite' && m === 'PUT') { const b = await readJson(req); return ok(() => espaces.setIdentite(b)); }
+    if (parts[0] === 'espaces' && !parts[1] && m === 'POST') { const b = await readJson(req); return ok(() => espaces.creer(b.nom)); }
+    if (parts[0] === 'rejoindre' && m === 'POST') { const b = await readJson(req); return ok(() => espaces.rejoindre(b.lien)); }
+    if (parts[0] === 'sync' && m === 'POST') { await espaces.run('manuel'); return send(res, 200, espaces.status()); }
+    if (parts[0] === 'espaces' && parts[1]) {
+      const id = parts[1];
+      if (parts[2] === 'invitations' && m === 'POST') { const b = await readJson(req); return ok(() => espaces.inviter(id, b)); }
+      if (parts[2] === 'membres' && parts[3] && parts[4] === 'retirer' && m === 'POST') return ok(() => espaces.retirer(id, parts[3]));
+      if (parts[2] === 'quitter' && m === 'POST') { const b = await readJson(req); return ok(() => espaces.quitter(id, b)); }
+    }
+    throw new HttpError(404, 'not_found', 'Route inconnue');
+  }
+
   function serveStatic(req, res, url) {
     let p = decodeURIComponent(url.pathname);
     if (p.endsWith('/')) p += 'index.html';
@@ -259,11 +329,23 @@ export function createApp(opts = {}) {
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
     const url = new URL(req.url, 'http://local');
-    if (!authorized(req, url)) {
-      if (localToken) return send(res, 403, 'Accès réservé à l\'application');
-      return send(res, 401, 'Authentification requise', url.pathname === '/api/sync' ? {} : { 'WWW-Authenticate': 'Basic realm="My Pilot Personal Edition", charset="UTF-8"' });
-    }
+    const ip = adresseClient(req, trustProxy);
     try {
+      // routes publiques : état minimal du serveur, page d'explication des liens d'invitation
+      if (url.pathname === '/api/health' && req.method === 'GET' && !localToken && !authorized(req, url)) return send(res, 200, { ok: true });
+      if (!localToken && (url.pathname === '/rejoindre' || url.pathname.startsWith('/rejoindre/')) && req.method === 'GET') return serveStatic(req, res, url);
+      if (!localToken) {
+        const attente = garde.attente(ip);
+        if (attente > 0) return send(res, 429, { error: 'rate_limited', message: 'Trop de tentatives : réessayez dans ' + Math.ceil(attente / 1000) + ' s' },
+          { 'Retry-After': String(Math.ceil(attente / 1000)) });
+      }
+      if (!localToken && (url.pathname === '/api/spaces' || url.pathname.startsWith('/api/spaces/'))) return await apiEspaces(req, res, url, ip);
+      if (!authorized(req, url)) {
+        if (localToken) return send(res, 403, 'Accès réservé à l\'application');
+        if (req.headers.authorization) garde.echec(ip, url.pathname === '/api/sync' ? 'jeton de synchronisation' : 'mot de passe');
+        return send(res, 401, 'Authentification requise', url.pathname === '/api/sync' ? {} : { 'WWW-Authenticate': 'Basic realm="My Pilot Personal Edition", charset="UTF-8"' });
+      }
+      if (!localToken && req.headers.authorization) garde.reussite(ip);
       if (url.pathname === '/api' || url.pathname.startsWith('/api/')) return await api(req, res, url);
       if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, 'Méthode non permise');
       return serveStatic(req, res, url);
@@ -289,14 +371,20 @@ export function createApp(opts = {}) {
   }
   appliquerReglages();
   settings.on(appliquerReglages);
-  server.on('close', () => { if (timer) clearInterval(timer); if (sync) sync.stop(); });
-  return { server, store, sync, settings };
+  server.on('close', () => { if (timer) clearInterval(timer); if (sync) sync.stop(); if (espaces) espaces.stop(); if (!opts.garde) garde.stop(); });
+  return { server, store, sync, settings, espaces, hote, garde };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const port = +(process.env.PORT || 8080);
   const host = process.env.HOST || '0.0.0.0';
-  const { server, store } = createApp();
+  const app = createApp();
+  const { server, store } = app;
+  // Exposé derrière un proxy (Caddy) : sans mot de passe, le premier visiteur venu pourrait le choisir.
+  if (process.env.TRUST_PROXY === '1' && !app.settings.get('app_password')) {
+    console.error('TRUST_PROXY=1 (serveur exposé) mais aucun mot de passe : définissez APP_PASSWORD dans .env, puis relancez.');
+    store.close(); process.exit(1);
+  }
   server.listen(port, host, () => console.log(`My Pilot Personal Edition ${VERSION} sur http://${host}:${port}`));
   const stop = () => { server.close(); store.close(); process.exit(0); };
   process.on('SIGTERM', stop); process.on('SIGINT', stop);

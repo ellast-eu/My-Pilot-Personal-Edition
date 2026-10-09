@@ -5,17 +5,22 @@
 // ailleurs depuis le dernier passage de cet appareil. Le même serveur joue les deux rôles :
 // hub quand on l'interroge, appareil quand une adresse de hub est configurée.
 
+import { estEspace } from './db.js';
+
 const BATCH = 500;
+// Les espaces partagés (documents « s-… ») ne passent jamais par la synchronisation privée :
+// ils ont leur propre canal chiffré vers leur hôte (espaces.js).
+const prives = list => (Array.isArray(list) ? list : []).filter(ch => ch && !estEspace(ch.doc));
 
 /** Côté hub : traite un échange (POST /api/sync). */
 export function hubExchange(store, body) {
   const device = String(body.device || '').slice(0, 64);
   if (!device) throw Object.assign(new Error('Identifiant d\'appareil manquant'), { code: 'bad_request' });
   const since = Math.max(0, +body.since || 0);
-  const incoming = Array.isArray(body.changes) ? body.changes.slice(0, 5000) : [];
+  const incoming = prives(Array.isArray(body.changes) ? body.changes.slice(0, 5000) : []);
   const applied = incoming.length ? store.applyRemote(incoming, { source: 'appareil ' + device }) : { applied: 0 };
   const limit = Math.min(Math.max(+body.limit || BATCH, 1), 2000);
-  const out = store.changesSince(since, { excludeOrigin: device, limit });
+  const out = store.changesSince(since, { excludeOrigin: device, limit, sansEspaces: true });
   const more = out.length === limit;
   const cursor = more ? out[out.length - 1].seq : store.maxSeq();
   return { hub: store.deviceId, applied: applied.applied, changes: out.map(({ seq, ...c }) => c), cursor, more };
@@ -106,7 +111,7 @@ export class SyncEngine {
     try {
       for (let round = 0; round < 200; round++) {
         const st = store.getSyncState(url);
-        const changes = store.changesSince(st.pushed_seq, { origin: store.deviceId, limit: BATCH });
+        const changes = store.changesSince(st.pushed_seq, { origin: store.deviceId, limit: BATCH, sansEspaces: true });
         const res = await fetch(url + '/api/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
@@ -121,7 +126,7 @@ export class SyncEngine {
         const body = await res.json();
         const pushed = changes.length ? changes[changes.length - 1].seq : st.pushed_seq;
         // une fiche envoyée dans cet échange puis remplacée par une version plus récente a « perdu » : on la journalise
-        const r = store.applyRemote(body.changes || [], { pendingAfter: st.pushed_seq, source: 'synchronisation' });
+        const r = store.applyRemote(prives(body.changes), { pendingAfter: st.pushed_seq, source: 'synchronisation' });
         store.setSyncState(url, { pushed_seq: pushed, pulled_cursor: +body.cursor || st.pulled_cursor });
         sent += changes.length; received += r.applied; conflicts += r.conflicts;
         if (changes.length < BATCH && !body.more) break;
