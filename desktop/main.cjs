@@ -82,6 +82,8 @@ function menu() {
       { role: 'resetZoom', label: 'Taille normale' }, { role: 'zoomIn', label: 'Agrandir' }, { role: 'zoomOut', label: 'Réduire' },
       { type: 'separator' }, { role: 'togglefullscreen', label: 'Plein écran' }] },
     { label: 'Aide', submenu: [
+      { label: 'Guide d\'utilisation', accelerator: 'F1', click: () => { if (win) win.webContents.executeJavaScript("window.ouvrirAide && window.ouvrirAide()").catch(() => {}); } },
+      { type: 'separator' },
       { label: `À propos (${NOM} ${app.getVersion()})`, click: () => dialog.showMessageBox(win, {
         type: 'info', title: NOM, message: `${NOM} ${app.getVersion()}`,
         detail: `Pilotage personnel, dérivé de PST·PILOT.\nDonnées : ${path.join(app.getPath('userData'), 'data')}`,

@@ -8,6 +8,10 @@ Pilotage des activités personnelles, dérivé de PST·PILOT, avec le Cristallis
 - **Données** : une base SQLite, avec un historique des versions, des instantanés quotidiens et une réplication continue vers un stockage distant.
 - **Claude** : via Claude Code connecté à votre compte claude.ai, donc décompté de l'abonnement Pro, sans compte API.
 
+## Aide
+
+L'application contient son aide : bouton **Aide** en haut à droite, ou touche **F1** (rubrique de l'onglet affiché). Le contenu est dans [web/pilot/aide.js](web/pilot/aide.js) : une rubrique = un objet ; à compléter à chaque nouvelle fonction.
+
 ## Démarrer
 
 Prérequis : Docker avec Compose.

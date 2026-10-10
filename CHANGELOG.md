@@ -4,6 +4,15 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+### Ajouts
+- **Aide intégrée** : bouton **Aide** dans l'en-tête, touche **F1** (y compris depuis l'onglet Idées) ou menu Aide → « Guide d'utilisation » de l'application de bureau.
+  - 14 rubriques : prise en main, Aujourd'hui et Prochain jour, Activités, Journal, Contacts, Idées, Veilles, Partage à plusieurs, Données et synchronisation, Paramètres, Claude, Pauses, raccourcis clavier, questions fréquentes.
+  - F1 ouvre directement la rubrique de l'onglet affiché.
+  - Recherche dans toute l'aide, avec surlignage. Navigation rubrique par rubrique.
+  - L'aide s'affiche au-dessus d'une fenêtre déjà ouverte, sans la fermer.
+  - Liens « Aide » dans l'onglet Veilles et le bloc Partage.
+- **Bienvenue** au premier lancement : présentation en quelques lignes et accès à la visite. Elle n'apparaît qu'une fois, pour tous vos appareils.
+
 ## [0.13.0] - 2026-10-10
 
 ### Ajouts

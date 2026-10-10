@@ -148,8 +148,11 @@ PATCHES = [
         t.value=choix; t.dataset.prec=choix;
       });
     }else t.dataset.prec=t.value;""", False),
-    ("couche perso chargée après le script principal",
-     '</body>', '<script src="perso.js"></script>\n</body>', False),
+    ("bouton Aide dans l'en-tête",
+     '<button class="b mini creux" id="btnPause">Pause</button>',
+     '<button class="b mini creux" id="btnAide" title="Aide (F1)">Aide</button>\n      <button class="b mini creux" id="btnPause">Pause</button>', False),
+    ("couche perso et aide chargées après le script principal",
+     '</body>', '<script src="aide.js"></script>\n<script src="perso.js"></script>\n</body>', False),
 ]
 
 

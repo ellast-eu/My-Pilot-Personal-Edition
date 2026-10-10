@@ -1431,6 +1431,7 @@ document.addEventListener('change',e=>{
   else if(e.target.id==='keepkey'){KEEPKEY=e.target.checked; try{KEEPKEY&&APIKEY?localStorage.setItem(KEY_LS,APIKEY):localStorage.removeItem(KEY_LS);}catch{}}
 });
 document.addEventListener('keydown',e=>{
+  if(e.key==='F1'&&EMBED){e.preventDefault();tellPilot({type:'aide',rubrique:'idees'});return;}
   if(e.key==='Enter'&&e.target.id==='newTitle'){e.preventDefault();addIdea();}
   if(e.key==='Enter'&&e.target.dataset.addstep){
     const p=S.projects.find(x=>x.id===e.target.dataset.addstep), t=e.target.value.trim();

@@ -697,7 +697,7 @@ window.persoBlocPartage=function(){
     +'Notification du système quand un membre partage, modifie ou cristallise une idée (application en arrière-plan)</label></div>':"")
   +'<div class="note-aide">Un espace partagé est hébergé par votre serveur et chiffré de bout en bout : le serveur ne voit que des fiches illisibles. '
     +'La personne invitée garde ses données privées chez elle. Le partage d\'idées depuis l\'onglet Idées arrive avec la prochaine version.</div>';
-  return titre+h+'</div></div>';
+  return titre+h+'<div class="note-aide"><button class="pp-aide-lien" style="margin:0" data-aide="partage">Comment fonctionne le partage ?</button></div></div></div>';
 };
 function resPartage(z,msg,ok){ z.textContent=msg; z.style.color=ok?"var(--vert)":"var(--rouge)" }
 function appelPartage(chemin,corps,z){
@@ -1171,7 +1171,7 @@ function quandV(t){ return t?new Date(t).toLocaleString("fr-FR",{weekday:"short"
 function vueVeilles(){
   if(!VE.doc) return '<div class="bloc"><div class="bloc-corps"><div class="note-aide">Chargement des veilles…</div></div></div>';
   var l=VE.doc.veilles.filter(function(v){ return v&&v.id });
-  var gauche='<div class="bloc"><div class="bloc-tete"><h2>Mes veilles</h2><span class="compte">'+l.length+'</span></div><div class="bloc-corps">'
+  var gauche='<div class="bloc"><div class="bloc-tete"><h2>Mes veilles</h2><button class="pp-aide-lien" data-aide="veilles">Aide</button><span class="compte">'+l.length+'</span></div><div class="bloc-corps">'
     +(l.length?l.map(function(v){
       var e=etatVeille(v.id), nl=fichesDe(v.id).filter(function(f){ return !f.lue }).length, sel=VE.sel===v.id;
       return '<div style="padding:9px 10px;margin:0 -10px;border-bottom:1px dashed var(--trait);'+(sel?'background:#F3F3F0;':'')+'cursor:pointer" data-ve="choisir" data-id="'+esc(v.id)+'">'
@@ -1860,6 +1860,25 @@ function demarrer(donnees,rev,etat){
   lireLocal=lireLocal0;
   texteAccueil();
   majEtat();
+  setTimeout(accueillir,2600);
+}
+/* premier lancement : une fenêtre de bienvenue propose la visite (une seule fois, pour tous vos appareils) */
+function accueillir(){
+  if(!D || !D.parametres || D.parametres.aide_bienvenue) return;
+  var m=$("#modale"); if(m && m.open){ setTimeout(accueillir,4000); return }
+  var vu=function(){};
+  D.parametres.aide_bienvenue=new Date().toISOString(); modifie();      /* montrée une fois, même si on la ferme par la croix */
+  ouvrirModale("Bienvenue",
+    '<p style="margin:0 0 10px;font-size:15px">My Pilot Personal Edition vous aide à piloter vos activités personnelles : '
+    +'projets, maison, formation, démarches, loisirs, mais aussi vos idées, vos contacts et votre veille.</p>'
+    +'<ul style="margin:0 0 10px;padding-left:20px;font-size:14px;line-height:1.6">'
+    +'<li><b>Aujourd’hui</b> : votre journée, vos tâches et votre journal.</li>'
+    +'<li><b>Idées</b> : déposez vos envies, Claude les transforme en projets.</li>'
+    +'<li><b>Veilles</b> : l’information qui vous intéresse, triée chaque jour.</li>'
+    +'<li>Tout s’enregistre seul ; <b>Données</b> regroupe sauvegardes, synchronisation et réglages.</li></ul>'
+    +'<div class="note-aide">L’aide reste disponible à tout moment : bouton <b>Aide</b> en haut, ou touche F1.</div>',
+    [{txt:"Plus tard",classe:"creux",fn:function(){ vu(); fermerModale() }},
+     {txt:"Découvrir l’application",droite:true,fn:function(){ vu(); fermerModale(); if(window.ouvrirAide) window.ouvrirAide("prise-en-main") }}]);
 }
 api("health").then(function(h){
   if(h.ok){ Sync.version=h.body.version; Sync.schema=h.body.schema; APP_VERSION=h.body.version; SyncDist.mode=h.body.mode||"";
