@@ -4,6 +4,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+## [0.14.1] - 2026-10-10
+
 ### Corrections
 - **En-tête sur fenêtre étroite ou en portrait** : la ligne d'état (Enregistré, Pause dans…, Aide, Pause) ne flotte plus à droite sous la date.
   - En dessous de 1180 px de large, elle occupe une deuxième ligne fixe, alignée à gauche, avec les boutons à droite.
