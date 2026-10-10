@@ -4,6 +4,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+## [0.14.0] - 2026-10-10
+
 ### Ajouts
 - **Aide intégrée** : bouton **Aide** dans l'en-tête, touche **F1** (y compris depuis l'onglet Idées) ou menu Aide → « Guide d'utilisation » de l'application de bureau.
   - 14 rubriques : prise en main, Aujourd'hui et Prochain jour, Activités, Journal, Contacts, Idées, Veilles, Partage à plusieurs, Données et synchronisation, Paramètres, Claude, Pauses, raccourcis clavier, questions fréquentes.
