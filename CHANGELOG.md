@@ -4,6 +4,12 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+### Corrections
+- **En-tête sur fenêtre étroite ou en portrait** : la ligne d'état (Enregistré, Pause dans…, Aide, Pause) ne flotte plus à droite sous la date.
+  - En dessous de 1180 px de large, elle occupe une deuxième ligne fixe, alignée à gauche, avec les boutons à droite.
+  - Les textes qui changent (« Enregistrement… », « Enregistré à… », compte à rebours) ont une largeur réservée : plus rien ne bouge quand ils changent.
+  - En dessous de 640 px, l'en-tête devient compact : titre plus petit, numéro de version masqué, date sur sa propre ligne.
+
 ## [0.14.0] - 2026-10-10
 
 ### Ajouts

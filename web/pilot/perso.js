@@ -1936,6 +1936,36 @@ setInterval(reessayer,30000);
 window.addEventListener("online",reessayer);
 window.addEventListener("focus",reessayer);
 
+/* ===== en-tête sur fenêtre étroite (écran en portrait) =====
+   Sur une fenêtre étroite, la zone d'état passait à la ligne et « flottait » : alignée à droite
+   sous la date, avec des boutons qui changeaient de ligne selon la longueur du texte d'état.
+   Ici : une ligne fixe pour la marque et la date, une ligne fixe pour l'état et les boutons,
+   et des largeurs réservées pour que le texte qui change ne déplace rien. */
+(function(){
+  var st=document.createElement("style"); st.id="ppEntete";
+  st.textContent=''
+  +'.etat-txt{white-space:nowrap;display:inline-block;min-width:19ch;font-variant-numeric:tabular-nums}'
+  +'.cd-pause{white-space:nowrap;display:inline-block;min-width:16ch;font-variant-numeric:tabular-nums}'
+  +'#etat .b{flex:none}'
+  +'nav{scrollbar-width:thin;scrollbar-color:#4A514C transparent}'
+  +'nav::-webkit-scrollbar{height:4px}nav::-webkit-scrollbar-thumb{background:#4A514C}'
+  +'@media (max-width:1180px){'
+  +  '.bandeau{row-gap:6px;padding:8px 14px}'
+  +  '.jour{margin-left:auto}'
+  +  '.etat{flex:1 0 100%;margin-left:0;justify-content:flex-start;flex-wrap:nowrap;gap:10px;border-top:1px solid #2E3430;padding-top:6px}'
+  +  '#btnAide{margin-left:auto}'
+  +'}'
+  +'@media (max-width:640px){'
+  +  '.marque{font-size:15px;letter-spacing:.08em;white-space:normal}'
+  +  '.version{display:none}'
+  +  '.jour{flex-basis:100%;margin-left:0;font-size:12px}'
+  +  '.etat{flex-wrap:wrap;row-gap:6px}'
+  +  '.etat-txt{min-width:0}.cd-pause{min-width:0}'
+  +  'nav button{padding:8px 10px;font-size:12.5px}'
+  +'}';
+  document.head.appendChild(st);
+})();
+
 /* ===== saisie d'une valeur (remplace window.prompt, absent de l'application de bureau) ===== */
 window.persoSaisir=function(question,defaut){
   return new Promise(function(fin){
