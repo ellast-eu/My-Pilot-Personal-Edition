@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Construit web/pilot/index.html à partir de la version d'origine de PST·PILOT.
+"""Construit web/pilot/index.html à partir de la version d'origine de My Pilot Pro (ex-PST·PILOT).
 
-L'original reste intact dans vendor/ : pour reprendre une nouvelle version de PST·PILOT,
+L'original reste intact dans vendor/ : pour reprendre une nouvelle version de la pro,
 déposez-la dans vendor/, mettez à jour SOURCE ci-dessous et relancez ce script.
 Chaque patch vérifie que son ancre existe une seule fois : s'il échoue, l'original a changé
 à cet endroit et le patch doit être ajusté.
@@ -13,16 +13,31 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SOURCE = ROOT / 'vendor' / 'pst-pilot-3.13.1.html'
+SOURCE = ROOT / 'vendor' / 'mypilot-pro-3.21.0.html'
 TARGET = ROOT / 'web' / 'pilot' / 'index.html'
 
 PATCHES = [
     # (description, motif, remplacement, regex?)
+    # --- reprise de My Pilot Pro 3.21.0 ---
     ("titre de l'onglet",
-     r'<title>PST Pilot v[\d.]+</title>', '<title>My Pilot Personal Edition</title>', True),
-    ("onglet Idées dans la navigation",
-     '<button data-vue="chantiers">Activités</button>',
-     '<button data-vue="chantiers">Activités</button>\n    <button data-vue="idees">Idées</button>\n    <button data-vue="veilles">Veilles</button>', False),
+     r'<title>My Pilot Professional Edition</title>',
+     '<title>My Pilot Personal Edition</title>', True),
+    ("onglet Veilles dans la navigation",
+     '<button data-vue="idees">Idées</button>',
+     '<button data-vue="idees">Idées</button>\n    <button data-vue="veilles">Veilles</button>', False),
+    ("Diagnostic du poste remplacé par celui de My Pilot Personal Edition",
+     r"\+'<div class=\"bloc\" style=\"margin-top:18px\"><div class=\"bloc-tete\">"
+     r"<h2>Diagnostic du poste</h2>.*?\n  \+'</div></div>'\n  \+'</div><div>'",
+     "+(window.persoDiagnostic?window.persoDiagnostic():'')\n  +'</div><div>'", True),
+    ("journal des versions : entrées de la perso en tête",
+     'var JOURNAL_VERSIONS = [\n',
+     'var JOURNAL_VERSIONS = (window.persoVersions||[]).concat([\n', False),
+    ("journal des versions : fermeture de la liste",
+     '["1.0.0","Dossiers du jour et prochain jour ouvré, journal de notes, suites à donner, imports et exports."]];',
+     '["1.0.0","Dossiers du jour et prochain jour ouvré, journal de notes, suites à donner, imports et exports."]]);', False),
+    ("listes gérables : la fenêtre de saisie de la couche perso",
+     'saisirValeur("Nouvelle valeur à ajouter à la liste")',
+     'window.persoSaisir("Nouvelle valeur à ajouter à la liste")', False),
     ("démarrage différé : la couche perso charge d'abord les données du serveur",
      '(function init(){', 'window.__pilotInit = (function init(){', False),
     ("fin du démarrage différé",
@@ -54,9 +69,6 @@ PATCHES = [
     ("journal vide : texte sans permanence",
      "Les notes et les appels de permanence apparaîtront ici.", "Les notes apparaîtront ici.", False),
     # --- nettoyage du cadre professionnel (v0.3) ---
-    ("Diagnostic du poste et journal PST·PILOT remplacés par ceux de My Pilot Personal Edition",
-     r"\+'<div class=\"bloc\" style=\"margin-top:18px\"><div class=\"bloc-tete\"><h2>Diagnostic du poste</h2>.*?\}\)\.join\(\"\"\)\n  \+'</div></div>'\n  \+'</div><div>'",
-     "+(window.persoDiagnostic?window.persoDiagnostic():'')\n  +(window.persoJournal?window.persoJournal():'')\n  +'</div><div>'", True),
     ("paramètres : plus de filtre gestionnaire pour l'import Excel",
      "    +'<label class=\"champ\">Gestionnaire retenu à l\\'import Excel'\n"
      "      +'<input type=\"text\" id=\"gestFiltre\" value=\"'+esc(D.parametres.gestionnaire||\"\")+'\" placeholder=\"vide = toutes les lignes\"></label>'\n"
@@ -67,15 +79,15 @@ PATCHES = [
      "      +'La rubrique DT-DICT récupère automatiquement le temps chronométré des sessions.</div>'",
      "'Les rubriques servent à rattacher les notes qui ne relèvent d\\'aucune activité datée.</div>'", False),
     ("listes : seulement celles du pilotage personnel",
-     r"\+\[\[\"types_intervention\",\"Types d'intervention \(déshérences\)\"\],.*?\[\"ouvrages\",\"Ouvrages\"\]\]\.map",
+     r"\+\[\[\"types_intervention\",\"Types d'intervention \(dossiers\)\"\],.*?\[\"ouvrages\",\"Ouvrages\"\]\]\.map",
      "+(window.persoListes?window.persoListes():[]).map", True),
     ("catégories : modèle personnel au lieu du modèle Enedis",
-     "charger le modèle Enedis (déshérence, convocation, animation, transverse)",
+     "charger le modèle fourni (dossier, convocation, animation, transverse)",
      "rétablir les catégories personnelles (projet, maison, formation, démarche, loisir)", False),
     ("catégories : confirmation du modèle personnel",
      "Rétablir les 4 catégories d'origine ?", "Rétablir les 5 catégories personnelles ?", False),
     ("catégories : message du modèle personnel",
-     'toast("Modèle Enedis chargé")', 'toast("Catégories personnelles rétablies")', False),
+     'toast("Modèle fourni chargé")', 'toast("Catégories personnelles rétablies")', False),
     ("fiche activité : référence générique",
      "'<label class=\"champ\">Référence / n° dossier<input type=\"text\" name=\"reference\" value=\"'+esc(c.reference)+'\" placeholder=\"'+(cat===\"convocation\"?\"N° de constat\":\"DT-DICT, n° affaire…\")+'\"></label>'",
      "'<label class=\"champ\">Référence<input type=\"text\" name=\"reference\" value=\"'+esc(c.reference)+'\" placeholder=\"Ex. : n° de commande, de contrat…\"></label>'", False),
@@ -106,10 +118,8 @@ PATCHES = [
     # --- menu Pause ---
     ("pause : desserts, sans référence aux sessions de traitement",
      '["dessert","Desserts","Faciles — jamais proposés en session"]', '["dessert","Desserts","Faciles — jamais proposés d\'office"]', False),
-    ("pause : rappel principal",
-     "Le rappel principal, tant que PST Pilot est ouvert.", "Le rappel principal, tant que l\\'application est ouverte.", False),
     ("pause : proposition à la fin de n'importe quelle activité",
-     "'<span><b>Quand je clôture une déshérence, une convocation ou une animation</b>'\n"
+     "'<span><b>Quand je clôture un dossier, une convocation ou une animation</b>'\n"
      "      +'<em>Au moment où vous passez une activité en « Réalisé ».</em></span></label>'",
      "'<span><b>Quand je termine une activité</b>'\n"
      "      +'<em>Au moment où une activité passe à son statut de clôture (Réalisé, Terminé…).</em></span></label>'", False),
@@ -119,38 +129,6 @@ PATCHES = [
      "      +'Elle reste absente de tous les exports d\\'activité, et le bouton Exporter permet de la sortir à part.</div>'",
      "'<div class=\"note-aide\">Cette carte est enregistrée avec vos données sur le serveur. '\n"
      "      +'Elle n\\'apparaît dans aucun export d\\'activité ; le bouton Exporter permet de la sauvegarder à part.</div>'", False),
-    ("pause : import d'une carte",
-     'toast("Ce fichier ne contient pas de carte PST Pilot",true)', 'toast("Ce fichier ne contient pas de carte de pause",true)', False),
-    ("paramètres : nom par défaut",
-     'esc(D.parametres.nom_app||"PST Pilot")', 'esc(D.parametres.nom_app||NOM_DEFAUT)', False),
-    ("catégories : import de configuration",
-     "toast(\"Ce fichier n'est pas une configuration PST Pilot\",true)", "toast(\"Ce fichier n'est pas une configuration de catégories\",true)", False),
-    ("import : format reconnu",
-     'toast("Fichier non reconnu : structure PST Pilot absente",true)', 'toast("Fichier non reconnu : ce n\'est pas un export de données du pilotage",true)', False),
-    ("listes gérables : saisie dans une fenêtre de l'application (window.prompt n'existe pas dans Electron)",
-     """    if(t.value==="__add__"){
-      var v=(window.prompt("Nouvelle valeur à ajouter à la liste :")||"").trim();
-      if(v && l.indexOf(v)===-1){ l.push(v); modifie(); toast('« '+v+' » ajouté à la liste') }
-      var choix=v||t.dataset.prec||l[0]||"";
-      t.innerHTML=selOpts(l,choix)+'<option value="__add__">＋ Ajouter à la liste…</option>';
-      t.value=choix; t.dataset.prec=choix;
-    }else t.dataset.prec=t.value;""",
-     """    if(t.value==="__add__"){
-      var prec=t.dataset.prec||l[0]||"";
-      t.value=prec;                       /* jamais « __add__ » enregistré pendant la saisie */
-      window.persoSaisir("Nouvelle valeur à ajouter à la liste").then(function(v){
-        v=(v||"").trim();
-        var l2=D.parametres[cle]||(D.parametres[cle]=[]);
-        if(v && l2.indexOf(v)===-1){ l2.push(v); modifie(); toast('« '+v+' » ajouté à la liste') }
-        var choix=v||prec;
-        if(!t.isConnected) return;
-        t.innerHTML=selOpts(l2,choix)+'<option value="__add__">＋ Ajouter à la liste…</option>';
-        t.value=choix; t.dataset.prec=choix;
-      });
-    }else t.dataset.prec=t.value;""", False),
-    ("bouton Aide dans l'en-tête",
-     '<button class="b mini creux" id="btnPause">Pause</button>',
-     '<button class="b mini creux" id="btnAide" title="Aide (F1)">Aide</button>\n      <button class="b mini creux" id="btnPause">Pause</button>', False),
     ("couche perso et aide chargées après le script principal",
      '</body>', '<script src="aide.js"></script>\n<script src="perso.js"></script>\n</body>', False),
 ]

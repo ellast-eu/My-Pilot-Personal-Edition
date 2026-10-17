@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Généré par scripts/build_pilot.py depuis pst-pilot-3.13.1.html : ne pas modifier ici, modifier le script ou web/pilot/perso.js -->
+<!-- Généré par scripts/build_pilot.py depuis mypilot-pro-3.21.0.html : ne pas modifier ici, modifier le script ou web/pilot/perso.js -->
 
 <html lang="fr">
 <head>
@@ -157,6 +157,30 @@ header{
 @keyframes pulse{50%{opacity:.35}}
 .etat-txt{color:#B9BEBA}
 .etat.sale .etat-txt{color:#FFD466}
+/* Sur une fenetre etroite la zone d'etat passait a la ligne et « flottait » a droite sous la
+   date, les boutons changeant de ligne selon la longueur du texte. Largeurs reservees pour
+   que rien ne bouge quand l'etat change, puis une deuxieme ligne franche. */
+.etat-txt{white-space:nowrap;display:inline-block;min-width:26ch;font-variant-numeric:tabular-nums}
+.etat .b{flex:none}
+nav{scrollbar-width:thin;scrollbar-color:#4A514C transparent}
+nav::-webkit-scrollbar{height:4px}
+nav::-webkit-scrollbar-thumb{background:#4A514C}
+@media (max-width:1180px){
+  .bandeau{row-gap:6px;padding:8px 14px}
+  .jour{margin-left:auto}
+  .etat{flex:1 0 100%;margin-left:0;justify-content:flex-start;flex-wrap:nowrap;gap:10px;
+    border-top:1px solid #2E3430;padding-top:6px}
+  .etat-btns{margin-left:auto}
+}
+@media (max-width:640px){
+  .marque{font-size:15px;letter-spacing:.08em;white-space:normal}
+  .version{display:none}
+  .jour{flex-basis:100%;margin-left:0;font-size:12px}
+  .etat{flex-wrap:wrap;row-gap:6px}
+  .etat-txt{min-width:0}
+  .cd-pause{min-width:0}
+  nav button{padding:8px 10px;font-size:12.5px}
+}
 
 nav{display:flex;gap:2px;padding:0 12px;overflow-x:auto}
 nav button{
@@ -333,15 +357,45 @@ td .ref{font-family:var(--data);font-size:11px;color:var(--encre-3);margin-top:1
 .sess .bt{margin-left:auto}
 .creneaux{font-family:var(--data);font-size:11.5px;color:var(--encre-3);margin-top:5px;line-height:1.6}
 
-.cd-pause{
+.cd-pause{white-space:nowrap;display:inline-block;min-width:16ch;font-variant-numeric:tabular-nums;
   font-family:var(--data);font-size:11.5px;color:#8C938E;cursor:pointer;
   border-bottom:1px dotted #4A514C;padding-bottom:1px;white-space:nowrap;
 }
 .cd-pause:hover{color:#fff;border-bottom-color:#8C938E}
 .cd-pause.proche{color:#FFD466}
 .cd-pause:empty{display:none}
-#btnPause{border-color:#4A514C;color:#C9CFC9;background:transparent}
-#btnPause:hover{border-color:#8C938E;color:#fff;opacity:1}
+#btnPause,#btnAide,#btnApropos{border-color:#4A514C;color:#C9CFC9;background:transparent}
+#btnPause:hover,#btnAide:hover,#btnApropos:hover{border-color:#8C938E;color:#fff;opacity:1}
+/* les trois boutons forment un bloc : en fenetre etroite ils passent a la ligne ensemble,
+   au lieu de laisser Pause seule en bas */
+.etat-btns{display:flex;align-items:center;gap:8px;flex:none;margin-right:2px}
+/* Enregistrer passe en « creux » quand l'enregistrement automatique rend le clic inutile.
+   Sans cette regle il heritait du creux clair : encre sur encre, invisible sur le bandeau. */
+#btnEnr.creux{border-color:#4A514C;color:#C9CFC9;background:transparent}
+#btnEnr.creux:hover{border-color:#8C938E;color:#fff;opacity:1}
+.ap-court{display:none}
+/* en fenetre etroite le libelle complet poussait Pause a la ligne suivante */
+@media (max-width:760px){ .ap-long{display:none} .ap-court{display:inline} }
+/* bandeau de la fenetre À propos : meme grammaire que l'ecran d'ouverture */
+.ap-ban{
+  margin:-16px -16px 16px;padding:22px 16px 18px;background:var(--encre);text-align:center;
+}
+.ap-logo{display:block;width:34px;height:34px;margin:0 auto 12px}
+.ap-logo svg{display:block;width:100%;height:100%}
+.ap-nom{
+  font-family:var(--display);font-variation-settings:"wght" 700,"wdth" 75;
+  font-size:27px;letter-spacing:.16em;text-transform:uppercase;color:#F2F3F1;
+  white-space:nowrap;min-height:32px;
+}
+.ap-nom .bit{font-family:var(--data);color:var(--rouge);letter-spacing:.16em}
+.ap-nom .pt{color:var(--rouge)}
+.ap-sous{
+  font-family:var(--data);font-size:10.5px;letter-spacing:.22em;color:#6F756F;
+  text-transform:uppercase;margin-top:8px;
+}
+@media(max-width:480px){.ap-nom{font-size:20px;letter-spacing:.12em}}
+.ap-intro{font-size:14px;line-height:1.6;margin-bottom:8px}
+.ap-legal{font-family:var(--data);font-size:11.5px;color:var(--encre-3);margin-top:10px}
 
 /* ---------- carte personnelle ---------- */
 .carte-sec{margin-bottom:16px}
@@ -486,6 +540,62 @@ th{
 }
 td{padding:7px 8px;border-bottom:1px solid var(--trait);vertical-align:top}
 tbody tr:hover{background:#F2F3F0;cursor:pointer}
+.appel .aff{font-family:var(--data);font-size:11.5px;color:var(--encre-3);margin-top:2px}
+/* label.champ met ses descendants en capitales : le rappel du dossier s'en affranchit */
+.champ .rappel-aff{
+  text-transform:none;letter-spacing:0;font-family:var(--corps);font-size:12px;
+  color:var(--encre-2);margin-top:3px;
+}
+
+/* ---------- comptes rendus ---------- */
+dialog.cr-dlg{max-width:720px;width:calc(100% - 28px)}
+.cr-tete{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--trait)}
+.cr-tete h3{font-size:15px;letter-spacing:.08em;text-transform:uppercase;flex:1}
+.cr-corps{padding:16px}
+.cr-corps textarea{
+  width:100%;height:min(52vh,420px);resize:vertical;padding:10px;
+  border:1px solid var(--trait);border-radius:2px;background:#fff;color:var(--encre);
+  font-family:var(--data);font-size:12.5px;line-height:1.55;white-space:pre;overflow-wrap:normal;
+}
+.cr-corps textarea:focus{outline:2px solid var(--ardoise);outline-offset:-1px}
+.cr-pied{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--trait);
+  background:#F1F2EF;flex-wrap:wrap;align-items:center}
+.cr-pied .droite{margin-left:auto;display:flex;gap:8px}
+
+/* ---------- idees ---------- */
+.id-bulles{
+  position:relative;margin-top:10px;border:1px solid var(--trait);border-radius:2px;
+  background:#FBFBF8;overflow:hidden;
+}
+.id-bulles svg{display:block;width:100%;touch-action:none;cursor:grab}
+.id-bulles svg.saisi{cursor:grabbing}
+.id-b{cursor:pointer}
+.id-b circle{transition:fill-opacity .12s}
+.id-b:hover circle{fill-opacity:.42}
+.id-b.on:hover circle{fill-opacity:1}
+.id-b text{
+  font-family:var(--display);font-size:10.5px;fill:var(--encre-2);text-anchor:middle;pointer-events:none;
+  paint-order:stroke;stroke:#FBFBF8;stroke-width:3px;stroke-linejoin:round;  /* lisible par-dessus une bulle */
+}
+.id-b.on text{fill:var(--encre);font-weight:600}
+.id-b.cri text{font-size:11.5px;font-weight:700;fill:var(--encre)}
+.id-b .id-f{transition:transform .7s cubic-bezier(.34,1.56,.64,1)}  /* eclosion du cristal */
+.id-mem{cursor:pointer}
+/* le trait visible ne reçoit rien ; c'est l'anneau transparent qui porte le clic,
+   sinon le disque plein avalerait les glissers du fond */
+.id-mem .trait{pointer-events:none;transition:stroke-width .12s}
+.id-mem .prise{pointer-events:stroke;fill:none;stroke:transparent;stroke-width:16px}
+.id-mem:hover .trait{stroke-width:2.6}
+.id-mem text{
+  font-family:var(--display);font-size:12px;font-weight:600;text-anchor:middle;pointer-events:none;
+  paint-order:stroke;stroke:#FBFBF8;stroke-width:3.5px;stroke-linejoin:round;
+}
+.id-zoom{position:absolute;right:8px;top:8px;display:flex;gap:4px}
+.id-zoom button{min-width:26px;background:rgba(251,251,248,.92)}
+@media (prefers-reduced-motion:reduce){ .id-b .id-f{transition:none} }
+.id-pst{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.id-src{font-family:var(--data);font-size:11.5px;color:var(--encre-3);margin-top:4px;line-height:1.5}
+.id-liste{margin:0 0 0 18px;font-size:13.5px;line-height:1.55}
 .enroule{max-height:calc(100vh - 250px);min-height:300px;overflow:auto}
 .enroule thead th{position:sticky;top:0;background:#F3F3F0;z-index:2;box-shadow:0 1px 0 var(--encre)}
 
@@ -495,6 +605,7 @@ dialog{
   max-width:720px;width:calc(100% - 28px);background:var(--papier);color:var(--encre);
 }
 dialog::backdrop{background:rgba(25,28,27,.45)}
+dialog.saisie-val{max-width:430px}
 .mod-tete{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--trait)}
 .mod-tete h3{font-size:15px;letter-spacing:.08em;text-transform:uppercase}
 .mod-corps{padding:16px;max-height:min(66vh,560px);overflow:auto}
@@ -553,15 +664,19 @@ hr.sep{border:0;border-top:1px solid var(--trait);margin:18px 0}
 <header>
   <div class="bandeau">
     <span class="logo" id="logo"></span>
-    <div class="marque" id="marque">PST<span>·</span>Pilot</div>
+    <div class="marque" id="marque">My<span>·</span>Pilot</div>
     <div class="version mono" id="version"></div>
     <div class="jour mono" id="dateJour"></div>
     <div class="etat" id="etat">
       <span class="pastille" id="pastille"></span>
       <span class="etat-txt" id="etatTxt">Prêt</span>
       <span class="cd-pause" id="cdPause" title="Prendre une pause maintenant"></span>
-      <button class="b mini creux" id="btnAide" title="Aide (F1)">Aide</button>
-      <button class="b mini creux" id="btnPause">Pause</button>
+      <span class="etat-btns">
+        <button class="b mini creux" id="btnApropos" title="À propos de l’application"
+          ><span class="ap-long">À propos</span><span class="ap-court">Infos</span></button>
+        <button class="b mini creux" id="btnAide" title="Aide (F1)">Aide</button>
+        <button class="b mini creux" id="btnPause">Pause</button>
+      </span>
       <button class="b mini" id="btnEnr">Enregistrer</button>
     </div>
   </div>
@@ -597,7 +712,7 @@ hr.sep{border:0;border-top:1px solid var(--trait);margin:18px 0}
 "use strict";
 
 /* ================= etat ================= */
-var APP_VERSION = "3.13.1";
+var APP_VERSION = "3.21.0";
 
 /* ============================================================
    NOM DU POSTE — a modifier ici lors du deploiement sur un
@@ -609,7 +724,7 @@ var APP_VERSION = "3.13.1";
 var NOM_DEFAUT = "My Pilot";
 var VERSION = 1;   /* version du schema de donnees */
 var TYPES_DEFAUT = ["Visite de chantier","Consignation","Mise hors tension","Réception / DOE",
-  "Réunion","Déraccordement/AMHEO","Autre"];
+  "Réunion","Déraccordement","Autre"];
 var OUVRAGES = ["Non défini","HTA aérien","HTA souterrain","BT aérien","BT souterrain","Mixte"];
 var STATUTS = [["planifie","Planifié"],["en_cours","En cours"],["realise","Réalisé"],
   ["reporte","Reporté"],["annule","Annulé"]];
@@ -673,21 +788,21 @@ var THEMES_ANIM = ["Quart d'heure sécurité","Sensibilisation DT-DICT","Retour 
   "Accueil nouvelle entreprise","Réunion de rentrée","Forum / salon","Autre"];
 var PRESENCES = [["attendu","Attendu"],["present","Présent"],["excuse","Excusé"],["absent","Absent"]];
 var CATS_DEFAUT = {
-  chantier:{lib:"Déshérence",plur:"Déshérences",genre:"f",sym:"×",couleur:"#2B4C6F",liste:"types_intervention",
+  chantier:{lib:"Dossier",plur:"Dossiers",genre:"m",sym:"×",couleur:"#2B4C6F",liste:"types_intervention",
     champ:"Type d'intervention",tiers:"Interlocuteur",tiers_type:"mixte",statuts:"etats_affaire",clos:"\u03bb",
     "import":true,miroir:"etat_affaire",regle_lib:"segment",filtre:"gestionnaire",
-    apercu:["poste","gdo","segment"],avancement:"statut_desh",
-    place:"Ex : Branchement en déshérence rue des Écoles"},
+    apercu:["poste","segment"],avancement:"statut_desh",
+    place:"Ex : Branchement à reprendre rue des Écoles"},
   convocation:{lib:"Convocation",plur:"Convocations",genre:"f",sym:"!",couleur:"#7A2E4E",liste:"motifs_convocation",
     champ:"Motif de la convocation",tiers:"Entreprise convoquée",tiers_type:"organisation",statuts:"statuts_rdv",clos:"termine",
     apercu:["convoques","presence"],
     apercu:["convoques","presence"],
-    place:"Ex : Convocation SARL Berthaud TP"},
+    place:"Ex : Convocation entreprise de travaux"},
   animation:{lib:"Animation",plur:"Animations",genre:"f",sym:"◆",couleur:"#0F6E78",liste:"themes_animation",
     champ:"Thème de l'animation",tiers:"Entreprise / public",tiers_type:"organisation",statuts:"statuts_rdv",clos:"termine",
     apercu:["participants","support"],
     apercu:["participants","support"],
-    place:"Ex : Quart d'heure sécurité Colas"},
+    place:"Ex : Quart d'heure sécurité sur un chantier"},
   transverse:{lib:"Transverse",plur:"Transverses",genre:"f",sym:"≡",couleur:"#8A6320",liste:"types_transverse",
     champ:"Nature",tiers:"Interlocuteur / service",tiers_type:"mixte",neuf:"Nouvelle activité transverse",
     statuts:"statuts_simples",clos:"realise",
@@ -711,31 +826,11 @@ function champsDe(cle){
   return (c && c.champs) ? c.champs : [];
 }
 function catDe(c){ return catParCle((c&&c.categorie)||"chantier")||CATS_DEFAUT.chantier }
-var ETATS_AFFAIRE=["0.1 - Instruction du dossier","1.0 - Enquête dangerosité","1.1 - Demande MHT",
- "1.2 - Déconnection sous ATST","2. Courrier T2 propriétaire","3 - Visite Sécurité après 6 mois",
- "4 - Courrier Non réponse 6 mois","4.1 - Courrier libre HP","5 - Courrier Maintien",
- "6.0 - Déraccordement suite demande propriétaire","6.1 - Déraccordement d'autorité suite non réponse",
- "6.2 - Déraccordement d'autorité suite non devis",
- "6.3 - Déraccordement d'autorité suite disposition 3 de l’article 2.2 - PRDE J.6.8-01",
- "6.4 - Déraccordement d'autorité suite installation dangereuse","6.5 - Mise hors tension d’autorité",
- "7.1 - Déraccordement DRI","7.2 - Rétrocession DRI","8. - Suivi HP","λ. - Clos","∞ - À requalifier",
- "ω1 - Maintien sous tension","α - À affecter"];
+var ETATS_AFFAIRE=["1 - À instruire","2 - Instruction en cours","3 - En attente de tiers",
+ "4 - Action programmée","5 - Action réalisée","λ - Clos"];
 var STATUTS_DESH=["# Section Instruction #","a. En attente d’instruction","b. Instruction faite",
- "# Section Intervention #","a. En attente de préparation","b. En attente de programmation",
- "c. En attente de traitement","d. Retour affaire à traiter","e. Déprogrammé",
- "# Section Courrier #","a. à préparé","b. Préparé, à envoyer","c. En partance","d. En attente AR",
- "e. Problème Expeli/Docaposte","f. PND","g. AR Reçu -> Suivi 6 Mois","h. AR Reçu",
- "i. Réponse propriétaire reçu","j. Fin du delais légal",
- "# Section  Déraccordement #","a. En attente d’instruction APS et Devis","b. Devis Envoyé, attente acceptation",
- "c. Devis Expiré","d. Règlement OK et/ou Programmation à faire","e. En attente de programmation",
- "f. En attente de traitement","g.Déraccordement Réalisé, à facturer","h. Facturation Demandé",
- "i. Finalisation (AMHEO, CT-D, FCER)",
- "# Section suivi HP #","a. En attente d'expertise métier","b. Changement de segment",
- "c. Attente retour interne","d. Attente retour externe","e. Dossier non traitable (CC, Chantier…)",
- "f. F120 en cours","g. PRM à surveiller","h. Changement de propriétaire en cours","i. Déshérence partielle",
- "# Clos #","a. Suivi facture IEP","b. Maintien sous tension","∞. À requalifier",
- "# Section Maintien sous tension #","a. PRM en suivi, visite de moins d’un an réalisé",
- "b. Ouvrage à visité, visite réalisé de plus d’un an"];
+ "# Section Traitement #","c. Action engagée","d. Action en attente de tiers","e. Action réalisée",
+ "# Section Clôture #","f. Dossier soldé"];
 var SEGMENTS=["C1","C2","C3","C4","N/A"];
 /* valeurs qui, dans une colonne date, signifient « c'est fait » : la fiche quitte le planning */
 var MARQUEURS_FAIT=["FAIT","OK","REALISE","TERMINE","CLOS","SOLDE"];
@@ -743,36 +838,27 @@ var CIVILITES=["M.","Mme","Mx"];
 /* actes qui reduisent un risque pour un tiers : la liste est parametrable, et a defaut
    on reconnait les formulations courantes du metier. */
 var MOTS_PREVENTION=["danger","hors tension","deraccordement","constat","non-respect","non respect",
-  "prescription","visite securite","visite de securite","consignation","mise en securite","amheo"];
+  "prescription","visite securite","visite de securite","consignation","mise en securite","deraccordement"];
 /* formes rencontrees en tete de nom, et la civilite normalisee qui leur correspond */
 var CIV_FORMES=[["monsieur","M."],["mr","M."],["m","M."],["madame","Mme"],["mme","Mme"],
   ["mademoiselle","Mme"],["mlle","Mme"],["mx","Mx"],["mix","Mx"]];
-var TYPES_DOSSIER=["TOD","EX-HORSTOD","HORS TOD"];
+var TYPES_DOSSIER=["Type A","Type B","Hors périmètre"];
 
 /* colonne Excel -> champ ; D(4) et E(5) ignorees, P(16) vide */
 var COLS_DESH=[
  {c:1,k:"gestionnaire",lib:"Gestionnaire"},
- {c:2,k:"type_dossier",lib:"Type dossier",liste:"types_dossier"},
+ {c:2,k:"type_dossier",lib:"Type de dossier",liste:"types_dossier"},
  {c:3,k:"date_action",lib:"Date dernière action",date:true},
- {c:6,k:"etat_affaire",lib:"État affaire",liste:"etats_affaire"},
- {c:7,k:"statut_desh",lib:"Statut",liste:"statuts_desherence"},
- {c:8,k:"prm",lib:"PRM"},
- {c:9,k:"nom_client",lib:"Nom client"},
- {c:10,k:"compl1",lib:"Complément statut 1"},
- {c:11,k:"compl2",lib:"Complément statut 2"},
- {c:12,k:"compl3",lib:"Complément statut 3"},
- {c:13,k:"action",lib:"Action / point d’attention"},
- {c:14,k:"poste",lib:"Poste HTA/BT"},
- {c:15,k:"gdo",lib:"GDO"},
- {c:17,k:"cpa_bo",lib:"CPA/BO"},
- {c:18,k:"annee",lib:"Année"},
- {c:19,k:"segment",lib:"Segment",liste:"segments"},
- {c:20,k:"deracc_osr",lib:"Déracc/OSR",grp:"Affaire"},
- {c:21,k:"prog_fin",lib:"Prog/Fin",grp:"Affaire"},
- {c:22,k:"bi_chantier",lib:"BI/Chantier",grp:"Intervention"},
- {c:23,k:"demande_init",lib:"Demande initiale",grp:"Intervention",date:true},
- {c:24,k:"relance",lib:"Relance",grp:"Intervention",date:true},
- {c:25,k:"date_interv",lib:"Date intervention",grp:"Intervention",date:true}
+ {c:4,k:"etat_affaire",lib:"État",liste:"etats_affaire"},
+ {c:5,k:"statut_desh",lib:"Avancement",liste:"statuts_desherence"},
+ {c:6,k:"prm",lib:"PRM"},
+ {c:7,k:"nom_client",lib:"Nom client"},
+ {c:8,k:"poste",lib:"Poste HTA/BT"},
+ {c:9,k:"segment",lib:"Segment",liste:"segments"},
+ {c:10,k:"compl1",lib:"Complément 1"},
+ {c:11,k:"action",lib:"Action / point d’attention",grp:"Suivi"},
+ {c:12,k:"relance",lib:"Relance",grp:"Suivi",date:true},
+ {c:13,k:"date_interv",lib:"Date intervention",grp:"Suivi",date:true}
 ];
 var RAPPELS=[["atu","ATU","Nouvelles demandes de travaux urgents"],
              ["f960","F960","Nouvelles fiches F960"]];
@@ -800,7 +886,7 @@ function modeleCategories(){
       })
       : (cle==="convocation" ? [
           {cle:"convoques",lib:"Personnes convoquées",type:"texte",liste:"",groupe:"",col:0},
-          {cle:"cote_enedis",lib:"Côté Enedis",type:"texte",liste:"",groupe:"",col:0},
+          {cle:"cote_interne",lib:"Côté interne",type:"texte",liste:"",groupe:"",col:0},
           {cle:"presence",lib:"Présence",type:"presence",liste:"",groupe:"",col:0}]
       : (cle==="animation" ? [
           {cle:"participants",lib:"Participants attendus",type:"nombre",liste:"",groupe:"",col:0},
@@ -886,9 +972,38 @@ function jeuStatuts(nom){
   return (l&&l.length) ? l.map(function(v){return [v,v]}) : STATUTS;
 }
 function permVierge(){
-  return {actif:false,son:true,rappels:[
+  return {actif:false,son:true,seances:[],rappels:[
     {cle:"atu",nom:"ATU",aide:"Nouvelles demandes de travaux urgents",minutes:15,actif:true,dernier:null,alerte:false},
     {cle:"f960",nom:"F960",aide:"Nouvelles fiches F960",minutes:15,actif:true,dernier:null,alerte:false}]};
+}
+/* seances tenues : sans elles, une permanence close ne laissait aucune trace et
+   l'ecran annoncait « non enclenchée » alors qu'elle avait occupe la journee */
+function seancesPerm(){
+  var P=perm();
+  if(!estTableau(P.seances)) P.seances=[];
+  return P.seances;
+}
+function seancesDu(d){
+  return seancesPerm().filter(function(s){ return s.jour===d });
+}
+function seanceOuverte(d){
+  var l=seancesDu(d),t=null;
+  l.forEach(function(s){ if(!s.fin) t=s });
+  return t;
+}
+function minutesPermanence(d){
+  var n=minutes(hNow()),t=0;
+  seancesDu(d).forEach(function(s){
+    var f=s.fin?minutes(s.fin):(d===auj()?n:minutes(s.debut));
+    t+=Math.max(0,f-minutes(s.debut));
+  });
+  return t;
+}
+function plagePermanence(d){
+  var l=seancesDu(d);
+  if(!l.length) return "";
+  var deb=l[0].debut,fin=l[l.length-1].fin;
+  return deb+(fin?" à "+fin:"");
 }
 function rappels(){
   var P=perm();
@@ -914,7 +1029,7 @@ var CLE = "pst-pilot-v1";
 
 function vierge(){
   return {
-    meta:{app:"PST Pilot",version:VERSION,modifie_le:new Date().toISOString()},
+    meta:{app:"My Pilot Professional Edition",version:VERSION,modifie_le:new Date().toISOString()},
     parametres:{
       jours_ouvres:[1,2,3,4,5],absences:[],
       types_intervention:TYPES_DEFAUT.slice(),
@@ -934,7 +1049,7 @@ function vierge(){
       types_dossier:TYPES_DOSSIER.slice(),
       types_relation:TYPES_REL.slice(),
       categories_org:["Entreprise de travaux","Collectivité","Syndic / bailleur","Concessionnaire","Service interne","Particulier","Autre"],
-      gestionnaire:"Stella Caltagirone",
+      gestionnaire:"",
       categories:categoriesDefaut(),
       nom_app:NOM_DEFAUT,
       titre_dtdict:"Compteur de traitement",
@@ -946,10 +1061,13 @@ function vierge(){
       types_note:TYPES_NOTE.slice(),
       ouvrages:OUVRAGES.slice(),
       dtdict:{heures:3,cadence:15},
+      idees:{seuil:0.22},
       auto:true
     },
     chantiers:[],
     notes:[],
+    idees:[],
+    idees_unifiees:[],
     vigilances:[],
     dtdict:[],
     appels:[],
@@ -1296,7 +1414,7 @@ function majEtat(){
   if(!fsaDispo()){ e.classList.add("sale"); p.classList.add("sale") }
 }
 function serialise(format){
-  D.meta.app="PST Pilot";
+  D.meta.app="My Pilot Professional Edition";
   D.meta.app_version=APP_VERSION;
   D.meta.version=VERSION;
   var t=JSON.stringify(D,null,2);
@@ -1354,7 +1472,7 @@ function lierFichier(){
   if(!fsaDispo()){ $("#fichierCache").dataset.mode="remplacer"; $("#fichierCache").click(); return }
   ouvrirModale("Lier un fichier de données",
     '<p style="margin:0 0 10px;font-size:14px">Vos données doivent vivre dans un fichier. Deux cas :</p>'
-    +'<div class="diag"><div>Vous avez déjà un fichier PST Pilot<b>Ouvrir</b></div>'
+    +'<div class="diag"><div>Vous avez déjà un fichier de données<b>Ouvrir</b></div>'
     +'<div>C\'est votre première utilisation<b>Créer</b></div></div>'
     +'<div class="note-aide">Ouvrir ne modifie jamais le fichier choisi avant votre première saisie. '
     +'Et si vous désignez par erreur un fichier déjà rempli en voulant en créer un, il sera ouvert, pas écrasé.</div>',
@@ -1365,18 +1483,18 @@ function lierFichier(){
 function creerFichier(){
   window.showSaveFilePicker({
     suggestedName:nomFichier,
-    types:[{description:"Données PST Pilot",accept:{"application/json":[".json"],"text/javascript":[".js"]}}]
+    types:[{description:"Données de pilotage",accept:{"application/json":[".json"],"text/javascript":[".js"]}}]
   }).then(function(h){
     return h.getFile().then(function(f){ return f.text() }).then(function(txt){
       var a=analyser(txt);
       if(a.ok){
-        if(!donneesVides() && !confirm("Ce fichier contient déjà des données PST Pilot.\n\nIl sera ouvert (rien n'y sera écrasé), mais ce qui est affiché à l'écran sera remplacé. Continuer ?")) return;
+        if(!donneesVides() && !confirm("Ce fichier contient déjà des données de pilotage.\n\nIl sera ouvert (rien n'y sera écrasé), mais ce qui est affiché à l'écran sera remplacé. Continuer ?")) return;
         adopter(h,a.data,"Ce fichier contenait déjà des données : il a été ouvert, pas écrasé");
         return;
       }
       if(a.invalide){ toast("Fichier refusé — "+a.invalide,true); return }
       if(a.illisible || a.etranger){
-        if(!confirm("Ce fichier contient déjà autre chose que des données PST Pilot.\n\nL'écraser ?")) return;
+        if(!confirm("Ce fichier contient déjà autre chose que des données de pilotage.\n\nL'écraser ?")) return;
       }
       poignee=h; nomFichier=h.name||nomFichier; marquerCharge();
       return ecrireFichier(false).then(function(){ rendre(); toast("Fichier créé et lié — enregistrement automatique actif") });
@@ -1397,7 +1515,7 @@ function enregistrer(forcerChoix){
   }
   window.showSaveFilePicker({
     suggestedName:nomFichier,
-    types:[{description:"Données PST Pilot",accept:{"application/json":[".json"],"text/javascript":[".js"]}}]
+    types:[{description:"Données de pilotage",accept:{"application/json":[".json"],"text/javascript":[".js"]}}]
   }).then(function(h){
     return h.getFile().then(function(f){ return f.text() }).then(function(txt){
       var a=analyser(txt);
@@ -1422,7 +1540,7 @@ function ouvrirFichier(){
   if(sale && !donneesVides()
      && !confirm("Des modifications de cette session ne sont pas enregistrées.\n\nOuvrir un autre fichier les remplacera. Continuer ?")) return;
   if(fsaDispo() && typeof window.showOpenFilePicker==="function"){
-    window.showOpenFilePicker({types:[{description:"Données PST Pilot",
+    window.showOpenFilePicker({types:[{description:"Données de pilotage",
       accept:{"application/json":[".json"],"text/javascript":[".js"]}}]})
     .then(function(hs){
       poignee=hs[0]; nomFichier=hs[0].name;
@@ -1489,7 +1607,7 @@ function normaliser(o){
   v.parametres.types_dossier=p.types_dossier||TYPES_DOSSIER.slice();
   v.parametres.types_relation=p.types_relation||TYPES_REL.slice();
   v.parametres.categories_org=p.categories_org||["Entreprise de travaux","Collectivité","Syndic / bailleur","Concessionnaire","Service interne","Particulier","Autre"];
-  v.parametres.gestionnaire=(p.gestionnaire!=null)?p.gestionnaire:"Stella Caltagirone";
+  v.parametres.gestionnaire=(p.gestionnaire!=null)?p.gestionnaire:"";
   v.parametres.categories=estTableau(p.categories)?p.categories.map(normaliserCat):categoriesDefaut();
   v.parametres.nom_app=String(p.nom_app||NOM_DEFAUT);
   v.parametres.titre_dtdict=String(p.titre_dtdict||"Compteur de traitement");
@@ -1529,6 +1647,11 @@ function normaliser(o){
   v.vigilances=o.vigilances||[];
   v.dtdict=o.dtdict||[];
   v.appels=o.appels||[];
+  v.idees=(estTableau(o.idees)?o.idees:[]).map(normaliserIdee)
+    .filter(function(i){ return i.titre });
+  v.idees_unifiees=(estTableau(o.idees_unifiees)?o.idees_unifiees:[]).map(normaliserIdeeU);
+  if(!v.parametres.idees || typeof v.parametres.idees.seuil!=="number")
+    v.parametres.idees={seuil:0.22};
   v.contacts=(estTableau(o.contacts)?o.contacts:[]).map(normaliserContact);
   v.organisations=(estTableau(o.organisations)?o.organisations:[]).map(normaliserOrg);
   if(!v.parametres.mig_appels){          /* ajout unique de la rubrique alimentee par les appels */
@@ -1541,6 +1664,10 @@ function normaliser(o){
   var pm=o.permanence||{};
   v.permanence.actif=!!pm.actif;
   v.permanence.son=(pm.son!==false);
+  v.permanence.seances=(estTableau(pm.seances)?pm.seances:[]).map(function(s){
+    return {jour:String((s&&s.jour)||""),debut:String((s&&s.debut)||""),
+            fin:(s&&s.fin)?String(s.fin):null};
+  }).filter(function(s){ return dateValide(s.jour) && s.debut });
   if(estTableau(pm.rappels)){
     v.permanence.rappels=pm.rappels.map(function(r){
       return {cle:String(r.cle||uid()).replace(/[^a-z0-9_-]/gi,"")||("r"+uid()),
@@ -1631,7 +1758,7 @@ function majFavicon(){
 }
 
 /* ================= permanence telephonique ================= */
-var ctxAudio=null, titreBase="PST Pilot", clignote=false, dureeAppel=0;
+var ctxAudio=null, titreBase="My Pilot", clignote=false, dureeAppel=0;
 function perm(){ return D.permanence||(D.permanence=permVierge()) }
 function appelsDu(date){
   return (D.appels||[]).filter(function(a){return a.date===date})
@@ -1703,8 +1830,23 @@ function majDecomptes(){
 function fragPermanence(){
   var P=perm(),d=auj(),l=appelsDu(d);
   if(!P.actif){
-    return '<div class="perm-off"><span>Permanence non enclenchée aujourd\'hui.</span>'
-      +'<button class="b mini" data-act="perm-on" style="margin-left:auto">Prendre la permanence</button></div>';
+    /* le message dit ce qui s'est passe aujourd'hui : annoncer « non enclenchée » le soir
+       d'une journee de permanence efface le travail fait */
+    var sd=seancesDu(d),na=vraisAppels(l).length;
+    var dit,bouton;
+    if(sd.length){
+      dit='Permanence tenue de '+esc(plagePermanence(d))+' · '
+        +esc(dureeLisible(minutesPermanence(d)))
+        +(sd.length>1?' en '+sd.length+' fois':"")
+        +(na?' · '+na+' appel'+(na>1?'s':""):' · aucun appel');
+      bouton='Reprendre la permanence';
+    }else{
+      dit=na ? na+' appel'+(na>1?'s':"")+' noté'+(na>1?'s':"")+' aujourd\'hui, hors permanence.'
+             : 'Permanence non enclenchée aujourd\'hui.';
+      bouton='Prendre la permanence';
+    }
+    return '<div class="perm-off"><span>'+dit+'</span>'
+      +'<button class="b mini" data-act="perm-on" style="margin-left:auto">'+bouton+'</button></div>';
   }
   var n=minutes(hNow());
   var rap=rappels().map(function(r){
@@ -1735,10 +1877,16 @@ function fragPermanence(){
     +'<input type="text" id="apCom" placeholder="Commune" list="dlCom" style="flex:1;min-width:120px">'
     +'<datalist id="dlCom">'+communesConnues().map(function(x){ return '<option value="'+esc(x)+'">' }).join("")+'</datalist>'
   +'</div>'
-  +'<div class="ligne" style="margin:6px 0 4px">'
+  +'<div class="ligne" style="margin:6px 0 0">'
+    +'<input type="text" id="apAff" placeholder="Affaire / n\u00b0 dossier" list="dlAff" '
+      +'style="flex:0 1 190px;min-width:140px">'
+    +'<datalist id="dlAff">'+affairesConnues().map(function(x){
+        return '<option value="'+esc(x)+'">' }).join("")+'</datalist>'
     +'<input type="text" id="apObj" placeholder="Objet de l\'appel" style="flex:2;min-width:160px">'
+  +'</div>'
+  +'<div class="ligne" style="margin:6px 0 4px">'
     +selGerable('id="apMotif"',"motifs_appel",(D.parametres.motifs_appel||[])[0])
-    +'<button class="b" data-act="ap-add">Noter</button>'
+    +'<button class="b" data-act="ap-add" style="margin-left:auto">Noter</button>'
   +'</div>'
   +'<div class="ligne" style="margin:2px 0 4px"><span class="puce-lbl">Durée</span>'
     +[2,5,10,20].map(function(m){
@@ -1765,6 +1913,9 @@ function fragAppel(a,marque){
       +esc(a.heure)+(a.motif?' · '+esc(a.motif):"")+(a.duree?' · '+esc(a.duree)+' min':"")+'</div>'
     +'<div><span class="qui">'+esc(a.qui||"Appelant non précisé")+'</span>'
       +(a.tel?' <span class="mono" style="color:var(--encre-3)">'+esc(a.tel)+'</span>':"")+'</div>'
+    +(a.affaire?'<div class="aff">'+esc(a.affaire)
+      +(function(){ var c=dossierAffaire(a.affaire);
+          return c?' \u00b7 '+esc(c.libelle||""):"" })()+'</div>':"")
     +(a.objet?'<div class="obj">'+esc(a.objet)+'</div>':"")
     +(a.suite?'<div class="suite'+(a.suite_faite?" faite":"")+'" style="margin-top:4px">→ '+esc(a.suite)+'</div>':"")
     +'</div>';
@@ -1780,6 +1931,14 @@ function editerAppel(id){
    +'<label class="champ">Téléphone<input type="text" name="tel" value="'+esc(a.tel)+'"></label>'
    +'<label class="champ">Motif'+selGerable('name="motif"',"motifs_appel",a.motif)+'</label>'
    +'<label class="champ">Commune<input type="text" name="commune" value="'+esc(a.commune)+'"></label>'
+   +'<label class="champ">Affaire / n\u00b0 dossier'
+     +'<input type="text" name="affaire" value="'+esc(a.affaire||"")+'" list="dlAffF">'
+     +'<datalist id="dlAffF">'+affairesConnues().map(function(x){
+         return '<option value="'+esc(x)+'">' }).join("")+'</datalist>'
+     +(function(){ var c=dossierAffaire(a.affaire);
+         return c?'<span class="rappel-aff">'+esc(c.libelle||"")
+           +' \u00b7 <button class="lien" data-ouvrir-aff="'+esc(c.id)+'">ouvrir le dossier</button></span>':"" })()
+     +'</label>'
    +'<label class="champ">Durée (min)<input type="number" name="duree" min="0" step="1" value="'+esc(a.duree||"")+'"></label>'
    +'</div>'
    +'<label class="champ" style="margin-top:12px">Objet de l\'appel<textarea name="objet" style="width:100%;min-height:90px;padding:8px;border:1px solid var(--trait);border-radius:2px">'+esc(a.objet)+'</textarea></label>'
@@ -1792,9 +1951,13 @@ function editerAppel(id){
       D.appels=D.appels.filter(function(x){return x.id!==id});
       fermerModale(); modifie(); rendre(); toast("Appel supprimé");
     }},
+    {txt:"Compte rendu",classe:"creux",fn:function(){
+      ouvrirCR("Compte rendu d’appel",crFichier("appel",a.date),function(){ return crAppel(a) },null);
+    }},
     {txt:"Fermer",fn:fermerModale,droite:true},
     {txt:"Enregistrer",classe:"",droite:true,fn:function(){
       a.heure=valChamp("heure"); a.qui=valChamp("qui"); a.entreprise=valChamp("entreprise");
+      a.affaire=valChamp("affaire");
       a.tel=valChamp("tel"); a.motif=valChamp("motif"); a.commune=valChamp("commune");
       a.objet=valChamp("objet"); a.suite=valChamp("suite"); a.duree=+valChamp("duree")||0;
       a.suite_faite=$("#modCorps").querySelector('[name="suite_faite"]').checked;
@@ -1873,19 +2036,22 @@ function ajouterAppel(){
   var vEnt=ent?ent.value.trim():"", vCom=com?com.value.trim():"";
   if(!q||!o) return;
   var vq=q.value.trim(),vo=o.value.trim(),vt=tel?tel.value.trim():"";
-  if(!vq && !vo && !vt){ (tel||q).focus(); return }
+  var pAff=$("#apAff"), aAff=pAff?pAff.value.trim():"";
+  if(!vq && !vo && !vt && !aAff){ (tel||q).focus(); return }
   var trouve=null;
   if(vt && !vq){                     /* numero deja croise : on retrouve le nom */
     trouve=chercherContact(vt);
     if(trouve) vq=trouve.qui;
   }
+  var aff=$("#apAff"), vAff=aff?aff.value.trim():"";
   (D.appels||(D.appels=[])).push({
-    id:uid(),date:auj(),heure:hNow(),qui:vq,objet:vo,
+    id:uid(),date:auj(),heure:hNow(),qui:vq,objet:vo,affaire:vAff,
     motif:$("#apMotif")?$("#apMotif").value:"",
     entreprise:(vEnt||(trouve?trouve.entreprise:"")),tel:vt,commune:vCom,duree:dureeAppel||0,
     suite:"",suite_faite:false
   });
   q.value=""; o.value=""; if(tel) tel.value="";
+  if(aff) aff.value="";
   if(ent) ent.value=""; if(com) com.value="";   /* la commune change d'un appel a l'autre */
   var dA=dureeAppel; dureeAppel=0;
   modifie(); rendre();
@@ -2108,6 +2274,32 @@ function ouvrirPause(){
 }
 /* ================= modale ================= */
 var actionsModale={};
+/* saisie d'une valeur : une vraie fenetre plutot que window.prompt, que certains
+   navigateurs bloquent et qui ne respecte pas la mise en forme de l'application.
+   Elle s'ouvre par-dessus la modale courante sans la fermer. */
+function saisirValeur(question,defaut){
+  return new Promise(function(fin){
+    var d=document.createElement("dialog"), fait=false;
+    d.className="saisie-val";
+    d.innerHTML='<div class="mod-tete"><h3>'+esc(question)+'</h3>'
+      +'<button class="mod-fermer" data-s="non" title="Annuler">\u2715</button></div>'
+      +'<div class="mod-corps"><input type="text" style="width:100%" maxlength="200"></div>'
+      +'<div class="mod-pied"><button class="b creux" data-s="non">Annuler</button>'
+      +'<div class="droite"><button class="b" data-s="oui">Ajouter</button></div></div>';
+    document.body.appendChild(d);
+    var e=d.querySelector("input"); e.value=defaut||"";
+    function clore(v){ if(fait) return; fait=true; try{ d.close() }catch(x){} d.remove(); fin(v) }
+    d.addEventListener("click",function(ev){
+      var b=ev.target.closest("[data-s]");
+      if(b){ ev.preventDefault(); ev.stopPropagation(); clore(b.dataset.s==="oui"?e.value:null) }
+    });
+    e.addEventListener("keydown",function(ev){
+      if(ev.key==="Enter"){ ev.preventDefault(); ev.stopPropagation(); clore(e.value) }
+    });
+    d.addEventListener("cancel",function(ev){ ev.preventDefault(); clore(null) });
+    d.showModal(); e.focus(); e.select();
+  });
+}
 function ouvrirModale(titre,corps,boutons){
   $("#modTitre").textContent=titre;
   $("#modCorps").innerHTML=corps;
@@ -2309,6 +2501,11 @@ function editerChantier(id){
           desarchiver(c); fermerModale(); modifie(); rendre(); toast("Dossier réactivé");
         }}
       : {txt:"Archiver",classe:"creux",fn:function(){ demanderIssue([c],"archivé à la main") }}),
+    {txt:"Compte rendu",classe:"creux",fn:function(){
+      ouvrirCR("Compte rendu — "+catDe(c).lib,crFichier("activite",c.date||auj()),
+        function(avecNotes){ return crActivite(c,avecNotes!==false) },
+        "Inclure l’historique des notes et des tâches");
+    }},
     {txt:"Supprimer",classe:"creux",fn:function(){
       if(confirm("Supprimer définitivement cette activité ?\n\nSes notes seront conservées mais détachées, et son historique disparaîtra des rapports. Préférez l'archivage si vous voulez garder la trace.")){
         var ref=refDossier(chantierPar(id));
@@ -2361,6 +2558,9 @@ function editerNote(id){
         D.notes=D.notes.filter(function(x){return x.id!==id});
         fermerModale(); modifie(); rendre(); toast("Note supprimée");
       }
+    }},
+    {txt:"Compte rendu",classe:"creux",fn:function(){
+      ouvrirCR("Compte rendu de note",crFichier("note",n.date),function(){ return crNote(n) },null);
     }}];
   /* l'action se traite d'ici : compte rendu et temps passe, sans repasser par « En attente » */
   if(n.suite && n.suite.texte && !n.suite.fait)
@@ -3025,7 +3225,9 @@ function vueJour(){
     +(D.parametres.mod_permanence!==false
       ? '<div class="bloc"'+(perm().actif?' style="border-left:4px solid var(--rouge)"':"")+'>'
         +'<div class="bloc-tete"><h2>Assistance téléphonique</h2>'
-        +'<span class="compte">'+(perm().actif?(vraisAppels(appelsDu(d)).length+" appel(s)"):"hors permanence")+'</span></div>'
+        +'<span class="compte">'+(perm().actif
+            ? (vraisAppels(appelsDu(d)).length+" appel(s)")
+            : (seancesDu(d).length ? "permanence close" : "hors permanence"))+'</span></div>'
         +'<div class="bloc-corps">'+fragPermanence()+'</div></div>' : "")
     +(D.parametres.mod_dtdict!==false
       ? '<div class="bloc"'+(D.parametres.mod_permanence!==false?' style="margin-top:18px"':"")+'>'
@@ -3236,7 +3438,6 @@ function vueDonnees(){
     +'</div>'
   +'</div></div>'
   +(window.persoDiagnostic?window.persoDiagnostic():'')
-  +(window.persoJournal?window.persoJournal():'')
   +'</div><div>'
   +'<div class="bloc"><div class="bloc-tete"><h2>Paramètres</h2></div><div class="bloc-corps">'
     +'<label class="champ">Jours travaillés</label>'
@@ -3537,18 +3738,23 @@ function analyserImport(lignes){
     if(diffs.length || perso) maj.push({cible:ex,val:o,diffs:diffs,perso:perso}); else inchange++;
   }
   /* dossiers presents chez moi mais plus dans le fichier filtre : changement de gestionnaire,
-     cloture, sortie du perimetre. Jamais supprime d'office : propose au cas par cas. */
-  var absents=[],dg=diagImport();
+     cloture, sortie du perimetre. Jamais supprime d'office : propose au cas par cas.
+     Les dossiers deja archives sont hors sujet : leur sortie du perimetre est actee, et les
+     reproposer a chaque import faisait revenir indefiniment la meme liste. */
+  var absents=[],dejaArch=0,dg=diagImport();
   if(dg.applique){
     var kc=(catImport()||{cle:"chantier"}).cle;
     D.chantiers.forEach(function(c){
       if((c.categorie||"chantier")!==kc) return;
       var pr=normPRM(c.prm); if(!pr) return;
-      if(!vus[pr]) absents.push(c);
+      if(vus[pr]) return;
+      if(estArchive(c)){ dejaArch++; return }
+      absents.push(c);
     });
   }
   return {nouv:nouv,maj:maj,inchange:inchange,ignorees:ignorees,autres:autres,revenus:revenus,
-          absents:absents,flous:flous,filtreOk:dg.applique,total:Math.max(0,lignes.length-2)};
+          absents:absents,dejaArch:dejaArch,flous:flous,filtreOk:dg.applique,
+          total:Math.max(0,lignes.length-2)};
 }
 function libellePerso(c){
   return c && c.libelle_auto!=null && c.libelle!==c.libelle_auto;
@@ -3594,7 +3800,7 @@ function ecranImport(r){
   var dg=diagImport();
   var corps='<div class="diag">'
     +'<div>Lignes lues<b>'+r.total+'</b></div>'
-    +'<div>Nouvelles déshérences<b class="ok">'+r.nouv.length+'</b></div>'
+    +'<div>Nouveaux dossiers<b class="ok">'+r.nouv.length+'</b></div>'
     +'<div>Déjà présentes, modifiées<b>'+r.maj.length+'</b></div>'
     +'<div>Déjà présentes, identiques<b>'+r.inchange+'</b></div>'
     +(r.autres?'<div>Lignes d\'un autre gestionnaire, écartées<b>'+r.autres+'</b></div>':"")
@@ -3604,6 +3810,7 @@ function ecranImport(r){
       +(dg.applique?("appliqué sur "+esc(dg.filtre)):(dg.attendu?"NON APPLIQUÉ":"aucun"))+'</b></div>'
     +'<div>Colonnes reconnues<b class="'+(dg.cols?"":"ko")+'">'+dg.cols+'</b></div>'
     +((r.absents&&r.absents.length)?'<div>Plus dans le fichier, à examiner<b>'+r.absents.length+'</b></div>':"")
+    +(r.dejaArch?'<div>Déjà archivés, non reproposés<b>'+r.dejaArch+'</b></div>':"")
     +((r.revenus&&r.revenus.length)?'<div>Archivés de retour dans le fichier<b class="ok">'+r.revenus.length+'</b></div>':"")
     +((r.flous&&r.flous.length)?'<div>Dates non exploitables<b>'+r.flous.length+'</b></div>':"")
     +'</div>';
@@ -3714,7 +3921,7 @@ function ecranImport(r){
         fn:function(){ validerImport(true,true,"traite") }});
     }
   }
-  ouvrirModale("Import des déshérences",corps,boutons);
+  ouvrirModale("Import des dossiers",corps,boutons);
 }
 /* l'issue est demandee au moment ou elle est connue : « absent du reporting » recouvre
    aussi bien un dossier solde qu'un dossier reaffecte, et le rapport ne peut pas trancher seul. */
@@ -3883,7 +4090,7 @@ function suffixePeriode(){
 function exportChantiersCSV(){
   var e=["Date","Heure","Durée (min)","Catégorie","Référence","Libellé","Type / motif / thème",
     "Entreprise","Contact","Téléphone","Commune","Lieu","Statut","Priorité",
-    "Ouvrage","Convoqués","Côté Enedis","Présence","Participants","Support","Commentaire"]
+    "Ouvrage","Convoqués","Côté interne","Présence","Participants","Support","Commentaire"]
     .concat(champsImport().map(function(x){return x.lib}));
   var l=D.chantiers.filter(function(c){return dansPeriode(c.date)}).sort(function(a,b){return (a.date||"").localeCompare(b.date||"")})
    .map(function(c){
@@ -3892,7 +4099,7 @@ function exportChantiersCSV(){
        c.contact_tel,c.commune,c.adresse,libStatut(c.statut),c.priorite,
        cat==="chantier"?(c.ouvrage||""):"",
        cat==="convocation"?(c.convoques||""):"",
-       cat==="convocation"?(c.cote_enedis||""):"",
+       cat==="convocation"?(c.cote_interne||""):"",
        cat==="convocation"?libPresence(c.presence):"",
        cat==="animation"?(c.participants||""):"",
        cat==="animation"?(c.support||""):"",
@@ -4323,7 +4530,7 @@ function candidatsContacts(){
   l.sort(function(a,b){ return b.n-a.n || (b.derniere||"").localeCompare(a.derniere||"") });
   return l;
 }
-/* « SARL Berthaud TP » et « BERTHAUD TP » sont la meme entreprise : on compare
+/* « SARL Exemple TP » et « EXEMPLE TP » sont la meme entreprise : on compare
    sur une forme reduite, sans forme juridique, sans accent ni ponctuation. */
 var FORMES_JUR=["sarl","sas","sasu","sa","eurl","sci","scp","eirl","ets","ste","snc","scop",
   "gie","asso","association","cooperative","earl","gaec","sem","spl","epic","cci","ccas"];
@@ -4466,8 +4673,8 @@ function detecterOrgs(){
   }
   var corps='<div class="note-aide" style="margin-top:0">Relevé dans le champ Entreprise de vos appels '
     +'et dans le champ interlocuteur des catégories qui désignent une organisation. '
-    +'Les formes juridiques sont ignorées pour le rapprochement : « SARL Berthaud TP » et '
-    +'« BERTHAUD TP » comptent pour une seule entreprise.</div>'
+    +'Les formes juridiques sont ignorées pour le rapprochement : « SARL Exemple TP » et '
+    +'« EXEMPLE TP » comptent pour une seule entreprise.</div>'
     +'<div class="ligne" style="margin:6px 0"><button class="b mini creux" data-act="corg-tout">Tout cocher</button>'
     +'<button class="b mini creux" data-act="corg-rien">Tout décocher</button></div>'
     +'<div style="max-height:340px;overflow:auto">'
@@ -4803,6 +5010,34 @@ function editerContact(id){
   ]);
 }
 function refLien(l){ return (l.cible==="org"?"o:":"c:")+l.vers }
+/* references de dossiers deja connues : la saisie de permanence les propose, sans
+   obliger a choisir dans la liste — un appel peut porter sur une affaire absente du fichier */
+function affairesConnues(){
+  var m={},l=[];
+  D.chantiers.forEach(function(c){
+    [c.reference,c.prm].forEach(function(v){
+      v=String(v||"").trim();
+      if(v && !m[v]){ m[v]=c; l.push(v) }
+    });
+  });
+  (D.appels||[]).forEach(function(a){
+    var v=String(a.affaire||"").trim();
+    if(v && !m[v]){ m[v]=null; l.push(v) }
+  });
+  l.sort();
+  return l;
+}
+/** Le dossier qui porte cette reference, s'il existe. */
+function dossierAffaire(ref){
+  ref=String(ref||"").trim();
+  if(!ref) return null;
+  var t=null;
+  D.chantiers.forEach(function(c){
+    if(t) return;
+    if(String(c.reference||"").trim()===ref || String(c.prm||"").trim()===ref) t=c;
+  });
+  return t;
+}
 function communesConnues(){
   var m={};
   D.chantiers.forEach(function(c){ if(c.commune) m[c.commune]=1 });
@@ -5806,23 +6041,29 @@ function rendre(){
   if(!fichierCharge && vueActive!=="donnees" && vueActive!=="param") vueActive="donnees";
   var sauveNote=$("#noteRapide")?$("#noteRapide").value:null;
   var sauveVigi=$("#vigiTxt")?$("#vigiTxt").value:null;
-  var sauveAp=["apTel","apQui","apObj","apEnt","apCom"].map(function(i){ return $("#"+i)?$("#"+i).value:null });
+  var sauveAp=["apTel","apQui","apObj","apEnt","apCom","apAff"].map(function(i){ return $("#"+i)?$("#"+i).value:null });
   var sauveLienQ=$("#lienQ")?$("#lienQ").value:null;
   var sauveCtQ=$("#ctq")?$("#ctq").value:null;
+  var sauveId=["idTitre","idNote"].map(function(i){ return $("#"+i)?$("#"+i).value:null });
   if(vueActive==="jour") m.innerHTML=vueJour();
   else if(vueActive==="suivant") m.innerHTML=vueSuivant();
   else if(vueActive==="chantiers") m.innerHTML=vueChantiers();
+  else if(vueActive==="idees") m.innerHTML=vueIdees();
   else if(vueActive==="journal") m.innerHTML=vueJournal();
   else if(vueActive==="contacts") m.innerHTML=vueContacts();
   else if(vueActive==="param") m.innerHTML=vueParam();
   else m.innerHTML=vueDonnees();
   if(sauveNote && $("#noteRapide")) $("#noteRapide").value=sauveNote;
   if(sauveVigi && $("#vigiTxt")) $("#vigiTxt").value=sauveVigi;
-  ["apTel","apQui","apObj","apEnt","apCom"].forEach(function(i,k){
+  ["apTel","apQui","apObj","apEnt","apCom","apAff"].forEach(function(i,k){
     if(sauveAp[k] && $("#"+i)) $("#"+i).value=sauveAp[k];
   });
   if(sauveLienQ && $("#lienQ")) $("#lienQ").value=sauveLienQ;
   if(sauveCtQ && $("#ctq")){ $("#ctq").value=sauveCtQ; }
+  ["idTitre","idNote"].forEach(function(i,k){
+    if(sauveId[k] && $("#"+i)) $("#"+i).value=sauveId[k];
+  });
+  if(vueActive==="idees") dessinerBulles();   /* la carte a besoin de la largeur reelle */
   var d=new Date();
   $("#version").textContent="v"+APP_VERSION;
   var nm=String((D.parametres&&D.parametres.nom_app)||NOM_DEFAUT);
@@ -5830,6 +6071,7 @@ function rendre(){
   titreBase=nm+" v"+APP_VERSION;        /* sert aussi de base aux alertes de permanence */
   if(!alertesEnCours().length) document.title=titreBase;
   var bp=$("#btnPause"); if(bp) bp.style.display=fichierCharge?"":"none";
+  /* À propos et Aide restent accessibles avant toute liaison de fichier */
   majStyleCats();
   majCompteurPause();
   $("#dateJour").textContent=d.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
@@ -5857,6 +6099,1323 @@ function ajouterNote(){
   toast("Note ajoutée à "+n.heure+(n.duree?" · "+n.duree+" min":""));
 }
 
+var JOURNAL_VERSIONS = (window.persoVersions||[]).concat([
+ ["3.21.0","Le modèle de catégories livré avec le code est désormais générique. Le modèle métier s'importe depuis une configuration, hors du code."],
+ ["3.20.0","À propos : bandeau d'en-tête reprenant l'animation d'ouverture, sur le nom du logiciel."],
+ ["3.19.1","Correctif : le bouton Enregistrer était invisible sur le bandeau quand l'enregistrement automatique est actif."],
+ ["3.19.0","À propos : fiche du logiciel, auteur, licence et journal des versions, déplacé depuis Données."],
+ ["3.18.0","Permanence : champ Affaire à la saisie, relié au dossier quand la référence existe."],
+ ["3.17.0","Bouton Compte rendu sur les fiches appel, note et activité. La permanence close indique la plage tenue, le temps cumulé et les appels."],
+ ["3.16.3","Cristallisation : la réponse se lit même avec des guillemets courbes, ou collée avec la demande."],
+ ["3.16.2","Import : un dossier déjà archivé n'est plus reproposé à l'archivage."],
+ ["3.16.1","Idées : carte vivante — membranes de groupe, cristaux, couleurs des catégories, glisser et zoom."],
+ ["3.16.0","Onglet Idées : capture, regroupement automatique par similarité, cristallisation par copier-coller, conversion en activité."],
+ ["3.15.2","Correctif : en fenetre etroite, Aide et Pause restent groupes a droite."],
+     ["3.15.1","Correctif : le bouton Aide etait invisible tant que l'aide n'avait pas ete ouverte une fois."],
+     ["3.15.0","Aide integree : bouton Aide, touche F1 contextuelle, recherche, 14 rubriques."],
+     ["3.14.0","Renommage en My Pilot Professional Edition. En-tete lisible en fenetre etroite. Ajout en liste dans une fenetre de l'application."],
+     ["3.13.1","Nom d'application par defaut : My Pilot."],
+     ["3.13.0","Planning du jour : « Noter » remplace « Clore » — compte rendu prefixe du motif, temps pre-rempli, statut au choix."],
+     ["3.12.0","Note : traitement de l'action depuis la fiche. Permanence : entreprise et commune a la saisie. Correctif du rattachement perdu."],
+     ["3.11.4","Rapport : trois pages equilibrees, le journal rejoint la production."],
+     ["3.11.3","Rapport : avancement detaille en tete de page 3, plus de ligne orpheline."],
+     ["3.11.2","Rapport : le temps trace passe en page 2 (charge), la page 1 ne deborde plus."],
+     ["3.11.1","Impression : les longs tableaux se coupent entre deux lignes, plus de demi-page blanche."],
+     ["3.11.0","Rapport : « Nature des affaires » et bloc separe pour le compteur et la permanence."],
+     ["3.10.1","Rapport : chaque categorie indique ce qu'elle porte hors periode."],
+     ["3.10.0","Rapport : section Prevention et reduction du risque a la place de la couverture territoriale ; categorie sans activite rendue visible."],
+     ["3.9.1","Rapport : l'archivage rattache le dossier a sa periode ; couverture territoriale et jours ouvres corriges."],
+     ["3.9.0","Archivage qualifie : un dossier traite compte parmi les affaires menees a terme, une sortie de perimetre est comptee a part."],
+     ["3.8.1","Rubriques d'activite : ordre reglable par fleches, respecte partout."],
+     ["3.8.0","Rapport : un dossier sans date de planification est rattache a la periode par sa derniere action ou ses notes."],
+     ["3.7.2","Rapport : une categorie a statut unique n'est plus omise de l'avancement detaille."],
+     ["3.7.1","Contacts : civilite dans un champ dedie, detectee a la saisie, a l'import et sur l'existant."],
+     ["3.7.0","Les relations peuvent viser une organisation ; fiche organisation enrichie, graphe distinguant les formes."],
+     ["3.6.2","Correctif : la recherche Contacts perdait le focus a chaque caractere."],
+     ["3.6.1","En attente : filtre « Aujourd'hui » (echeances du jour et en retard) avec compteur permanent."],
+     ["3.6.0","Detection des organisations et rattachement automatique des contacts ; nature du tiers par categorie."],
+     ["3.5.0","Contacts : detection depuis les activites et les appels, graphe egocentre des relations."],
+     ["3.4.0","Archivage des dossiers : sortie des vues courantes sans perte de notes, taches ni rattachements."],
+     ["3.3.1","Import : un marqueur de realisation en colonne date retire la fiche du planning."],
+     ["3.3.0","Import : cellule vide non destructrice, suppression proposee au cas par cas, dates non exploitables signalees."],
+     ["3.2.5","Import Excel : le filtre gestionnaire non applique est signale et bloque l'application."],
+     ["3.2.4","Correctif : la feuille de style de la 3.2.2 ecrasait les barres de « Ou passe le temps »."],
+     ["3.2.3","Categorie inconnue au chargement : signalee au lieu d'etre rattachee en silence."],
+     ["3.2.2","Correction des categories : choix de la destination lot par lot quand le statut ne la designe pas seul."],
+     ["3.2.1","Rapport PDF : aplats conserves a l'impression, avancement ventile par categorie, listes plafonnees, pagination."],
+      ["3.2.0","Rapport d'activite en PDF : trois pages, comparaison avec la periode precedente, sections redigees."],
+      ["3.1.0","Rapport d'activite sur une periode, sans donnee nominative ni reference de dossier."],
+      ["3.0.0","Module Contacts : fiches, organisations, relations typees, historique reconstitue, import et export CSV."],
+      ["2.9.0","Rappels de permanence parametrables, trace des verifications dans le journal des appels, textes revus."],
+      ["2.8.4","L'animation affiche toujours le nom, y compris au premier demarrage sur un poste."],
+      ["2.8.3","Nom de poste modifiable en tete de fichier, et messages ne presentant plus le tampon comme une sauvegarde."],
+      ["2.8.2","Au tout premier demarrage sur un poste, l'animation n'affiche plus de nom par defaut."],
+      ["2.8.1","Navigateurs sans ecriture directe (Brave, Firefox) : etat signale dans le bandeau et rappel de sauvegarde."],
+      ["2.8.0","Animation d'ouverture : le nom se compose depuis une suite de 0 et 1, desactivable dans Donnees."],
+      ["2.7.1","Le chargement d'un fichier bascule directement sur la vue du jour."],
+      ["2.7.0","Portabilite : demarrage verrouille sans fichier, aucune categorie imposee, blocs desactivables, nom et titre personnalisables."],
+      ["2.6.2","Retrait du chargement automatique de fichiers .js : plus aucun fichier executable n'est lu au demarrage."],
+      ["2.6.1","Robustesse : validation des fichiers importes avant chargement, cle de categorie assainie, plafond de taille."],
+      ["2.6.0","Navigation entre note et activite, duree libre dans le journal, correction des creneaux DT/DICT."],
+      ["2.5.1","Compte-rendu : le rattachement apparait dans la section A suivre, et les rubriques dans le journal."],
+      ["2.5.0","Bloc En attente : filtre par horizon (1 a 3 semaines, 1 mois, tout), une semaine par defaut."],
+      ["2.4.0","Depuis la fiche d'une activite : ajout direct d'une note ou d'une tache rattachee."],
+      ["2.3.1","La date d'un point de vigilance devient une echeance : le point reste visible jusqu'a ce jour, et au-dela."],
+      ["2.3.0","Marquer une action faite propose d'enregistrer une note de tracabilite sur le dossier concerne."],
+      ["2.2.1","Correctif : code JavaScript affiche en haut de page, et champ d'avancement desormais pilote par la configuration."],
+      ["2.2.0","Les appels de permanence sont consultables dans le journal, avec filtre et recherche."],
+      ["2.1.0","Les comportements specifiques (import Excel, miroir de statut, regle de libelle, apercu) sont pilotes par la configuration, non plus par la cle."],
+      ["2.0.0","Categories d'activite entierement configurables : apparence, champs, statuts, import et export de configuration."],
+      ["1.24.1","La duree d'une activite close est desormais comptee dans la repartition du temps."],
+      ["1.24.0","Journal : recherche et filtre par categorie sur la liste de rattachement."],
+      ["1.23.0","Les desherences prennent l'Etat affaire comme statut, avec le cycle de vie metier complet."],
+      ["1.22.1","Import : avertissement et protection des libelles modifies a la main."],
+      ["1.22.0","Sous-ligne de contexte dans la liste et regle de libelle a l'import selon le segment."],
+      ["1.21.2","Liste des activites a hauteur d'ecran avec en-tete fixe ; correction des dates invalides issues de l'import."],
+      ["1.21.1","Import Excel limite aux lignes du gestionnaire configure."],
+      ["1.21.0","Import Excel des desherences avec detection des doublons par PRM et apercu des differences."],
+      ["1.20.1","Desherences : champ Interlocuteur et liste de types alignee sur l'usage."],
+      ["1.20.0","La categorie Dossier devient Desherence, conformement a son usage reel."],
+      ["1.19.0","Report de pause a la duree choisie : 5, 15, 30 ou 60 minutes."],
+      ["1.18.1","Le bloc des entrees datees devient Planning du jour, dans l'application comme dans le compte-rendu."],
+      ["1.18.0","Compte-rendu etablissable a n'importe quelle date, exports CSV filtrables par periode."],
+      ["1.17.0","Cycle de vie propre aux convocations et animations, tirage de pause plus varie."],
+      ["1.16.1","Correctif : les listes de valeurs s'enregistrent des la sortie du champ, sans bouton de validation separe."],
+      ["1.16.0","Duree par appel de permanence, imputee a la rubrique Permanence telephonique."],
+      ["1.15.2","Permanence : champ telephone dans la saisie rapide, avec reconnaissance des numeros deja croises."],
+      ["1.15.1","Correctif : les champs de saisie se vident bien apres l'ajout d'une note ou d'un point de vigilance."],
+      ["1.15.0","Nouvelle categorie Transverse pour tout ce qui n'entre pas dans les trois autres."],
+      ["1.14.1","Retrait de l'ancienne banniere de pause qui subsistait dans le bloc DT/DICT."],
+      ["1.14.0","Les points de vigilance dont la date est passee ne disparaissent plus : ils restent affiches et signales comme depasses."],
+      ["1.13.0","Un seul rappel de pause, avec compte a rebours dans le bandeau. Le minuteur lie aux sessions DT/DICT est supprime."],
+      ["1.12.0","Rappel de pause regulier, independant du chronometre et de la cloture : la fenetre s'ouvre meme sans les utiliser."],
+      ["1.11.1","Les propositions de pause ne peuvent plus echouer en silence : repli entre sections, avertissement si les sections cles sont vides, apercu a la demande, reglages reformules."],
+      ["1.11.0","Fenetre de pause centree avec devoilement, creation des trois categories depuis Activites, origine du temps chronometre affichee."],
+      ["1.10.0","La carte Pause est desormais enregistree avec les donnees : un seul fichier a lier le matin."],
+      ["1.9.1","Correctifs : le temps impute sur les dossiers apparait dans la repartition, et lier le fichier de la carte ne peut plus l'ecraser."],
+      ["1.9.0","Rubriques d'activite : rattachement des notes hors dossier, imputation en un clic, repartition du temps."],
+      ["1.8.3","Nouveau logo : dossier et engrenage, en remplacement de la croix."],
+      ["1.8.1","Correctif important : lier un fichier ne peut plus l'écraser. Ouverture et création sont désormais distinctes."],
+      ["1.8.0","Les chantiers deviennent des dossiers : renommage de la catégorie dans toute l'interface."],
+      ["1.7.0","Icône d'onglet et logo, qui passent au rouge quand un rappel de permanence se déclenche."],
+      ["1.6.0","Permanence d'assistance téléphonique : journal d'appels, rappels ATU et F960 réglables, alerte sonore et visuelle."],
+      ["1.5.0","Pauses proposées à la clôture d'une activité, marquage des activités éprouvantes, suggestions calibrées sur le temps disponible."],
+      ["1.4.0","Carte personnelle « Pause » dans son propre fichier, suggestions au fil des sessions DT/DICT."],
+      ["1.3.0","Convocations et animations : trois catégories d'activité, filtres, comptes-rendus et exports distincts."],
+      ["1.2.0","Chronomètre de session DT/DICT, cadence calculée sur le temps réellement travaillé, versionnage de l'application."],
+      ["1.1.0","Points de vigilance du jour, comptage DT/DICT, enregistrement automatique du fichier, listes déroulantes modifiables."],
+      ["1.0.0","Dossiers du jour et prochain jour ouvré, journal de notes, suites à donner, imports et exports."]]);
+
+/* ================= à propos =================
+   Fiche du logiciel : ce qu'il est, qui l'a écrit, sous quelle licence, et le journal
+   des versions — qui vivait jusqu'ici dans la vue Données, où personne ne le cherchait. */
+var AUTEUR = "Stella Caltagirone";
+var LICENCE = "Tous droits réservés";
+var ANNEE = "2026";
+
+/* Le bandeau reprend l'ecran d'ouverture : le nom se compose depuis une suite de 0 et 1.
+   Il affiche NOM_DEFAUT, le nom du logiciel dans le code, et non celui que vous avez
+   peut-etre choisi dans les parametres : c'est la fiche du produit, pas de votre copie. */
+function fragBandeauApropos(){
+  return '<div class="ap-ban">'
+    +'<span class="ap-logo" id="apLogo"></span>'
+    +'<div class="ap-nom" id="apNom" aria-label="'+esc(NOM_DEFAUT)+'"></div>'
+    +'<div class="ap-sous">pilotage d\u2019activité</div>'
+  +'</div>';
+}
+var animApropos=null;
+function arreterAnimApropos(){
+  if(animApropos){ clearInterval(animApropos); animApropos=null }
+}
+function animerNomApropos(){
+  arreterAnimApropos();
+  var lg=$("#apLogo"), n=$("#apNom");
+  if(!n) return;
+  if(lg) lg.innerHTML=iconeSVG("#191C1B","#D8232A","#FBFBF9");
+  var nom=String(NOM_DEFAUT);
+  var poser=function(){
+    n.innerHTML=esc(nom).replace(/\s+/g,'<span class="pt">\u00b7</span>');
+  };
+  var reduit=false;
+  try{ reduit=!!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) }catch(x){}
+  if(reduit){ poser(); return }
+  var cible=nom.toUpperCase().split(""), fixe=0;
+  var pas=Math.max(34,Math.floor(760/Math.max(cible.length,1)));
+  animApropos=setInterval(function(){
+    /* la fenetre a pu etre fermee entre deux images : on ne laisse rien tourner en fond */
+    if(!n.isConnected){ arreterAnimApropos(); return }
+    var out="",i;
+    for(i=0;i<cible.length;i++){
+      if(i<fixe) out += (cible[i]===" ") ? '<span class="pt">\u00b7</span>' : esc(cible[i]);
+      else out += '<span class="bit">'+(Math.random()<0.5?"0":"1")+'</span>';
+    }
+    n.innerHTML=out;
+    if(fixe++>cible.length){ arreterAnimApropos(); poser() }
+  },pas);
+}
+function fragApropos(){
+  var nom=String((D.parametres&&D.parametres.nom_app)||NOM_DEFAUT);
+  return fragBandeauApropos()
+    +'<p class="ap-intro">'+esc(nom)+' suit votre activité au quotidien : vos dossiers, '
+      +'vos rendez-vous, ce que vous en faites, le temps que vous y passez, et ce qu’il en '
+      +'reste à présenter.</p>'
+    +'<p class="ap-intro">Un seul fichier, qui fonctionne hors ligne. Aucune connexion, aucun '
+      +'service tiers, aucune dépendance extérieure : vos données ne quittent jamais votre poste '
+      +'et vivent dans le fichier que vous liez.</p>'
+    +'<div class="diag" style="margin-top:14px">'
+      +'<div>Version<b>'+esc(nom)+' v'+esc(APP_VERSION)+'</b></div>'
+      +'<div>Auteur<b>'+esc(AUTEUR)+'</b></div>'
+      +'<div>Licence<b>'+esc(LICENCE)+'</b></div>'
+      +'<div>Fonctionnement<b>fichier unique, hors ligne</b></div>'
+    +'</div>'
+    +'<p class="ap-legal">© '+esc(ANNEE)+' '+esc(AUTEUR)+'. '+esc(LICENCE)+'.</p>'
+    +'<hr class="sep">'
+    +'<div class="ligne" style="margin-top:0">'
+      +'<button class="lien" data-act="ap-versions">Journal des versions</button>'
+      +'<span class="note-aide" style="margin:0">'+JOURNAL_VERSIONS.length+' versions '
+      +'depuis la v'+esc(JOURNAL_VERSIONS[JOURNAL_VERSIONS.length-1][0])+'</span>'
+    +'</div>';
+}
+function fragJournalVersions(){
+  return '<div class="diag">'+JOURNAL_VERSIONS.map(function(v){
+      return '<div style="display:block;padding:6px 0">'
+        +'<b style="float:none;margin:0;color:var(--encre)">v'+esc(v[0])+'</b>'
+        +'<div style="font-family:var(--corps);font-size:13px;color:var(--encre-2);margin-top:2px">'
+        +esc(v[1])+'</div></div>';
+    }).join("")+'</div>';
+}
+/** page vaut "versions" pour le journal, sinon la fiche du logiciel. */
+function ouvrirApropos(page){
+  if(page==="versions"){
+    arreterAnimApropos();
+    ouvrirModale("Journal des versions",fragJournalVersions(),[
+      {txt:"← À propos",classe:"creux",fn:function(){ ouvrirApropos() }},
+      {txt:"Fermer",classe:"",droite:true,fn:fermerModale}
+    ]);
+    return;
+  }
+  ouvrirModale("À propos",fragApropos(),[
+    {txt:"Fermer",classe:"",droite:true,fn:function(){ arreterAnimApropos(); fermerModale() }}
+  ]);
+  animerNomApropos();
+}
+
+/* ================= comptes rendus =================
+   Un bouton « Compte rendu » sur la fiche d'un appel, d'une note et d'une activite.
+   Le texte est construit a partir de ce qui est a l'ecran, saisie en cours comprise :
+   vous n'avez pas a enregistrer avant d'extraire. Il s'ouvre dans sa propre fenetre,
+   par-dessus la fiche, qui reste ouverte derriere et intacte. */
+
+function crLigne(lib,val){
+  val=String(val==null?"":val).trim();
+  return val ? [lib,val] : null;
+}
+/** Aligne « Libellé : valeur » sur la plus longue etiquette, pour un bloc lisible en mail.
+    Une meme paire libelle + valeur n'est ecrite qu'une fois : certaines configurations
+    portent deux champs de meme nom, et un compte rendu qui se repete se lit mal. */
+function crBloc(lignes){
+  var vus={},l=[],max=0;
+  lignes.filter(Boolean).forEach(function(x){
+    var cle=x[0]+"\u0001"+x[1];
+    if(vus[cle]) return;
+    vus[cle]=1; l.push(x);
+    if(x[0].length>max) max=x[0].length;
+  });
+  if(!l.length) return "";
+  return l.map(function(x){
+    return x[0]+Array(max-x[0].length+1).join(" ")+" : "+x[1];
+  }).join("\n")+"\n";
+}
+/** Date metier en jj/mm/aaaa, comme sur la fiche ; le reste est rendu tel quel. */
+function crValeurChamp(f,v){
+  v=String(v==null?"":v).trim();
+  if(f && f.type==="date" && dateValide(v)){
+    var p=v.split("-");
+    return p[2]+"/"+p[1]+"/"+p[0];
+  }
+  return v;
+}
+function crTitre(t){ return t+"\n"+Array(Math.min(t.length,70)+1).join("—")+"\n" }
+function crSection(t,corps){
+  corps=String(corps||"").trim();
+  return corps ? "\n"+t+"\n"+corps+"\n" : "";
+}
+function crSignature(){
+  var P=D.parametres||{};
+  var l=[P.id_nom,P.id_fonction,P.id_entite].map(function(v){ return String(v||"").trim() })
+    .filter(Boolean);
+  return l.length ? "\n--\n"+l.join(" · ")+"\n" : "";
+}
+function crDateHeure(d,h){
+  var s=dateValide(d)?libDate(d):"";
+  if(h) s+= (s?" à ":"")+h;
+  return s;
+}
+/** Libelle lisible d'un statut, en passant par le jeu de la categorie. */
+function crStatut(c){
+  var v=String((c&&c.statut)||""); if(!v) return "";
+  var t="";
+  statutsDe((c&&c.categorie)||"chantier").forEach(function(x){ if(x[0]===v) t=x[1] });
+  return t||libStatut(v);
+}
+/** Valeur courante d'un champ du formulaire ouvert, sinon la valeur enregistree. */
+function crChamp(nom,repli){
+  var e=$("#modCorps") && $("#modCorps").querySelector('[name="'+nom+'"]');
+  if(!e) return repli==null?"":String(repli);
+  if(e.type==="checkbox") return e.checked;
+  return e.value;
+}
+
+/* ---------- appel ---------- */
+function crAppel(a){
+  if(!a) return "";
+  var h=crChamp("heure",a.heure), duree=+crChamp("duree",a.duree)||0;
+  var t=crTitre("Compte rendu d’appel — "+crDateHeure(a.date,h)
+    +(duree?" · "+dureeLisible(duree):""));
+  var aff=String(crChamp("affaire",a.affaire)||"").trim();
+  var dos=dossierAffaire(aff);
+  t+=crBloc([
+    crLigne("Affaire",aff+(dos&&dos.libelle?" \u00b7 "+dos.libelle:"")),
+    crLigne("Motif",crChamp("motif",a.motif)),
+    crLigne("Interlocuteur",crChamp("qui",a.qui)),
+    crLigne("Entreprise",crChamp("entreprise",a.entreprise)),
+    crLigne("Téléphone",crChamp("tel",a.tel)),
+    crLigne("Commune",crChamp("commune",a.commune))
+  ]);
+  t+=crSection("OBJET DE L’APPEL",crChamp("objet",a.objet));
+  var s=String(crChamp("suite",a.suite)||"").trim();
+  if(s){
+    var fait=crChamp("suite_faite",a.suite_faite);
+    t+=crSection("SUITE À DONNER"+(fait===true?" (traitée)":""),s);
+  }
+  return t+crSignature();
+}
+
+/* ---------- note ---------- */
+function crNote(n){
+  if(!n) return "";
+  var d=crChamp("date",n.date), h=crChamp("heure",n.heure);
+  var duree=+crChamp("duree",n.duree)||0, type=crChamp("type",n.type);
+  var t=crTitre("Compte rendu — "+crDateHeure(d,h)
+    +(type?" · "+type:"")+(duree?" · "+dureeLisible(duree):""));
+  /* le dossier rattache : le choix courant de la liste prime sur la valeur enregistree */
+  var lien=crChamp("lien",lienDe(n)), dossier="", rub="";
+  if(lien && lien.indexOf("c:")===0){
+    var c=chantierPar(lien.slice(2));
+    if(c) dossier=[c.reference||c.prm||"",c.libelle||""].filter(Boolean).join(" · ")
+      +(c.commune?" ("+c.commune+")":"");
+  }else if(lien && lien.indexOf("r:")===0){
+    rubriques().forEach(function(r){ if(r.id===lien.slice(2)) rub=r.nom });
+  }
+  if(!dossier && !rub && n.chantier_ref) dossier=n.chantier_ref+"  [lien perdu]";
+  t+=crBloc([crLigne("Dossier",dossier),crLigne("Rubrique",rub)]);
+  t+=crSection("NOTE",crChamp("contenu",n.contenu));
+  var s=String(crChamp("suite_txt",(n.suite||{}).texte)||"").trim();
+  if(s){
+    var ech=crChamp("suite_ech",(n.suite||{}).echeance);
+    var fait=crChamp("suite_fait",(n.suite||{}).fait);
+    t+=crSection("SUITE À DONNER"
+      +(fait===true?" (terminée)":(dateValide(ech)?" — échéance "+libDate(ech):"")),s);
+  }
+  return t+crSignature();
+}
+
+/* ---------- activite ---------- */
+function crActivite(c,avecNotes){
+  if(!c) return "";
+  var K=catDe(c);
+  var vc=function(nom,repli){ return String(crChamp(nom,repli)||"").trim() };
+  var lib=vc("libelle",c.libelle), ref=vc("reference",c.reference);
+  var t=crTitre(K.lib+" — "+(ref?ref+" · ":"")+(lib||"sans libellé"));
+  var d=vc("date",c.date), h=vc("heure",c.heure), du=+crChamp("duree",c.duree)||0;
+  /* sans date posee, l'heure seule ne s'annonce pas « Date » : une activite non datee
+     porte un horaire de principe, pas un rendez-vous */
+  var quand=crDateHeure(d,h)+(du?" · "+dureeLisible(du):"");
+  /* quand la categorie reflete son statut dans un champ metier, on reprend le nom de ce
+     champ : « État affaire » plutot que « Statut », et plus de doublon avec le champ
+     « Statut » du reporting, qui est autre chose */
+  var miroir=(K && K.miroir)||"", libStat="Statut";
+  champsDe(c.categorie||"chantier").forEach(function(f){
+    if(miroir && f.cle===miroir && f.lib) libStat=f.lib;
+  });
+  var base=[
+    crLigne(libStat,crStatut({categorie:c.categorie,statut:vc("statut",c.statut)})),
+    crLigne(dateValide(d)?"Date":(h?"Heure":"Durée"),quand),
+    crLigne("Type",vc("type",c.type)),
+    crLigne(K.tiers||"Interlocuteur",vc("tiers",c.tiers)),
+    crLigne("Contact",[vc("contact_nom",c.contact_nom),vc("contact_tel",c.contact_tel)]
+      .filter(Boolean).join(" · ")),
+    crLigne("Commune",vc("commune",c.commune)),
+    crLigne("Adresse",vc("adresse",c.adresse))
+  ];
+  /* les champs metier de la categorie, dans l'ordre de la fiche, et seulement s'ils portent
+     une valeur : un compte rendu truffe de lignes vides ne se transmet pas */
+  champsDe(c.categorie||"chantier").forEach(function(f){
+    if(!f.cle || !f.lib) return;
+    if(f.cle===miroir) return;     /* reflet du statut : la ligne Statut le dit deja */
+    base.push(crLigne(f.lib,crValeurChamp(f,vc(f.cle,c[f.cle]))));
+  });
+  t+=crBloc(base);
+  t+=crSection("COMMENTAIRE",vc("commentaire",c.commentaire));
+  if(estArchive(c)){
+    t+=crSection("ARCHIVÉ",libDate(c.archive)
+      +(c.archive_motif?" — "+c.archive_motif:"")
+      +(c.archive_issue==="traite"?"  (traité, mené à terme)":
+        (c.archive_issue==="sorti"?"  (sorti du périmètre)":"")));
+  }
+  if(avecNotes){
+    var l=D.notes.filter(function(n){ return n.chantier_id===c.id })
+      .sort(function(a,b){ return (a.date+a.heure).localeCompare(b.date+b.heure) });
+    if(l.length){
+      t+="\nHISTORIQUE ("+l.length+" note"+(l.length>1?"s":"")+")\n";
+      t+=l.map(function(n){
+        var e="• "+(dateValide(n.date)?libCourt(n.date):"sans date")
+          +(n.heure?" "+n.heure:"")+(n.type?" · "+n.type:"")
+          +(n.duree?" · "+dureeLisible(n.duree):"");
+        if(n.contenu) e+="\n  "+String(n.contenu).replace(/\n/g,"\n  ");
+        if(n.suite && n.suite.texte){
+          e+="\n  → à faire : "+n.suite.texte
+            +(n.suite.fait?"  [terminé]"
+              :(dateValide(n.suite.echeance)?"  [échéance "+libCourt(n.suite.echeance)+"]":""));
+        }
+        return e;
+      }).join("\n")+"\n";
+    }
+  }
+  return t+crSignature();
+}
+
+/* ---------- la fenetre ---------- */
+var crBoite=null, crFabrique=null, crNomFichier="cr";
+function construireBoiteCR(){
+  if(crBoite) return crBoite;
+  crBoite=document.createElement("dialog");
+  crBoite.id="crBoite"; crBoite.className="cr-dlg";
+  crBoite.setAttribute("aria-label","Compte rendu");
+  crBoite.innerHTML='<div class="cr-tete"><h3>Compte rendu</h3>'
+    +'<button class="b mini creux" data-cr="fermer" title="Fermer (Échap)" aria-label="Fermer">✕</button></div>'
+    +'<div class="cr-corps">'
+      +'<div class="ligne" id="crOpts" style="margin-top:0"></div>'
+      +'<textarea id="crTexte" spellcheck="false" aria-label="Texte du compte rendu"></textarea>'
+      +'<div class="note-aide" id="crAide">Le texte est modifiable avant la copie. '
+      +'Il reprend la saisie en cours, même non enregistrée.</div>'
+    +'</div>'
+    +'<div class="cr-pied">'
+      +'<button class="b creux" data-cr="txt">Télécharger en .txt</button>'
+      +'<div class="droite"><button class="b creux" data-cr="fermer">Fermer</button>'
+      +'<button class="b" data-cr="copier">Copier</button></div>'
+    +'</div>';
+  document.body.appendChild(crBoite);
+  crBoite.addEventListener("click",function(e){
+    var b=e.target.closest("[data-cr]"); if(!b) return;
+    var a=b.dataset.cr;
+    if(a==="fermer") fermerCR();
+    else if(a==="copier") copierCR();
+    else if(a==="txt"){
+      telecharger(crNomFichier+".txt",$("#crTexte").value,"text/plain;charset=utf-8");
+      toast("Compte rendu téléchargé");
+    }
+  });
+  crBoite.addEventListener("change",function(e){
+    if(e.target.id==="crNotes" && crFabrique) $("#crTexte").value=crFabrique(e.target.checked);
+  });
+  crBoite.addEventListener("cancel",function(e){ e.preventDefault(); fermerCR() });
+  return crBoite;
+}
+function fermerCR(){
+  if(crBoite && crBoite.open) crBoite.close();
+  crFabrique=null;
+}
+function copierCR(){
+  var e=$("#crTexte"); if(!e) return;
+  e.focus(); e.select();
+  try{
+    if(document.execCommand("copy")){
+      var n=e.value.split("\n").length;
+      toast("Compte rendu copié — "+n+" ligne"+(n>1?"s":"")+", prêt à coller");
+      return;
+    }
+  }catch(x){}
+  toast("Copie refusée par le navigateur — le texte est sélectionné, faites Ctrl+C",true);
+}
+/** Ouvre la fenetre par-dessus la fiche, sans la fermer ni lui faire perdre la saisie.
+    fabrique(avecNotes) rend le texte ; option vaut null si la case n'a pas lieu d'etre. */
+function ouvrirCR(titre,fichier,fabrique,option){
+  var b=construireBoiteCR();
+  crFabrique=fabrique; crNomFichier=fichier;
+  b.querySelector(".cr-tete h3").textContent=titre;
+  var opts=$("#crOpts");
+  opts.innerHTML = option
+    ? '<label style="font-size:13.5px;display:flex;gap:6px;align-items:center">'
+      +'<input type="checkbox" id="crNotes" checked> '+esc(option)+'</label>'
+    : "";
+  opts.style.display=option?"":"none";
+  $("#crTexte").value=fabrique(true);
+  if(!b.open) b.showModal();      /* showModal empile au-dessus de la fiche deja ouverte */
+  var t=$("#crTexte"); t.focus(); t.setSelectionRange(0,0); t.scrollTop=0;
+}
+function crFichier(prefixe,d){
+  return "cr-"+prefixe+"-"+(dateValide(d)?d:auj());
+}
+
+/* ================= idees =================
+   Boite a idees locale : capture, regroupement automatique par similarite, cristallisation
+   par copier-coller avec Claude, conversion en activite du pilotage.
+   Aucun appel reseau : la cristallisation compose une invite, vous la portez dans votre
+   conversation Claude, et vous rapportez le JSON. */
+
+function idees(){ return D.idees||(D.idees=[]) }
+function ideesU(){ return D.idees_unifiees||(D.idees_unifiees=[]) }
+function reglagesIdees(){
+  var r=D.parametres.idees||(D.parametres.idees={});
+  if(typeof r.seuil!=="number") r.seuil=0.22;
+  return r;
+}
+function ideePar(id){ var l=idees(),i; for(i=0;i<l.length;i++) if(l[i].id===id) return l[i]; return null }
+function ideeUPar(id){ var l=ideesU(),i; for(i=0;i<l.length;i++) if(l[i].id===id) return l[i]; return null }
+function normaliserIdee(o){
+  o=o||{};
+  return {id:String(o.id||uid()),titre:String(o.titre||"").trim(),note:String(o.note||""),
+    cat:String(o.cat||""),cree_le:String(o.cree_le||new Date().toISOString()),
+    statut:(o.statut==="absorbee"?"absorbee":"libre"),unifiee_id:String(o.unifiee_id||"")};
+}
+function normaliserIdeeU(o){
+  o=o||{};
+  var tab=function(v){
+    return (estTableau(v)?v:[]).map(function(x){ return String(x==null?"":x).slice(0,300).trim() })
+      .filter(Boolean).slice(0,6);
+  };
+  return {id:String(o.id||uid()),titre:String(o.titre||"Idée unifiée").slice(0,200),
+    synthese:String(o.synthese||"").slice(0,4000),
+    objectifs:tab(o.objectifs),etapes:tab(o.etapes),vigilance:tab(o.vigilance),
+    cat:String(o.cat||""),sources:(estTableau(o.sources)?o.sources:[]).map(String),
+    cree_le:String(o.cree_le||new Date().toISOString()),
+    statut:(o.statut==="convertie"?"convertie":"unifiee"),activite_id:String(o.activite_id||"")};
+}
+/** Categorie d'une idee : contrairement a catParCle, une idee peut n'en avoir aucune. */
+function catIdee(cle){
+  if(!cle) return {cle:"",lib:"Sans catégorie",plur:"Sans catégorie",couleur:"#8B918C",sym:"·"};
+  var l=categories(),i;
+  for(i=0;i<l.length;i++) if(l[i].cle===cle) return l[i];
+  return {cle:cle,lib:"Catégorie disparue",plur:"Catégorie disparue",couleur:"#8B918C",sym:"·"};
+}
+
+/* ---------- similitude : Jaccard sur radicaux, bonus de categorie ---------- */
+var MOTS_VIDES=("les des une un le la de du et en au aux pour par sur avec dans que qui pas plus est son ses "
+ +"mes mon ma nos vos leur leurs ce cet cette ces faire fait tout tous toute comme mais ou donc car chez "
+ +"entre vers sans sous etre avoir peu tres bien aussi chaque").split(" ");
+var VIDES={}; MOTS_VIDES.forEach(function(m){ VIDES[m]=1 });
+function racineMot(w){ return w.length>4 ? w.replace(/(s|x)$/,"").replace(/(er|ir|e)$/,"") : w }
+var cacheMots={}, cacheMotsN=0;
+function motsIdee(i){
+  var cle=i.id+"\u0001"+i.titre+"\u0001"+(i.note||"");
+  if(cacheMots[cle]) return cacheMots[cle];
+  var m={};
+  /* chaque mot est normalise pour lui-meme : on ne s'appuie pas sur un alignement
+     d'indices entre deux decoupages, qui se decale au premier caractere exotique */
+  (i.titre+" "+(i.note||"")).split(/[^0-9A-Za-zÀ-ÖØ-öø-ÿ]+/).forEach(function(brut){
+    if(!brut) return;
+    var w=sansAccent(brut.toLowerCase()).replace(/[^0-9a-z]/g,"");
+    if(w.length<3 || VIDES[w]) return;
+    var r=racineMot(w);
+    /* on retient le mot tel qu'il s'ecrit : un titre de groupe fait de radicaux
+       tronques (« Courri · proprietair ») ne veut rien dire pour qui le lit */
+    if(!m.hasOwnProperty(r)) m[r]=brut.toLowerCase();
+  });
+  if(cacheMotsN>4000){ cacheMots={}; cacheMotsN=0 }   /* la carte ne grossit pas indefiniment */
+  cacheMots[cle]=m; cacheMotsN++;
+  return m;
+}
+function similitude(a,b){
+  var A=motsIdee(a),B=motsIdee(b),inter=0,na=0,nb=0,k;
+  for(k in A) if(A.hasOwnProperty(k)){ na++; if(B[k]) inter++ }
+  for(k in B) if(B.hasOwnProperty(k)) nb++;
+  var uni=na+nb-inter;
+  return (uni?inter/uni:0)+((a.cat && a.cat===b.cat)?0.12:0);
+}
+function titreMeta(g){
+  var cpt={},mot={},l=[];
+  g.forEach(function(i){
+    var m=motsIdee(i),k;
+    for(k in m) if(m.hasOwnProperty(k)){ cpt[k]=(cpt[k]||0)+1; if(!mot[k]) mot[k]=m[k] }
+  });
+  Object.keys(cpt).forEach(function(k){ l.push([k,cpt[k]]) });
+  /* les mots presents dans toutes les idees d'abord, puis les plus longs : ils portent le sens */
+  l.sort(function(x,y){ return y[1]-x[1] || mot[y[0]].length-mot[x[0]].length || x[0].localeCompare(y[0]) });
+  var t=l.slice(0,3).map(function(x){ return mot[x[0]] }).join(" · ");
+  return t ? t.charAt(0).toUpperCase()+t.slice(1) : "Idées proches";
+}
+function catMajoritaire(g){
+  var c={},meilleur="",n=0;
+  g.forEach(function(i){
+    if(!i.cat) return;
+    c[i.cat]=(c[i.cat]||0)+1;
+    if(c[i.cat]>n){ n=c[i.cat]; meilleur=i.cat }
+  });
+  return meilleur;
+}
+/** Groupes d'idees proches : union-find sur la similitude, au seuil reglable. */
+function metaIdees(){
+  var libres=idees().filter(function(i){ return i.statut!=="absorbee" });
+  var p=libres.map(function(_,k){ return k });
+  function f(k){ return p[k]===k ? k : (p[k]=f(p[k])) }
+  var seuil=reglagesIdees().seuil,a,b;
+  for(a=0;a<libres.length;a++) for(b=a+1;b<libres.length;b++)
+    if(similitude(libres[a],libres[b])>=seuil) p[f(a)]=f(b);
+  var groupes={},racines=[];
+  libres.forEach(function(i,k){
+    var r=f(k);
+    if(!groupes[r]){ groupes[r]=[]; racines.push(r) }
+    groupes[r].push(i);
+  });
+  var metas=[],par={};
+  racines.forEach(function(r){
+    var g=groupes[r];
+    if(g.length<2) return;
+    var m={cle:g.map(function(i){return i.id}).sort().join("+"),ideas:g,
+      titre:titreMeta(g),cat:catMajoritaire(g)};
+    metas.push(m);
+    g.forEach(function(i){ par[i.id]=m });
+  });
+  return {metas:metas,par:par,libres:libres};
+}
+
+/* ---------- vue ---------- */
+var vueIdeesMode="bulles", selIdees={};
+function nbSelIdees(){
+  var n=0,k;
+  for(k in selIdees) if(selIdees.hasOwnProperty(k) && selIdees[k]) n++;
+  return n;
+}
+function libSeuil(){
+  var s=reglagesIdees().seuil;
+  return s<0.18 ? "large" : (s>0.30 ? "strict" : "moyen");
+}
+/** La couleur d'une idee est celle de sa categorie, comme partout ailleurs dans
+    l'application : une palette propre aux Idees ferait mentir votre charte. */
+function coulIdee(cle){ return catIdee(cle).couleur||"#5C625E" }
+function vueIdees(){
+  var M=metaIdees(), u=ideesU(), cats=categories(), n=nbSelIdees();
+  var reste=u.filter(function(x){ return x.statut!=="convertie" }).length;
+  return '<div class="bloc"><div class="bloc-tete"><h2>Idées</h2>'
+    +'<span class="compte">'+M.libres.length+' idée(s) · '+M.metas.length+' groupe(s) · '
+      +u.length+' cristallisée(s)</span>'
+    +'<button class="b mini creux" data-aide="idees">Aide</button></div>'
+  +'<div class="bloc-corps">'
+    +'<div class="saisie">'
+      +'<input type="text" id="idTitre" placeholder="Une idée en une ligne…" maxlength="200" '
+        +'style="width:100%;padding:8px;border:1px solid var(--trait);border-radius:2px">'
+      +'<textarea id="idNote" placeholder="Détail, contexte, pourquoi — facultatif" '
+        +'style="min-height:48px;margin-top:6px"></textarea>'
+      +'<div class="ligne" style="margin-top:6px">'
+        +(cats.length?'<span class="puce-lbl">Catégorie</span><select id="idCat">'
+          +'<option value="">Sans catégorie</option>'
+          +selOpts(cats.map(function(K){ return [K.cle,K.lib] }),"")+'</select>':"")
+        +'<button class="b mini" data-act="id-add" style="margin-left:auto">Déposer l’idée</button>'
+      +'</div>'
+    +'</div>'
+    +'<hr class="sep">'
+    +'<div class="ligne">'
+      +'<button class="b mini'+(vueIdeesMode==="bulles"?"":" creux")+'" data-act="id-bulles">Bulles</button>'
+      +'<button class="b mini'+(vueIdeesMode==="tableau"?"":" creux")+'" data-act="id-tableau">Tableau</button>'
+      +'<span class="puce-lbl" style="margin-left:8px">Regroupement</span>'
+      +'<input type="range" id="idSeuil" min="0.10" max="0.45" step="0.01" '
+        +'value="'+reglagesIdees().seuil+'" style="width:110px" '
+        +'title="Sensibilité du regroupement : à gauche des groupes larges, à droite des groupes stricts">'
+      +'<span class="etiq gris">'+libSeuil()+'</span>'
+      +(n?'<button class="b mini" data-act="id-crist" style="margin-left:auto">Cristalliser '+n+' idée(s)</button>'
+         +'<button class="lien" data-act="id-rien">désélectionner</button>'
+        :'<span class="note-aide" style="margin:0 0 0 auto">Sélectionnez des idées pour les cristalliser.</span>')
+    +'</div>'
+    +(vueIdeesMode==="bulles"?fragBulles(M):fragTableIdees(M))
+  +'</div></div>'
+  +(u.length?'<div class="bloc"><div class="bloc-tete"><h2>Idées cristallisées</h2>'
+    +'<span class="compte">'+u.length+' au total'+(reste?' · '+reste+' à convertir':"")+'</span></div>'
+    +'<div class="bloc-corps">'+u.slice().reverse().map(fragIdeeU).join("")+'</div></div>':"");
+}
+function fragIdVide(){
+  return '<div class="vide"><b>Aucune idée</b>Déposez la première ci-dessus. '
+    +'Les idées proches se regrouperont d’elles-mêmes.</div>';
+}
+function fragTableIdees(M){
+  if(!M.libres.length) return fragIdVide();
+  var lignes=M.libres.slice().sort(function(a,b){
+    var ma=M.par[a.id],mb=M.par[b.id];
+    if(!!ma!==!!mb) return ma?-1:1;
+    if(ma && mb && ma.cle!==mb.cle) return ma.cle<mb.cle?-1:1;
+    return String(b.cree_le||"").localeCompare(String(a.cree_le||""));
+  }).map(function(i){
+    var m=M.par[i.id],K=catIdee(i.cat);
+    return '<tr data-idee="'+esc(i.id)+'">'
+      +'<td><input type="checkbox" class="idsel" data-idsel="'+esc(i.id)+'"'
+        +(selIdees[i.id]?" checked":"")+'></td>'
+      +'<td><b>'+esc(i.titre)+'</b>'+(i.note?'<div class="ref">'+esc(tronque(i.note,110))+'</div>':"")+'</td>'
+      +'<td>'+(i.cat?'<span class="etiq">'+esc(K.lib)+'</span>':'<span class="etiq gris">—</span>')+'</td>'
+      +'<td>'+(m?'<span class="etiq gris">'+esc(tronque(m.titre,30))+'</span>':"")+'</td>'
+      +'<td class="mono">'+esc(libCourt(String(i.cree_le).slice(0,10)))+'</td></tr>';
+  }).join("");
+  return '<div class="enroule" style="min-height:180px"><table><thead><tr><th style="width:28px"></th>'
+    +'<th>Idée</th><th>Catégorie</th><th>Groupe</th><th>Déposée</th></tr></thead>'
+    +'<tbody>'+lignes+'</tbody></table></div>';
+}
+function fragBulles(M){
+  if(!M.libres.length) return fragIdVide();
+  var cx=ideesU().filter(function(u){ return u.statut!=="convertie" }).length;
+  return '<div class="id-bulles" id="idBulles">'
+    +'<svg id="idSvg" role="img" aria-label="Carte des idées : '+M.libres.length+' idée(s), '
+      +M.metas.length+' groupe(s), '+cx+' cristallisée(s) non converties"></svg>'
+    +'<div class="id-zoom">'
+      +'<button class="b mini creux" data-act="id-zplus" title="Agrandir" aria-label="Agrandir">+</button>'
+      +'<button class="b mini creux" data-act="id-zmoins" title="Réduire" aria-label="Réduire">−</button>'
+      +'<button class="b mini creux" data-act="id-zraz" title="Revoir toute la carte" '
+        +'aria-label="Revoir toute la carte">⟳</button>'
+    +'</div></div>'
+    +'<div class="note-aide">Bulle : une idée. Membrane : un groupe d’idées proches. '
+    +'Cristal : une idée cristallisée. Un clic sélectionne, un double clic ouvre ; '
+    +'les bulles se déplacent à la main, le fond se fait glisser, et la molette zoome avec Ctrl '
+    +'(ou en pinçant le pavé tactile).</div>'
+    +(M.metas.length?'<div class="ligne" style="margin-top:4px">'+M.metas.map(function(m){
+      return '<button class="lien" data-idgrp="'+esc(m.cle)+'" title="Sélectionner ou désélectionner ce groupe">'
+        +'<span class="id-pst" style="background:'+esc(coulIdee(m.cat))+'"></span>'
+        +esc(tronque(m.titre,26))+' ('+m.ideas.length+')</button>';
+    }).join("")+'</div>':"");
+}
+function fragIdeeU(u){
+  var K=catIdee(u.cat);
+  var src=u.sources.map(function(id){ var i=ideePar(id); return i?i.titre:null }).filter(Boolean);
+  return '<div class="note" data-ideeu="'+esc(u.id)+'" style="cursor:pointer">'
+    +'<div class="h">'+(u.cat?esc(K.lib)+' · ':"")+esc(libCourt(String(u.cree_le).slice(0,10)))
+      +(u.statut==="convertie"?' · convertie en activité':' · à convertir')+'</div>'
+    +'<div class="txt"><b>'+esc(u.titre)+'</b>'+(u.synthese?'\n'+esc(tronque(u.synthese,240)):"")+'</div>'
+    +(src.length?'<div class="id-src">à partir de : '+esc(tronque(src.join(" · "),140))+'</div>':"")
+  +'</div>';
+}
+
+/* ---------- carte en bulles : simulation de forces vivante, sans bibliotheque ----------
+   Bulle : une idee. Membrane : un groupe. Cristal : une idee cristallisee.
+   La simulation s'eteint d'elle-meme une fois posee ; elle ne tourne jamais en fond. */
+var simIdees=null;              /* {stop:fn} de la boucle en cours */
+var posIdees={};                /* memoire des positions : la carte ne saute pas d'un rendu a l'autre */
+var vueIdeesT={x:0,y:0,k:1};    /* translation et echelle de la carte */
+var ideeFraiche=null;           /* cristal a faire eclore au prochain dessin */
+var glisseIdee=false;           /* un glisser vient d'avoir lieu : le clic qui suit n'en est pas un */
+
+function arreterSimIdees(){ if(simIdees){ simIdees.stop(); simIdees=null } }
+function sobre(){
+  try{ return window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches }
+  catch(e){ return false }
+}
+function cheminHex(r){
+  var p="",k,a;
+  for(k=0;k<6;k++){
+    a=Math.PI/180*(60*k-90);
+    p+=(k?"L":"M")+(r*Math.cos(a)).toFixed(1)+","+(r*Math.sin(a)).toFixed(1);
+  }
+  return p+"Z";
+}
+function svgEl(nom,attrs){
+  var e=document.createElementNS("http://www.w3.org/2000/svg",nom),k;
+  for(k in attrs) if(attrs.hasOwnProperty(k)) e.setAttribute(k,attrs[k]);
+  return e;
+}
+function dessinerBulles(){
+  arreterSimIdees();
+  var zone=$("#idBulles"),svg=$("#idSvg");
+  if(!zone || !svg) return;
+  var M=metaIdees(),l=M.libres;
+  var unis=ideesU().filter(function(u){ return u.statut!=="convertie" });
+  if(!l.length && !unis.length) return;
+
+  var L=Math.max(300,zone.clientWidth||640);
+  /* moins la zone est large, moins elle tient de bulles par rangee : la hauteur
+     compense, sinon la carte deborde par le bas sur un ecran etroit */
+  var serre=Math.max(1,Math.min(2.9,900/L));
+  var H=Math.max(320,Math.min(760,210+(l.length+unis.length)*17*serre));
+  svg.setAttribute("viewBox","0 0 "+L+" "+H);
+  svg.setAttribute("preserveAspectRatio","xMidYMid meet");
+  svg.style.height=H+"px";
+  svg.innerHTML="";
+  var racine=svgEl("g",{}), gMem=svgEl("g",{}), gNoeuds=svgEl("g",{});
+  racine.appendChild(gMem); racine.appendChild(gNoeuds); svg.appendChild(racine);
+
+  /* --- les noeuds : idees libres et cristaux --- */
+  var n=[],parId={};
+  l.forEach(function(i,k){
+    var poids=(i.titre||"").length+(i.note||"").length/3;
+    var p=posIdees["i:"+i.id];
+    var r=Math.max(15,Math.min(29,13+Math.sqrt(poids)*1.9));
+    var lib=tronque(i.titre,19);
+    n.push(parId["i:"+i.id]={cle:"i:"+i.id,id:i.id,genre:"idee",t:i.titre,lib:lib,
+      r:r,coul:coulIdee(i.cat),dx:Math.max(r,lib.length*3.05)+3,dy:r+13,
+      x:p?p.x:L/2+Math.cos(k*2.39996)*(40+k*6), y:p?p.y:H/2+Math.sin(k*2.39996)*(32+k*5),
+      vx:0,vy:0,fx:null,fy:null});
+  });
+  unis.forEach(function(u,k){
+    var p=posIdees["u:"+u.id];
+    var lu=tronque(u.titre,24);
+    n.push(parId["u:"+u.id]={cle:"u:"+u.id,id:u.id,genre:"cristal",t:u.titre,lib:lu,
+      r:31,coul:coulIdee(u.cat),dx:Math.max(31,lu.length*3.3)+3,dy:44,
+      x:p?p.x:L/2+Math.cos(k*1.7)*70, y:p?p.y:H/2+Math.sin(k*1.7)*55,
+      vx:0,vy:0,fx:null,fy:null});
+  });
+  /* --- les membranes : un groupe est un objet visible, pas une coincidence de couleur --- */
+  var mem=M.metas.map(function(m){
+    return {cle:m.cle,titre:m.titre,coul:coulIdee(m.cat),
+      noeuds:m.ideas.map(function(i){ return parId["i:"+i.id] }).filter(Boolean),
+      cx:L/2,cy:H/2,R:44};
+  }).filter(function(m){ return m.noeuds.length>1 });
+  var dansMem={};
+  mem.forEach(function(m){ m.noeuds.forEach(function(x){ dansMem[x.cle]=m }) });
+
+  /* --- construction du DOM, une seule fois : la boucle ne fait plus que deplacer --- */
+  mem.forEach(function(m){
+    var g=svgEl("g",{"class":"id-mem","data-idgrp":m.cle});
+    m.el=svgEl("circle",{"class":"trait",fill:m.coul,"fill-opacity":".07",stroke:m.coul,
+      "stroke-width":"1.5","stroke-dasharray":"5 4"});
+    m.prise=svgEl("circle",{"class":"prise"});   /* anneau transparent : la cible du clic */
+    m.lbl=svgEl("text",{fill:m.coul});
+    m.lbl.textContent=tronque(m.titre,30);
+    g.appendChild(m.el); g.appendChild(m.prise); g.appendChild(m.lbl);
+    var ti=svgEl("title",{}); ti.textContent=m.titre+" — "+m.noeuds.length+" idées proches";
+    g.appendChild(ti);
+    gMem.appendChild(g);
+  });
+  n.forEach(function(p){
+    var on=!!selIdees[p.id], cri=p.genre==="cristal";
+    var g=svgEl("g",{"class":"id-b"+(on?" on":"")+(cri?" cri":""),
+      tabindex:"0",role:"button",
+      "aria-label":(cri?"Idée cristallisée : ":"Idée : ")+p.t});
+    g.setAttribute(cri?"data-cristal":"data-bulle",p.id);
+    var ti=svgEl("title",{}); ti.textContent=p.t; g.appendChild(ti);
+    var forme=svgEl("g",{"class":"id-f"});
+    if(cri){
+      forme.appendChild(svgEl("path",{d:cheminHex(p.r),fill:p.coul,
+        "fill-opacity":on?".85":".30",stroke:p.coul,"stroke-width":on?"3.2":"2"}));
+      var v=function(k){ var a=Math.PI/180*(60*k-90);
+        return (p.r*Math.cos(a)).toFixed(1)+","+(p.r*Math.sin(a)).toFixed(1) };
+      forme.appendChild(svgEl("path",{d:"M0,0L"+v(0)+"M0,0L"+v(2)+"M0,0L"+v(4),
+        stroke:p.coul,"stroke-width":"1","stroke-opacity":".7",fill:"none"}));
+    }else{
+      forme.appendChild(svgEl("circle",{r:p.r.toFixed(1),fill:p.coul,
+        "fill-opacity":on?".88":".20",stroke:p.coul,"stroke-width":on?"3":"1.6"}));
+    }
+    g.appendChild(forme);
+    var tx=svgEl("text",{y:(p.r+14).toFixed(1)});
+    tx.textContent=p.lib;
+    g.appendChild(tx);
+    p.el=g; p.forme=forme;
+    gNoeuds.appendChild(g);
+    /* eclosion du cristal qui vient de se former */
+    if(cri && ideeFraiche===p.id && !sobre()){
+      forme.setAttribute("transform","scale(.2) rotate(-60)");
+      forme.classList.add("eclot");
+      setTimeout(function(){ forme.setAttribute("transform","scale(1) rotate(0)") },30);
+    }
+  });
+  ideeFraiche=null;
+
+  function poser(){
+    n.forEach(function(p){
+      p.el.setAttribute("transform","translate("+p.x.toFixed(1)+","+p.y.toFixed(1)+")");
+      posIdees[p.cle]={x:p.x,y:p.y};
+    });
+    mem.forEach(function(m){
+      var cx=0,cy=0,R=0;
+      m.noeuds.forEach(function(x){ cx+=x.x; cy+=x.y });
+      m.cx=cx/m.noeuds.length; m.cy=cy/m.noeuds.length;
+      m.noeuds.forEach(function(x){
+        R=Math.max(R,Math.sqrt((x.x-m.cx)*(x.x-m.cx)+(x.y-m.cy)*(x.y-m.cy))+x.r);
+      });
+      m.R=R+22;
+      m.el.setAttribute("cx",m.cx.toFixed(1)); m.el.setAttribute("cy",m.cy.toFixed(1));
+      m.el.setAttribute("r",m.R.toFixed(1));
+      m.prise.setAttribute("cx",m.cx.toFixed(1)); m.prise.setAttribute("cy",m.cy.toFixed(1));
+      m.prise.setAttribute("r",m.R.toFixed(1));
+      /* le titre va au-dessus de la membrane, et passe dessous quand il n'y a plus de place */
+      var yt=m.cy-m.R-8;
+      if(yt<13) yt=Math.min(H-4,m.cy+m.R+17);
+      m.lbl.setAttribute("x",m.cx.toFixed(1)); m.lbl.setAttribute("y",yt.toFixed(1));
+    });
+  }
+  var kx=Math.max(0.010,Math.min(0.13,0.011*(1150/L)*(1150/L)));
+  function pas(alpha){
+    var i,j,A,B,dx,dy,d,f,mini,px,py,s;
+    for(i=0;i<n.length;i++){
+      A=n[i];
+      /* recentrage faible a l'horizontale, plus ferme a la verticale : la zone est
+         large et basse, les bulles doivent s'etaler plutot que s'empiler. La force
+         horizontale suit la largeur : sur un ecran etroit elle serre, sinon la carte
+         deborde du cadre et la moitie des idees se retrouve hors de vue. */
+      A.vx+=(L/2-A.x)*kx*alpha; A.vy+=(H/2-A.y)*0.055*alpha;
+      for(j=i+1;j<n.length;j++){
+        B=n[j]; dx=B.x-A.x; dy=B.y-A.y;
+        d=Math.sqrt(dx*dx+dy*dy)||0.01;
+        mini=A.r+B.r+10;
+        if(d<mini){ f=(mini-d)/d*0.5; A.vx-=dx*f; A.vy-=dy*f; B.vx+=dx*f; B.vy+=dy*f }
+        else if(d<340){ f=150*alpha/(d*d); A.vx-=dx*f; A.vy-=dy*f; B.vx+=dx*f; B.vy+=dy*f }
+        /* l'etiquette est bien plus large que la bulle : tant que deux paves de texte
+           se recouvrent, on les separe par le plus petit deplacement possible, sinon
+           on ne sait plus quel titre va avec quel cercle */
+        px=(A.dx+B.dx)-Math.abs(dx);
+        py=(A.dy+B.dy)-Math.abs(dy);
+        if(px>0 && py>0){
+          if(px<py){ s=(dx<0?-1:1)*px*0.14; A.vx-=s; B.vx+=s }
+          else{ s=(dy<0?-1:1)*py*0.14; A.vy-=s; B.vy+=s }
+        }
+      }
+    }
+    mem.forEach(function(m){
+      var cx=0,cy=0;
+      m.noeuds.forEach(function(x){ cx+=x.x; cy+=x.y });
+      cx/=m.noeuds.length; cy/=m.noeuds.length;
+      m.noeuds.forEach(function(x){ x.vx+=(cx-x.x)*alpha*0.22; x.vy+=(cy-x.y)*alpha*0.22 });
+      n.forEach(function(x){                       /* les autres contournent la membrane */
+        if(dansMem[x.cle]===m) return;
+        var dx=x.x-m.cx, dy=x.y-m.cy;
+        var d=Math.sqrt(dx*dx+dy*dy)||1, min=m.R+x.r+10;
+        if(d<min){ var k=(min-d)/d*alpha*1.1; x.vx+=dx*k; x.vy+=dy*k }
+      });
+    });
+    n.forEach(function(p){
+      if(p.fx!==null){ p.x=p.fx; p.y=p.fy; p.vx=0; p.vy=0; return }
+      p.vx*=0.6; p.vy*=0.6; p.x+=p.vx; p.y+=p.vy;
+      /* on borne sur l'encombrement, etiquette comprise : borner sur le rayon laissait
+         les titres deborder du cadre sur un ecran etroit */
+      p.x=Math.max(Math.min(p.dx,L/2),Math.min(L-Math.min(p.dx,L/2),p.x));
+      p.y=Math.max(p.r+6,Math.min(H-p.r-21,p.y));   /* 21 : ligne d'etiquette et jambages */
+    });
+  }
+
+  /* --- la boucle : alpha decroit jusqu'a extinction, comme une simulation d3 --- */
+  var alpha=Object.keys(posIdees).length?0.35:1, cible=0, vivant=true, trame=null;
+  function image(){
+    if(!vivant || !svg.isConnected){ vivant=false; return }
+    alpha+=(cible-alpha)*0.0228;
+    pas(alpha); poser();
+    if(alpha<0.004 && cible===0){ vivant=false; trame=null; return }
+    trame=requestAnimationFrame(image);
+  }
+  simIdees={
+    stop:function(){ vivant=false; if(trame) cancelAnimationFrame(trame) },
+    reveiller:function(a){
+      alpha=Math.max(alpha,a||0.3);
+      if(!vivant){ vivant=true; image() }
+    },
+    tenir:function(a){ cible=a||0 },
+    noeuds:n, svg:svg
+  };
+  if(sobre()){                       /* mouvement reduit : on converge hors ecran et on pose */
+    var t; for(t=0;t<340;t++) pas(Math.max(0.03,alpha*=0.977));
+    poser();
+  }else image();
+  appliquerVueIdees();
+  brancherGestes(svg,racine,n);
+}
+function appliquerVueIdees(){
+  var svg=$("#idSvg"); if(!svg) return;
+  var g=svg.firstChild; if(!g) return;
+  g.setAttribute("transform","translate("+vueIdeesT.x.toFixed(1)+","+vueIdeesT.y.toFixed(1)
+    +") scale("+vueIdeesT.k.toFixed(3)+")");
+}
+function zoomIdees(fact,cx,cy){
+  var svg=$("#idSvg"); if(!svg) return;
+  var r=svg.getBoundingClientRect();
+  var vb=(svg.getAttribute("viewBox")||"0 0 1 1").split(" ");
+  var ech=(+vb[2]||r.width)/(r.width||1);      /* le viewBox peut differer des pixels reels */
+  if(cx===undefined){ cx=r.width/2; cy=r.height/2 }
+  var ux=cx*ech, uy=cy*ech;                     /* point vise, en unites du viewBox */
+  var k2=Math.max(0.4,Math.min(3,vueIdeesT.k*fact));
+  vueIdeesT.x=ux-(ux-vueIdeesT.x)*(k2/vueIdeesT.k);
+  vueIdeesT.y=uy-(uy-vueIdeesT.y)*(k2/vueIdeesT.k);
+  vueIdeesT.k=k2;
+  appliquerVueIdees();
+}
+function razVueIdees(){ vueIdeesT={x:0,y:0,k:1}; appliquerVueIdees() }
+/** Glisser une bulle, faire glisser le fond, zoomer : trois gestes sur le meme pointeur.
+    La capture du pointeur n'est prise qu'une fois le glisser avere : prise des l'appui,
+    elle redirigerait l'evenement « click » vers le SVG et le clic de selection serait perdu. */
+function brancherGestes(svg,racine,n){
+  var prise=null,depart=null,bouge=0,dernier=null,capte=false,pid=null;
+  function unites(cx,cy){
+    var r=svg.getBoundingClientRect();
+    var vb=(svg.getAttribute("viewBox")||"0 0 1 1").split(" ");
+    var ech=(+vb[2]||r.width)/(r.width||1);   /* le viewBox ne vaut pas les pixels reels */
+    return {x:((cx-r.left)*ech-vueIdeesT.x)/vueIdeesT.k,
+            y:((cy-r.top)*ech-vueIdeesT.y)/vueIdeesT.k, ech:ech};
+  }
+  svg.addEventListener("pointerdown",function(e){
+    if(e.button) return;
+    var g=e.target.closest?e.target.closest("[data-bulle],[data-cristal]"):null;
+    bouge=0; capte=false; pid=e.pointerId;
+    dernier={x:e.clientX,y:e.clientY};
+    prise=null; depart=null;
+    if(g){
+      var id=g.getAttribute("data-bulle")||g.getAttribute("data-cristal");
+      var cle=(g.getAttribute("data-bulle")?"i:":"u:")+id;
+      n.forEach(function(p){ if(p.cle===cle) prise=p });
+    }
+    if(!prise){
+      var u=unites(e.clientX,e.clientY);
+      depart={x:e.clientX,y:e.clientY,tx:vueIdeesT.x,ty:vueIdeesT.y,ech:u.ech};
+    }
+  });
+  svg.addEventListener("pointermove",function(e){
+    if(!prise && !depart) return;
+    bouge+=Math.abs(e.clientX-dernier.x)+Math.abs(e.clientY-dernier.y);
+    dernier={x:e.clientX,y:e.clientY};
+    if(bouge<=3) return;                       /* en deca, c'est encore un clic */
+    if(!capte){
+      capte=true;
+      try{ svg.setPointerCapture(pid) }catch(x){}
+      if(prise && simIdees){ prise.fx=prise.x; prise.fy=prise.y; simIdees.tenir(0.25) }
+      if(depart) svg.classList.add("saisi");
+    }
+    if(prise){
+      var u=unites(e.clientX,e.clientY);
+      prise.fx=u.x; prise.fy=u.y;
+      if(simIdees) simIdees.reveiller(0.25);
+    }else{
+      vueIdeesT.x=depart.tx+(e.clientX-depart.x)*depart.ech;
+      vueIdeesT.y=depart.ty+(e.clientY-depart.y)*depart.ech;
+      appliquerVueIdees();
+    }
+  });
+  function fin(){
+    if(prise && capte){
+      prise.fx=null; prise.fy=null;
+      if(simIdees){ simIdees.tenir(0); simIdees.reveiller(0.2) }
+    }
+    glisseIdee=capte;                          /* un glisser avere : le clic qui suit n'en est pas un */
+    if(glisseIdee) setTimeout(function(){ glisseIdee=false },0);
+    if(capte){ try{ svg.releasePointerCapture(pid) }catch(x){} }
+    prise=null; depart=null; capte=false; bouge=0;
+    svg.classList.remove("saisi");
+  }
+  svg.addEventListener("pointerup",fin);
+  svg.addEventListener("pointercancel",fin);
+  svg.addEventListener("wheel",function(e){
+    /* sans Ctrl, la molette fait defiler la page comme partout ailleurs ;
+       le pincement du pave tactile arrive justement avec ctrlKey */
+    if(!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    var r=svg.getBoundingClientRect();
+    zoomIdees(e.deltaY<0?1.12:1/1.12,e.clientX-r.left,e.clientY-r.top);
+  },{passive:false});
+  svg.addEventListener("dblclick",function(e){ e.preventDefault() });
+}
+
+/* ---------- actions ---------- */
+function ajouterIdee(){
+  var t=$("#idTitre"),nt=$("#idNote"),c=$("#idCat");
+  var titre=t?t.value.trim():"";
+  if(!titre){ if(t) t.focus(); toast("Donnez un titre à l’idée",true); return }
+  idees().push(normaliserIdee({titre:titre,note:nt?nt.value.trim():"",cat:c?c.value:""}));
+  if(t) t.value=""; if(nt) nt.value="";   /* avant rendre(), qui restaure sinon la saisie */
+  modifie(); rendre();
+  var s=$("#idTitre"); if(s) s.focus();
+  toast("Idée déposée");
+}
+function basculerSelIdee(id){
+  if(selIdees[id]) delete selIdees[id]; else selIdees[id]=true;
+  rendre();
+}
+function selGroupeIdees(cle){
+  var M=metaIdees(),trouve=null;
+  M.metas.forEach(function(m){ if(m.cle===cle) trouve=m });
+  if(!trouve) return;
+  var tout=true;
+  trouve.ideas.forEach(function(i){ if(!selIdees[i.id]) tout=false });
+  trouve.ideas.forEach(function(i){ if(tout) delete selIdees[i.id]; else selIdees[i.id]=true });
+  rendre();
+}
+function ouvrirIdee(id){
+  var i=ideePar(id); if(!i) return;
+  var cats=categories();
+  var corps='<label class="champ">Titre'
+      +'<input type="text" name="i_titre" value="'+esc(i.titre)+'" maxlength="200"></label>'
+    +(cats.length?'<label class="champ" style="margin-top:10px">Catégorie'
+      +'<select name="i_cat"><option value="">Sans catégorie</option>'
+      +selOpts(cats.map(function(K){ return [K.cle,K.lib] }),i.cat)+'</select></label>':"")
+    +'<label class="champ" style="margin-top:10px">Note'
+      +'<textarea name="i_note" style="width:100%;min-height:110px;padding:8px;'
+      +'border:1px solid var(--trait);border-radius:2px">'+esc(i.note)+'</textarea></label>'
+    +'<div class="note-aide">Déposée le '+esc(libCourt(String(i.cree_le).slice(0,10)))+'.</div>';
+  ouvrirModale("Idée",corps,[
+    {txt:"Supprimer",classe:"creux",fn:function(){
+      if(!confirm("Supprimer cette idée ?")) return;
+      D.idees=idees().filter(function(x){ return x.id!==id });
+      delete selIdees[id];
+      fermerModale(); modifie(); rendre(); toast("Idée supprimée");
+    }},
+    {txt:"Cristalliser seule",classe:"creux",fn:function(){
+      lireIdee(i); modifie(); fermerModale(); cristalliser([id]);
+    }},
+    {txt:"Fermer",fn:fermerModale,droite:true},
+    {txt:"Enregistrer",classe:"",droite:true,fn:function(){
+      lireIdee(i); fermerModale(); modifie(); rendre(); toast("Idée mise à jour");
+    }}
+  ]);
+}
+function lireIdee(i){
+  var e=$("#modCorps").querySelector('[name="i_titre"]');
+  if(e && e.value.trim()) i.titre=e.value.trim();
+  e=$("#modCorps").querySelector('[name="i_note"]');
+  if(e) i.note=e.value.trim();
+  e=$("#modCorps").querySelector('[name="i_cat"]');
+  if(e) i.cat=e.value;
+}
+
+/* ---------- cristallisation par copier-coller ---------- */
+var cristEnCours=null;
+function inviteCristallisation(ids){
+  var l=ids.map(ideePar).filter(Boolean);
+  var cats=categories().map(function(K){ return K.lib }).join(", ");
+  var liste=l.map(function(i,k){
+    return (k+1)+". "+i.titre+(i.cat?" ["+catIdee(i.cat).lib+"]":"")
+      +(i.note?"\n   "+String(i.note).replace(/\s*\n\s*/g," "):"");
+  }).join("\n");
+  var multi=l.length>1;
+  return "Tu aides une personne à piloter son activité professionnelle. Voici "
+    +(multi?"un groupe d’idées proches":"une idée")+" notée au fil de l’eau :\n\n"+liste+"\n\n"
+    +(multi?"Fusionne-les en UNE idée unifiée cohérente":"Développe-la en une idée exploitable")
+    +" et concrète. Ne lui ajoute pas de contraintes qui ne sont pas mentionnées.\n\n"
+    +"Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour ni balise Markdown, à ce format :\n"
+    +'{"titre":"titre court, 8 mots maximum","synthese":"3 à 5 phrases",'
+    +'"objectifs":["..."],"premieres_etapes":["action concrète et petite"],'
+    +'"points_de_vigilance":["..."]'
+    +(cats?',"categorie":"une valeur parmi : '+cats+'"':"")+"}\n"
+    +"Maximum 4 éléments par liste.";
+}
+function cristalliser(ids){
+  var l=ids.map(ideePar).filter(function(i){ return i && i.statut!=="absorbee" });
+  if(!l.length){ toast("Aucune idée à cristalliser",true); return }
+  cristEnCours=l.map(function(i){ return i.id });
+  var corps='<div class="note-aide" style="margin-top:0">L’application ne contacte aucun service. '
+      +'Copiez la demande, portez-la dans votre conversation Claude, puis rapportez sa réponse ici.</div>'
+    +'<div class="id-src" style="margin-top:6px">'
+      +esc(tronque(l.map(function(i){ return i.titre }).join(" · "),200))+'</div>'
+    +'<label class="champ" style="margin-top:10px">1. La demande à copier'
+      +'<textarea id="crInvite" readonly style="width:100%;min-height:150px;padding:8px;'
+      +'border:1px solid var(--trait);border-radius:2px;font-family:var(--data);font-size:12px">'
+      +esc(inviteCristallisation(cristEnCours))+'</textarea></label>'
+    +'<div class="ligne" style="margin-top:6px">'
+      +'<button class="b mini" data-act="cr-copier">Copier la demande</button></div>'
+    +'<label class="champ" style="margin-top:12px">2. La réponse de Claude'
+      +'<textarea id="crReponse" placeholder="Collez ici le JSON renvoyé par Claude" '
+      +'style="width:100%;min-height:120px;padding:8px;border:1px solid var(--trait);'
+      +'border-radius:2px;font-family:var(--data);font-size:12px"></textarea></label>';
+  ouvrirModale("Cristalliser "+(l.length>1?(l.length+" idées"):"une idée"),corps,[
+    {txt:"Annuler",fn:function(){ cristEnCours=null; fermerModale() }},
+    {txt:"Intégrer la réponse",classe:"",droite:true,fn:integrerCristallisation}
+  ]);
+  var r=$("#crReponse"); if(r) r.focus();   /* ouvrirModale viserait la demande en lecture seule */
+}
+function copierInvite(){
+  var e=$("#crInvite"); if(!e) return;
+  e.removeAttribute("readonly"); e.select();
+  try{ document.execCommand("copy"); toast("Demande copiée — collez-la dans votre conversation Claude") }
+  catch(x){ toast("Copie impossible — sélectionnez le texte à la main",true) }
+  e.setAttribute("readonly","readonly");
+  var r=$("#crReponse"); if(r) r.focus();
+}
+/* Guillemets courbes : un copier-coller passe souvent par un rendu typographique qui
+   remplace " par “ et ”. JSON les refuse. On ne touche qu'aux guillemets DOUBLES :
+   l'apostrophe courbe ’ est une vraie apostrophe francaise au milieu du texte, et les
+   chevrons « » sont de la ponctuation, jamais des delimiteurs. */
+var GUILLEMETS_COURBES=/[“”‟″〝〞]/g;
+function estGuillemet(c){
+  return c==='"' || c==="“" || c==="”" || c==="‟"
+      || c==="″" || c==="〝" || c==="〞";
+}
+/** Decoupe la chaine en blocs { ... } equilibres, en ignorant les accolades du texte. */
+function blocsAccolades(s){
+  var l=[],prof=0,deb=-1,dansTexte=false,ech=false,i,c;
+  for(i=0;i<s.length;i++){
+    c=s.charAt(i);
+    if(dansTexte){
+      if(ech){ ech=false; continue }
+      if(c==="\\"){ ech=true; continue }
+      if(estGuillemet(c)) dansTexte=false;
+      continue;
+    }
+    if(estGuillemet(c)){ dansTexte=true; continue }
+    if(c==="{"){ if(prof===0) deb=i; prof++ }
+    else if(c==="}" && prof>0){
+      prof--;
+      if(prof===0 && deb>=0){ l.push(s.slice(deb,i+1)); deb=-1 }
+    }
+  }
+  return l;
+}
+/** Enleve une virgule qui traine avant une fermeture, hors chaines de caracteres. */
+function sansVirguleFinale(s){
+  var out="",dansTexte=false,ech=false,i,c,j,d;
+  for(i=0;i<s.length;i++){
+    c=s.charAt(i);
+    if(dansTexte){
+      out+=c;
+      if(ech){ ech=false; continue }
+      if(c==="\\"){ ech=true; continue }
+      if(c==='"') dansTexte=false;
+      continue;
+    }
+    if(c==='"'){ dansTexte=true; out+=c; continue }
+    if(c===","){
+      for(j=i+1;j<s.length;j++){ d=s.charAt(j); if(d!==" "&&d!=="\n"&&d!=="\r"&&d!=="\t") break }
+      if(s.charAt(j)==="}" || s.charAt(j)==="]") continue;   /* virgule en trop : on la saute */
+    }
+    out+=c;
+  }
+  return out;
+}
+var dernierSoucisJson="";
+/** Extrait l'objet JSON d'une reponse, meme recopiee avec sa mise en forme.
+    On tente d'abord le texte tel quel : une reponse valide n'est jamais retouchee. */
+function jsonDeReponse(t){
+  var s=String(t||"").replace(/```[a-z]*/gi,"").replace(/```/g,"");
+  dernierSoucisJson="";
+  var blocs=blocsAccolades(s);
+  if(!blocs.length){
+    var a=s.indexOf("{"), b=s.lastIndexOf("}");
+    if(a<0 || b<=a){
+      dernierSoucisJson="aucun objet JSON (pas d’accolades) dans ce que vous avez collé";
+      return null;
+    }
+    blocs=[s.slice(a,b+1)];
+  }
+  var dernier="";
+  /* du dernier bloc vers le premier : si vous avez colle la demande ET la reponse,
+     c'est la reponse qui compte, et elle vient en dernier */
+  for(var k=blocs.length-1;k>=0;k--){
+    var essais=[blocs[k],
+      blocs[k].replace(GUILLEMETS_COURBES,'"'),
+      sansVirguleFinale(blocs[k].replace(GUILLEMETS_COURBES,'"')
+        .replace(/[   ]/g," "))];
+    for(var e=0;e<essais.length;e++){
+      try{
+        var o=JSON.parse(essais[e]);
+        if(o && typeof o==="object" && !estTableau(o)) return o;
+      }catch(x){ dernier=x.message||String(x) }
+    }
+  }
+  dernierSoucisJson=dernier;
+  return null;
+}
+function integrerCristallisation(){
+  var ids=cristEnCours;
+  if(!ids || !ids.length) return;
+  var e=$("#crReponse"), j=jsonDeReponse(e?e.value:"");
+  if(!j || typeof j!=="object" || estTableau(j)){
+    if(e) e.focus();
+    toast("Réponse illisible"+(dernierSoucisJson?" — "+dernierSoucisJson:"")
+      +". Collez l’objet JSON entre accolades, tel que Claude l’a écrit.",true);
+    return;
+  }
+  var l=ids.map(ideePar).filter(Boolean);
+  if(!l.length){ cristEnCours=null; fermerModale(); return }
+  /* chaque champ est controle : on n'ecrit jamais tel quel ce qui revient d'ailleurs */
+  var cat="",vise=sansAccent(String(j.categorie||"")).toLowerCase().trim();
+  if(vise){
+    /* on reconnait le libelle au singulier comme au pluriel, accents et casse mis de cote ;
+       une categorie inconnue n'est pas une erreur, on retombe sur celle des idees d'origine */
+    var cmp=function(v){ return sansAccent(String(v||"")).toLowerCase().trim() };
+    categories().forEach(function(K){
+      if(!cat && (cmp(K.lib)===vise || cmp(K.plur)===vise || cmp(K.cle)===vise)) cat=K.cle;
+    });
+    if(!cat) categories().forEach(function(K){
+      var a=cmp(K.lib);
+      if(!cat && a && (a.indexOf(vise)===0 || vise.indexOf(a)===0)) cat=K.cle;
+    });
+  }
+  if(!cat) cat=catMajoritaire(l);
+  var u=normaliserIdeeU({
+    titre:String(j.titre||l[0].titre||"Idée unifiée"),
+    synthese:String(j.synthese||""),
+    objectifs:j.objectifs, etapes:j.premieres_etapes, vigilance:j.points_de_vigilance,
+    cat:cat, sources:ids
+  });
+  if(!u.synthese && !u.objectifs.length && !u.etapes.length){
+    if(e) e.focus();
+    toast("La réponse ne contient ni synthèse ni étape : vérifiez le JSON collé",true);
+    return;
+  }
+  ideesU().push(u);
+  l.forEach(function(i){ i.statut="absorbee"; i.unifiee_id=u.id; delete selIdees[i.id] });
+  cristEnCours=null;
+  fermerModale(); modifie(); rendre();
+  toast("Idée cristallisée");
+  ideeFraiche=u.id;        /* l'eclosion joue a la fermeture de la fiche, pas sous la modale */
+  ouvrirIdeeU(u.id);
+}
+function ouvrirIdeeU(id){
+  var u=ideeUPar(id); if(!u) return;
+  var K=catIdee(u.cat), cats=categories();
+  var liste=function(t,l){
+    if(!l.length) return "";
+    return '<div class="pause-lbl" style="text-align:left;margin:12px 0 4px">'+t+'</div>'
+      +'<ul class="id-liste">'+l.map(function(x){ return '<li>'+esc(x)+'</li>' }).join("")+'</ul>';
+  };
+  var src=u.sources.map(function(i){ var x=ideePar(i); return x?x.titre:null }).filter(Boolean);
+  var act=u.activite_id?chantierPar(u.activite_id):null;
+  var corps=(u.synthese?'<div class="txt" style="font-size:14px">'+esc(u.synthese)+'</div>':"")
+    +liste("Objectifs",u.objectifs)
+    +liste("Premières étapes",u.etapes)
+    +liste("Points de vigilance",u.vigilance)
+    +(src.length?'<div class="id-src" style="margin-top:12px">À partir de : '+esc(src.join(" · "))+'</div>':"")
+    +'<hr class="sep">'
+    +(act?'<div class="note-aide" style="margin-top:0">Déjà convertie en « '+esc(act.libelle||"activité")
+        +' ». Vous pouvez en créer une seconde si besoin.</div>':"")
+    +(cats.length?'<label class="champ">Catégorie de l’activité à créer'
+      +'<select id="iuCat">'+selOpts(cats.map(function(X){ return [X.cle,X.lib] }),u.cat||cats[0].cle)
+      +'</select></label>'
+      :'<div class="note-aide" style="margin-top:0">Aucune catégorie d’activité n’est définie : '
+      +'créez-en une dans les paramètres pour pouvoir convertir.</div>');
+  ouvrirModale((u.cat?K.lib+" — ":"")+u.titre,corps,[
+    {txt:"Dissoudre",classe:"creux",fn:function(){
+      if(!confirm("Dissoudre cette idée unifiée ?\n\nLes idées d’origine redeviennent libres, "
+        +"et la synthèse est perdue.")) return;
+      idees().forEach(function(i){ if(i.unifiee_id===u.id){ i.statut="libre"; i.unifiee_id="" } });
+      D.idees_unifiees=ideesU().filter(function(x){ return x.id!==u.id });
+      fermerModale(); modifie(); rendre(); toast("Idée unifiée dissoute");
+    }},
+    {txt:"Fermer",droite:true,fn:function(){
+      fermerModale();
+      if(ideeFraiche) rendre();   /* pour voir le cristal se former */
+    }}
+  ].concat(cats.length?[{txt:"Créer l’activité",classe:"",droite:true,fn:function(){
+      convertirIdeeU(u.id,$("#iuCat")?$("#iuCat").value:u.cat);
+    }}]:[]));
+}
+/** Une idee unifiee devient une activite ; ses premieres etapes deviennent des taches. */
+function convertirIdeeU(id,cle){
+  var u=ideeUPar(id); if(!u) return;
+  var K=catParCle(cle);
+  if(!K){ toast("Créez d’abord une catégorie d’activité",true); return }
+  var c={id:uid(),categorie:K.cle,libelle:u.titre.slice(0,200),reference:"",
+    date:"",heure:"",duree:0,type:"",tiers:"",contact_nom:"",contact_tel:"",
+    commune:"",adresse:"",priorite:"normale",eprouvante:false,
+    statut:(jeuStatuts(K.statuts)[0]||["",""])[0],
+    commentaire:[u.synthese,
+      u.objectifs.length?"Objectifs :\n• "+u.objectifs.join("\n• "):"",
+      u.vigilance.length?"Vigilance :\n• "+u.vigilance.join("\n• "):""
+    ].filter(Boolean).join("\n\n"),
+    cree_le:new Date().toISOString(), idee_id:u.id};
+  if(K.miroir) c[K.miroir]=c.statut;
+  D.chantiers.push(c);
+  /* une tache par premiere etape : le travail arrive deja decoupe dans « En attente » */
+  var base=new Date(); base.setDate(base.getDate()+7);
+  u.etapes.forEach(function(t,k){
+    var d=new Date(base.getTime()); d.setDate(d.getDate()+k);
+    D.notes.push({id:uid(),date:auj(),heure:hNow(),type:"",
+      chantier_id:c.id,rubrique_id:"",chantier_ref:refDossier(c),
+      contenu:"",duree:0,suite:{texte:t,echeance:iso(d),fait:false}});
+  });
+  u.statut="convertie"; u.activite_id=c.id;
+  fermerModale(); modifie(); rendre();
+  toast(K.lib+" créé"+(K.genre==="m"?"":"e")+(u.etapes.length?" · "+u.etapes.length+" tâche(s)":""));
+  editerChantier(c.id);
+}
+
 /* ================= evenements ================= */
 document.addEventListener("click",function(e){
   var t=e.target,el;
@@ -5868,6 +7427,8 @@ document.addEventListener("click",function(e){
     }else toast("Votre carte est vide : ouvrez Pause pour la composer",true);
     return;
   }
+  /* closest, et non t.id : le libelle du bouton est dans un span, qui recoit le clic */
+  if(t.closest && t.closest("#btnApropos")){ ouvrirApropos(); return }
   if(t.id==="btnPause"){ ouvrirPause(); return }
   if((el=t.closest("[data-fav]"))){
     var sec=M.sections[el.dataset.sec]||[];
@@ -5912,6 +7473,19 @@ document.addEventListener("click",function(e){
       fermerModale();
     }
     editerNote(el.dataset.note);
+    return;
+  }
+  if(glisseIdee && t.closest("#idSvg")) return;   /* on vient de deplacer, pas de cliquer */
+  if((el=t.closest("[data-cristal]"))){ ouvrirIdeeU(el.dataset.cristal); return }
+  if((el=t.closest("[data-bulle]"))){
+    if(e.detail>1) ouvrirIdee(el.dataset.bulle); else basculerSelIdee(el.dataset.bulle);
+    return;
+  }
+  if((el=t.closest("[data-idgrp]"))){ selGroupeIdees(el.dataset.idgrp); return }
+  if((el=t.closest("[data-ideeu]"))){ ouvrirIdeeU(el.dataset.ideeu); return }
+  if((el=t.closest("[data-idee]"))){
+    if(t.classList && t.classList.contains("idsel")) return;   /* la case suit son propre chemin */
+    ouvrirIdee(el.dataset.idee);
     return;
   }
   if((el=t.closest("[data-noter]"))){ noterActivite(el.dataset.noter); return }
@@ -6075,6 +7649,12 @@ document.addEventListener("click",function(e){
   }
   if((el=t.closest("[data-hor]"))){ horizonAttente=+el.dataset.hor||0; rendre(); return }
   if((el=t.closest("[data-per]"))){ periodeRep=el.dataset.per; rendre(); return }
+  if((el=t.closest("[data-ouvrir-aff]"))){
+    var cid=el.dataset.ouvrirAff;
+    fermerModale();
+    if(chantierPar(cid)) editerChantier(cid);
+    return;
+  }
   if((el=t.closest("[data-appel]"))){ editerAppel(el.dataset.appel); return }
   if((el=t.closest("[data-verif]"))){
     var rv=rappelPar(el.dataset.verif);
@@ -6154,6 +7734,19 @@ document.addEventListener("click",function(e){
         objet:$("#rencObj")?$("#rencObj").value.trim():""});
       modifie(); fermerModale(); editerContact(cr.id); toast("Rencontre ajoutée");
     }
+    else if(a==="id-add") ajouterIdee();
+    else if(a==="id-bulles"||a==="id-tableau"){ vueIdeesMode=(a==="id-bulles")?"bulles":"tableau"; rendre() }
+    else if(a==="id-rien"){ selIdees={}; rendre() }
+    else if(a==="id-crist"){
+      var lc=[];
+      idees().forEach(function(i){ if(selIdees[i.id]) lc.push(i.id) });
+      cristalliser(lc);
+    }
+    else if(a==="ap-versions") ouvrirApropos("versions");
+    else if(a==="id-zplus") zoomIdees(1.25);
+    else if(a==="id-zmoins") zoomIdees(1/1.25);
+    else if(a==="id-zraz") razVueIdees();
+    else if(a==="cr-copier") copierInvite();
     else if(a==="diag-rep") reparerCategories();
     else if(a==="rep-import") reparerImportCat();
     else if(a==="abs-tout"||a==="abs-rien"){
@@ -6220,6 +7813,7 @@ document.addEventListener("click",function(e){
     else if(a==="perm-on"){
       var P=perm();
       P.actif=true;
+      if(!seanceOuverte(auj())) seancesPerm().push({jour:auj(),debut:hNow(),fin:null});
       rappels().forEach(function(r){ r.dernier=hNow(); r.alerte=false });
       if(P.son) bip(1);
       modifie(); rendre(); toast("Permanence enclenchée — rappels armés");
@@ -6227,9 +7821,17 @@ document.addEventListener("click",function(e){
     else if(a==="perm-off"){
       var P2=perm();
       P2.actif=false;
+      var so=seanceOuverte(auj());
+      if(so){
+        so.fin=hNow();
+        /* close dans la minute de sa prise : c'est une fausse manoeuvre, pas une seance */
+        if(minutes(so.fin)<=minutes(so.debut))
+          P2.seances=seancesPerm().filter(function(x){ return x!==so });
+      }
       rappels().forEach(function(r){ r.alerte=false; r.dernier=null });
       document.title=titreBase;
-      modifie(); rendre(); toast("Permanence close");
+      modifie(); rendre();
+      toast("Permanence close"+(so&&so.fin?" — "+dureeLisible(minutesPermanence(auj()))+" tenue":""));
     }
     else if(a==="perm-son"){
       perm().son=!perm().son;
@@ -6325,6 +7927,12 @@ document.addEventListener("input",function(e){
     });
     return;
   }
+  if(t.id==="idSeuil"){
+    reglagesIdees().seuil=Math.max(0.10,Math.min(0.45,+t.value||0.22));
+    modifie(); rendre();
+    var sc=$("#idSeuil"); if(sc) sc.focus();   /* le curseur reste sous le doigt */
+    return;
+  }
   if(t.id==="lienQ"){ filtreLienQ=t.value; majSelectLien(); return }
   if(t.id==="ctq"){ filtreCt.q=t.value; rendreEtRendreLeFocus("ctq"); return }
   if(t.id==="fq"){ filtreCh.q=t.value; rendreEtRendreLeFocus("fq"); return }
@@ -6342,6 +7950,10 @@ function rendreEtRendreLeFocus(id){
 }
 document.addEventListener("change",function(e){
   var t=e.target;
+  if(t.dataset && t.dataset.idsel!==undefined){
+    if(t.checked) selIdees[t.dataset.idsel]=true; else delete selIdees[t.dataset.idsel];
+    rendre(); return;
+  }
   if(t.dataset && t.dataset.rapon!==undefined){
     var rr=rappelPar(t.dataset.rapon);
     if(!rr) return;
@@ -6469,7 +8081,7 @@ document.addEventListener("keydown",function(e){
   if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="s"){ e.preventDefault(); enregistrer(false); return }
   if((e.ctrlKey||e.metaKey) && e.key==="Enter" && e.target.id==="noteRapide"){ e.preventDefault(); ajouterNote(); return }
   if(e.key==="Enter" && e.target.id==="ftTxt"){ e.preventDefault(); ajouterDepuisFiche("tache"); return }
-  if(e.key==="Enter" && /^(apQui|apObj|apTel|apEnt|apCom)$/.test(e.target.id)){ e.preventDefault(); ajouterAppel(); return }
+  if(e.key==="Enter" && /^(apQui|apObj|apTel|apEnt|apCom|apAff)$/.test(e.target.id)){ e.preventDefault(); ajouterAppel(); return }
   if(e.key==="Enter" && e.target.dataset && e.target.dataset.ajout){
     e.preventDefault();
     var b2=document.querySelector('[data-additem="'+e.target.dataset.ajout+'"]');
@@ -6559,6 +8171,486 @@ window.__pilotInit = (function init(){
     toast("Sauvegarde automatique indisponible ici : enregistrez votre fichier régulièrement",true);
   },1400);
 });
+</script>
+<script>
+/* Aide intégrée. Une rubrique = un objet { id, titre, vues, html }.
+   Ouverture : bouton « Aide » de l'en-tête, touche F1 (rubrique de l'onglet affiché),
+   ou un bouton portant data-aide="identifiant". Ajouter une rubrique = ajouter un objet. */
+(function(){
+"use strict";
+
+var A = window.AIDE = [
+
+{ id:"prise-en-main", titre:"Prise en main", vues:[], html:
+ '<p class="pa-intro">Cette application suit votre activité au quotidien : vos dossiers, vos rendez-vous, '
++'ce que vous en faites, le temps que vous y passez, et ce qu’il en reste à présenter.</p>'
++'<h4>Les onglets</h4><dl>'
++'<dt>Aujourd’hui</dt><dd>Votre journée : points de vigilance, planning, tâches en attente, journal, permanence et compteur.</dd>'
++'<dt>Prochain jour ouvré</dt><dd>Ce qui vous attend : activités prévues, dernière note de chaque dossier, tâches arrivant à échéance.</dd>'
++'<dt>Activités</dt><dd>L’ensemble de vos dossiers, avec recherche et filtres.</dd>'
++'<dt>Journal</dt><dd>Toutes vos notes et vos appels, du plus récent au plus ancien.</dd>'
++'<dt>Contacts</dt><dd>Les personnes et les organisations, leur historique et leurs liens.</dd>'
++'<dt>Données</dt><dd>Le fichier, les imports et exports, le rapport d’activité, les paramètres.</dd></dl>'
++'<h4>Le fichier de données</h4>'
++'<p>Tout vit dans un seul fichier, <code>pstp-data.json</code>, que vous choisissez au premier lancement. '
++'Tant qu’il n’est pas lié, seul l’onglet Données est accessible : c’est volontaire, pour ne pas saisir dans le vide. '
++'Une fois lié, chaque modification y est écrite toute seule, une seconde après la saisie.</p>'
++'<p class="pa-astuce">L’application ne fait aucun appel réseau. Rien ne sort de votre poste, et elle fonctionne '
++'sans connexion. C’est ce qui la rend utilisable sur un poste professionnel.</p>'
++'<h4>Pour bien démarrer</h4><ol>'
++'<li><b>Données</b> → « Ouvrir ou créer un fichier ». Choisissez son emplacement une fois pour toutes.</li>'
++'<li>Vérifiez vos <b>catégories d’activité</b> dans Données → Configurer les catégories.</li>'
++'<li>Créez une activité depuis <b>Aujourd’hui</b>, avec les boutons « + » sous le planning.</li>'
++'<li>Notez ce que vous faites au fil de la journée : une ligne suffit, le temps se cumule tout seul.</li></ol>' },
+
+{ id:"aujourdhui", titre:"Aujourd’hui et Prochain jour", vues:["jour","suivant"], html:
+ '<h4>Points de vigilance</h4>'
++'<p>Ce qui doit rester sous vos yeux sans relever d’un dossier : une consigne, un aléa, une alerte. '
++'Trois niveaux : <i>information</i>, <i>attention</i>, <i>critique</i>.</p>'
++'<p>La date que vous posez est une <b>échéance de validité</b>, pas une date d’apparition : le point reste '
++'affiché jusque-là. Une fois la date passée, il <b>ne disparaît pas</b> — il est signalé comme dépassé, et c’est '
++'vous qui décidez de le lever.</p>'
++'<h4>Planning du jour</h4>'
++'<p>Les activités datées d’aujourd’hui. Le bouton <b>Noter</b> ouvre un compte rendu déjà amorcé : '
++'le motif de l’activité ouvre le texte, le temps prévu est pré-rempli, et vous pouvez faire avancer le statut '
++'dans le même geste. Rien n’est enregistré si vous n’écrivez rien de plus que le motif.</p>'
++'<h4>En attente</h4>'
++'<p>Les tâches ouvertes, filtrées par horizon. <b>Aujourd’hui</b> ne montre que les tâches <i>datées</i> échues '
++'ou en retard ; les autres horizons incluent aussi les tâches sans échéance, qui forment votre réserve. '
++'Le compteur du bouton « Aujourd’hui » reste visible depuis n’importe quel horizon.</p>'
++'<h4>Où passe le temps</h4>'
++'<p>La répartition du temps imputé, sur la journée ou sur sept jours. Le temps vient des notes, '
++'du chronomètre du compteur et des appels de permanence.</p>'
++'<h4>Prochain jour ouvré</h4>'
++'<p>Calculé d’après vos jours travaillés, les jours fériés et vos absences déclarées — pas simplement « demain ».</p>' },
+
+{ id:"idees", titre:"Idées", vues:["idees"], html:
+ '<p class="pa-intro">L’onglet <b>Idées</b> est un carnet : vous y déposez ce qui vous traverse l’esprit '
++'sans l’organiser tout de suite. L’application rapproche d’elle-même les idées qui se ressemblent, '
++'et vous pouvez ensuite les faire mûrir, puis les transformer en activité du pilotage.</p>'
++'<h4>Déposer une idée</h4>'
++'<p>Un titre en une ligne suffit. La note en dessous est facultative : contexte, raison, détail. '
++'La catégorie est celle de l’activité que l’idée deviendrait si elle aboutit — elle n’engage à rien.</p>'
++'<h4>Le regroupement</h4>'
++'<p>Les idées qui partagent des mots se regroupent automatiquement : même teinte dans la vue '
++'<b>Bulles</b>, même groupe dans la vue <b>Tableau</b>. Le curseur <b>Regroupement</b> règle la '
++'sensibilité : vers la gauche les groupes sont larges et nombreux, vers la droite ils sont stricts et rares. '
++'Ce calcul se fait entièrement dans votre navigateur, sur vos mots, sans rien envoyer nulle part.</p>'
++'<h4>Cristalliser</h4>'
++'<p>Cristalliser, c’est demander à Claude de transformer une idée — ou un groupe d’idées proches — '
++'en quelque chose d’exploitable : un titre, une synthèse, des objectifs, des premières étapes, '
++'des points de vigilance.</p>'
++'<p><b>L’application ne contacte aucun service.</b> Elle prépare la demande, vous la copiez, vous la '
++'collez dans votre conversation Claude, et vous rapportez sa réponse dans le second champ. '
++'Rien ne sort de ce fichier sans que vous l’ayez fait sortir vous-même.</p>'
++'<dl>'
++'<dt>Sélectionner</dt><dd>Un clic sur une bulle, ou la case de la ligne dans le tableau. '
++'Le bouton sous un groupe sélectionne ou désélectionne tout le groupe d’un coup.</dd>'
++'<dt>Une seule idée</dt><dd>Ouvrez-la (double clic sur la bulle, clic sur la ligne) puis '
++'« Cristalliser seule ».</dd>'
++'<dt>La réponse</dt><dd>Collez le JSON tel quel. Si Claude l’a entouré de texte ou de balises, '
++'l’application retrouve l’objet toute seule. Chaque champ est relu et borné avant d’être enregistré.</dd>'
++'</dl>'
++'<h4>Devenir une activité</h4>'
++'<p>Une idée cristallisée se convertit en activité de la catégorie que vous choisissez. La synthèse, '
++'les objectifs et les points de vigilance deviennent son commentaire ; chaque première étape devient '
++'une tâche à échéance, qui apparaîtra dans « En attente » de l’onglet Aujourd’hui.</p>'
++'<p><b>Dissoudre</b> fait l’inverse : la synthèse est perdue, les idées d’origine redeviennent libres.</p>'
++'<h4>Ce qui est conservé</h4>'
++'<p>Les idées vivent dans votre fichier de données, comme le reste. Elles n’apparaissent pas dans le '
++'rapport d’activité : ce sont des intentions, pas des faits.</p>'
+},
+
+{ id:"activites", titre:"Activités", vues:["chantiers"], html:
+ '<h4>La liste</h4>'
++'<p>Recherche libre, puis quatre filtres : catégorie, statut, période, et <b>actives / archivées</b>. '
++'Par défaut vous ne voyez que les activités en cours.</p>'
++'<h4>La fiche</h4>'
++'<p>Un clic ouvre la fiche : champs de la catégorie, notes liées, ajout d’une note ou d’une tâche sans quitter la fenêtre. '
++'Les notes liées s’ouvrent d’un clic.</p>'
++'<h4>Archiver plutôt que supprimer</h4>'
++'<p>L’archivage sort un dossier des vues courantes <b>sans rien perdre</b> : notes, tâches, temps imputé et '
++'rattachements sont conservés, et le dossier reste consultable par le filtre « Archivés ».</p>'
++'<p>Au moment d’archiver, l’application demande <b>pourquoi</b> : « traité, mené à terme » ou « sorti de mon '
++'périmètre ». Ce choix compte : seuls les dossiers traités entrent dans les affaires menées à terme du rapport. '
++'Un dossier archivé sans réponse n’est compté nulle part, et un bouton « Qualifier les archives » le rappelle.</p>'
++'<p>La suppression définitive existe toujours, mais elle détache les notes et efface l’historique du rapport. '
++'Préférez l’archivage.</p>'
++'<h4>Statuts</h4>'
++'<p>Chaque catégorie a son propre cycle de vie. Le statut de clôture est réglé par catégorie dans les paramètres : '
++'c’est lui qui décide de ce qui compte comme mené à terme.</p>'
++'<h4>Transmettre un dossier</h4>'
++'<p>Le bouton <b>Compte rendu</b>, en bas de la fiche, en écrit le résumé en texte brut, prêt à coller '
++'dans un mail ou un message. Une case permet d’y joindre l’historique des notes et des tâches : '
++'avec elle, le destinataire a de quoi reprendre le dossier.</p>'
++'<p>Le texte reprend ce qui est à l’écran, y compris une saisie que vous n’avez pas encore '
++'enregistrée, et il est modifiable avant la copie. Les champs vides n’y figurent pas. '
++'La fiche reste ouverte derrière : fermer le compte rendu ne vous fait rien perdre.</p>' },
+
+{ id:"desherences", titre:"Dossiers et import Excel", vues:[], html:
+ '<h4>L’import</h4>'
++'<p><b>Données</b> → « Importer des dossiers (Excel) ». Le fichier <code>.xlsm</code> est lu directement, '
++'sans logiciel tiers. Les lignes sont rapprochées par leur PRM : ce qui existe est mis à jour, le reste est ajouté.</p>'
++'<p>Un écran récapitule tout <b>avant</b> d’appliquer : lignes lues, nouvelles, modifiées, identiques, '
++'et le détail champ par champ des modifications proposées.</p>'
++'<h4>Le filtre gestionnaire</h4>'
++'<p>Seules les lignes à votre nom sont reprises. L’écran affiche explicitement si le filtre a été <b>appliqué</b> '
++'ou non : s’il ne l’a pas été, les boutons d’application disparaissent et un bouton « Réparer la configuration '
++'d’import » recâble les colonnes. Sans cela, l’import avalerait les dossiers de tous les gestionnaires.</p>'
++'<h4>Ce que l’import ne fait jamais</h4>'
++'<p>Une cellule vide ne vous efface rien : c’est une absence d’information, pas une demande d’effacement. '
++'Vos commentaires, segments et noms de poste saisis à la main sont protégés. Vos libellés personnalisés aussi : '
++'l’écran les liste et propose de les conserver.</p>'
++'<h4>Dates particulières</h4>'
++'<p>La colonne date d’intervention accepte autre chose qu’une date. Un <b>marqueur de réalisation</b> '
++'(FAIT, OK, Réalisé, Terminé…) retire la fiche du planning ; tout autre texte est conservé dans le champ sans toucher '
++'à la date. La liste des marqueurs est modifiable dans Données.</p>'
++'<h4>Dossiers absents du fichier</h4>'
++'<p>Un dossier que vous suivez mais qui ne figure plus dans le reportinge vous est proposé à l’archivage, '
++'case par case, rien n’étant coché par défaut. À l’inverse, un dossier archivé qui réapparaît vous est proposé '
++'à la réactivation.</p>' },
+
+{ id:"rendezvous", titre:"Convocations et animations", vues:[], html:
+ '<h4>Le cycle</h4>'
++'<p>Ces activités suivent un cycle de rendez-vous : À planifier, Planifié, À préparer, Prêt pour RDV, '
++'Préparation CR, Terminé, Reporté, Annulé. Le statut de clôture est <i>Terminé</i>.</p>'
++'<h4>Après le rendez-vous</h4>'
++'<p>Depuis le planning du jour, le bouton <b>Noter</b> ouvre le compte rendu avec le motif en amorce et le temps '
++'prévu pré-rempli. Le menu « Statut après cette note » vous laisse passer en <i>Préparation CR</i> sans sauter '
++'d’étape — c’est le geste normal après une convocation.</p>'
++'<h4>Personnes convoquées</h4>'
++'<p>Le champ dédié de la catégorie accueille les participants. Pour les animations, le nombre de participants '
++'attendus alimente l’indicateur « personnes sensibilisées » du rapport.</p>' },
+
+{ id:"journal", titre:"Journal et notes", vues:["journal"], html:
+ '<h4>Le journal</h4>'
++'<p>Toutes vos notes et vos appels, regroupés par jour. La recherche porte sur le texte.</p>'
++'<h4>Une note</h4>'
++'<p>Date, heure, type, durée, texte, et un <b>rattachement</b> : une activité ou une rubrique. '
++'Une note peut porter une <b>suite à donner</b> avec son échéance — c’est ce qui alimente « En attente ».</p>'
++'<p>Quand une note porte une tâche non soldée, le bouton <b>Traiter l’action</b> ouvre le compte rendu '
++'directement depuis la fiche, et vous y revenez une fois l’action soldée.</p>'
++'<h4>Le rattachement</h4>'
++'<p>Le sélecteur se filtre par recherche et par catégorie. Le choix en cours reste toujours présent dans la liste, '
++'même hors filtre ou au-delà du plafond d’affichage.</p>'
++'<p>Seul le choix explicite « aucun » rompt un lien : un champ non affiché ne détache jamais une note. '
++'Et chaque note garde en mémoire la référence du dossier : si un lien casse malgré tout, la note affiche en rouge '
++'<i>lien perdu</i> suivi du dossier d’origine, au lieu de vous laisser deviner.</p>'
++'<h4>Rubriques</h4>'
++'<p>Pour les notes qui ne relèvent d’aucun dossier daté. Leur ordre d’affichage se règle avec les flèches '
++'dans Données, et il est respecté partout.</p>'
++'<h4>Transmettre une note ou un appel</h4>'
++'<p>La fiche d’une note et celle d’un appel portent un bouton <b>Compte rendu</b> : il en écrit '
++'le résumé en texte brut — date, durée, dossier rattaché, contenu, suite à donner — à copier dans un mail. '
++'Votre nom et votre fonction, s’ils sont renseignés dans les paramètres, le signent.</p>' },
+
+{ id:"contacts", titre:"Contacts et organisations", vues:["contacts"], html:
+ '<h4>Détecter plutôt que saisir</h4>'
++'<p>Deux boutons parcourent vos activités et vos appels pour proposer les fiches manquantes : '
++'<b>Détecter des contacts</b> et <b>Détecter des organisations</b>. Rien n’est créé sans votre case cochée, '
++'et « Écarter » retire définitivement un nom des propositions.</p>'
++'<p>Le rapprochement se fait d’abord sur le numéro de téléphone, puis sur le nom : « Paul Exemple » et '
++'« EXEMPLE Paul » ne font qu’un. Pour les organisations, les formes juridiques sont ignorées : '
++'« SARL Exemple TP » et « EXEMPLE TP » comptent pour une seule entreprise.</p>'
++'<h4>Rattachement automatique</h4>'
++'<p>Une fois les organisations créées, chaque contact croisé sur les mêmes lignes reçoit la sienne. '
++'Si vous créez les organisations après les contacts, un clic sur le bouton rattache l’existant.</p>'
++'<h4>Historique</h4>'
++'<p>Dès qu’une fiche existe, son passé remonte seul : appels et activités où son nom ou son numéro apparaît. '
++'Vous pouvez ajouter des rencontres à la main.</p>'
++'<h4>Relations</h4>'
++'<p>Les liens sont <b>typés et réciproques</b> : « Responsable de » posé chez l’un devient « Rattaché à » chez '
++'l’autre. Une relation peut viser une personne ou une organisation.</p>'
++'<p>Le graphe de la fiche montre le contact au centre et ses relations autour, avec un second cercle optionnel. '
++'Le type de lien est écrit sur le trait et le sens porté par la flèche. Une organisation est un carré, '
++'une personne un rond.</p>'
++'<h4>Civilité</h4>'
++'<p>Elle a son champ. Tapée dans le prénom, elle est remontée toute seule ; un bouton « Extraire les civilités » '
++'traite l’existant d’un coup.</p>' },
+
+{ id:"permanence", titre:"Assistance téléphonique", vues:[], html:
+ '<h4>Prendre un appel</h4>'
++'<p>Téléphone, qui appelle, entreprise, commune, objet et motif, puis <b>Noter</b>. Entrée valide depuis '
++'n’importe lequel des champs. L’entreprise et la commune se complètent d’après vos organisations et '
++'les communes déjà rencontrées.</p>'
++'<p>Un numéro déjà vu reconnaît l’appelant et pré-remplit ce qu’il sait.</p>'
++'<h4>Durée</h4>'
++'<p>Les puces 2 / 5 / 10 / 20 minutes imputent le temps de traitement. Ce temps alimente « Où passe le temps » '
++'et la rubrique Permanence.</p>'
++'<h4>Rappels</h4>'
++'<p>Les rappels périodiques (ATU, F960…) sont entièrement paramétrables : ajouter, renommer, supprimer, '
++'régler l’intervalle. Chaque vérification laisse une ligne dans la liste des appels, avec son badge, '
++'pour que la trace existe.</p>'
++'<h4>Rattacher un appel à une affaire</h4>'
++'<p>Le champ <b>Affaire / n° dossier</b> de la saisie accueille la référence sur laquelle '
++'porte l’appel, plutôt que de la noyer au début de l’objet. Il propose les références et '
++'les PRM déjà présents dans vos activités, mais n’oblige à rien : une affaire qui n’est pas '
++'dans le fichier s’écrit librement.</p>'
++'<p>Quand la référence correspond à l’une de vos activités, son libellé s’affiche sous '
++'l’appel, la fiche propose un lien pour ouvrir le dossier, et le compte rendu la reprend.</p>'
++'<h4>Clore la permanence</h4>'
++'<p>Le lien en bas du bloc arrête les rappels pour la journée. Le bloc indique alors ce que la '
++'permanence a été : la plage tenue, le temps cumulé, le nombre d’appels. Vous pouvez la reprendre '
++'dans la même journée : les plages s’additionnent et la coupure n’est pas comptée.</p>' },
+
+{ id:"compteur", titre:"Compteur de traitement", vues:[], html:
+ '<h4>À quoi il sert</h4>'
++'<p>Compter les dossiers traités en série — DT/DICT, ATU — et chronométrer les sessions. Le titre du bloc '
++'est modifiable dans les paramètres : le compteur n’est pas lié à un métier particulier.</p>'
++'<h4>Sessions</h4>'
++'<p>Une session démarre et s’arrête à la main ; ses heures sont modifiables après coup. Une session oubliée '
++'un jour passé n’est jamais extrapolée : elle compte pour zéro, plutôt que de gonfler votre temps.</p>'
++'<h4>Ce qu’il produit</h4>'
++'<p>Jours de traitement, dossiers traités, temps chronométré, cadence moyenne et meilleure journée. '
++'Le temps rejoint automatiquement la rubrique correspondante dans « Où passe le temps ».</p>'
++'<p class="pa-astuce">Ce bloc et l’assistance téléphonique peuvent être désactivés dans les paramètres '
++'si votre poste ne les utilise pas.</p>' },
+
+{ id:"rapport", titre:"Rapport d’activité", vues:[], html:
+ '<h4>À quoi il sert</h4>'
++'<p>Produire, sur une période que vous choisissez, un document présentable en entretien. '
++'Il ne contient <b>aucune donnée nominative ni référence de dossier</b>.</p>'
++'<h4>Ce qui entre dans la période</h4>'
++'<p>Un dossier est rattaché à la période dès qu’il y porte une <b>trace d’activité</b> : date planifiée, '
++'archivage, dernière action, ou note datée. Beaucoup de dossiers n’ont pas de date de planification ; '
++'s’en tenir à elle effacerait l’essentiel de votre portefeuille.</p>'
++'<p>Le rapport écrit sa méthode et la ventilation exacte — combien par date, par archivage, par note. '
++'Si on vous demande d’où sort un chiffre, la réponse est dans le document.</p>'
++'<h4>Affaires menées à terme</h4>'
++'<p>Deux sources : le statut de clôture de la catégorie, et les dossiers <b>archivés comme traités</b>. '
++'Les sorties de périmètre sont comptées à part. Un avertissement rouge apparaît si une catégorie ne clôture jamais : '
++'c’est presque toujours un réglage à revoir, pas un reflet de votre travail.</p>'
++'<h4>Les trois pages</h4><dl>'
++'<dt>Synthèse</dt><dd>Indicateurs comparés à la période précédente, activité mois par mois, '
++'nature des affaires, état d’avancement. Un bloc séparé donne le compteur et la permanence, '
++'comptés en actes et non en dossiers.</dd>'
++'<dt>Charge et production</dt><dd>Répartition du temps tracé, détail du compteur et de l’assistance, '
++'motifs d’appel, types d’intervention, journal.</dd>'
++'<dt>Détail et prévention</dt><dd>Avancement par catégorie, points de vigilance, actions de suivi, '
++'et <b>prévention et réduction du risque</b> : interventions à enjeu sécurité, convocations tenues, '
++'animations, entreprises rencontrées, personnes sensibilisées.</dd></dl>'
++'<h4>Les deux sections à écrire</h4>'
++'<p><b>Faits marquants</b> et <b>Objectifs et besoins</b> se renseignent dans Données. Ce sont les seules '
++'sections rédigées, et ce sont elles qu’on lit en premier : les chiffres ne font que les étayer.</p>' },
+
+{ id:"donnees", titre:"Données, fichier et exports", vues:["donnees"], html:
+ '<h4>Le fichier</h4>'
++'<p>« Lier un fichier » ou « Ouvrir un fichier » : après ce clic unique, tout s’enregistre seul. '
++'L’état en haut à droite indique où en est l’enregistrement.</p>'
++'<p class="pa-astuce">Le tampon du navigateur n’est qu’un relais de session. Si votre poste le vide '
++'chaque jour, seul le fichier lié conserve vos données : liez-le dès l’ouverture.</p>'
++'<h4>Exports</h4>'
++'<p>JSON complet, et CSV par domaine : activités, notes, suivi du compteur, appels. '
++'Chaque export accepte une période ; vide, il prend tout l’historique.</p>'
++'<h4>Comptes rendus</h4>'
++'<p>Le compte rendu texte et le rapport PDF s’éditent sur n’importe quelle date ou période, '
++'pas seulement le jour même.</p>'
++'<h4>Contrôles de cohérence</h4>'
++'<p>Deux bandeaux peuvent apparaître. <b>Ambre</b> : des fiches portaient une catégorie inconnue au dernier '
++'chargement — une clé mal écrite dans le fichier. <b>Rouge</b> : des activités portent un statut étranger à leur '
++'catégorie, et une correction vous est proposée lot par lot, avec la destination pré-remplie quand elle est certaine.</p>'
++'<h4>Diagnostic du poste</h4>'
++'<p>Indique si l’écriture directe du fichier est disponible. Sur certains navigateurs elle est désactivée '
++'par défaut et l’application bascule en téléchargement.</p>' },
+
+{ id:"parametres", titre:"Paramètres et catégories", vues:[], html:
+ '<h4>Catégories d’activité</h4>'
++'<p>Entièrement configurables : libellé, pluriel, symbole, couleur, champs propres, jeu de statuts, '
++'statut de clôture. Une catégorie peut recevoir l’import Excel et déclarer ce que contient son champ '
++'interlocuteur — une personne, une organisation, ou les deux. Ce réglage alimente la détection d’organisations.</p>'
++'<p>Les catégories s’exportent et s’importent : c’est ce qui permet de reprendre la même configuration '
++'sur un autre poste.</p>'
++'<h4>Listes</h4>'
++'<p>Types d’intervention, motifs, états d’affaire, segments, civilités, marqueurs de réalisation, '
++'actes de prévention… Chaque liste s’édite directement ; une valeur peut aussi s’ajouter depuis n’importe '
++'quel menu déroulant avec « ＋ Ajouter à la liste… ».</p>'
++'<h4>Rubriques</h4>'
++'<p>Elles rattachent les notes sans dossier. Les flèches fixent leur ordre, respecté partout où elles sont proposées.</p>'
++'<h4>Jours ouvrés et absences</h4>'
++'<p>Vos jours travaillés et vos absences déclarées : ils déterminent le prochain jour ouvré et le dénominateur '
++'du temps tracé dans le rapport.</p>'
++'<h4>Identité du rapport</h4>'
++'<p>Nom, fonction et entité figurant en tête du rapport, plus les deux sections rédigées.</p>'
++'<h4>Modules</h4>'
++'<p>L’assistance téléphonique et le compteur se désactivent si votre poste ne les utilise pas. '
++'Le titre du compteur et le nom de l’application sont libres.</p>' },
+
+{ id:"pauses", titre:"Pauses", vues:[], html:
+ '<h4>Le rappel</h4>'
++'<p>Un compte à rebours près du menu Pause indique le temps restant. À échéance, une proposition s’affiche ; '
++'« Plus tard » vous laisse choisir le report.</p>'
++'<h4>La carte</h4>'
++'<p>Vos propres idées de pause, rangées par durée : amuse-bouches, accompagnements, plats, spécialités, desserts. '
++'Les propositions varient et tiennent compte du temps dont vous disposez.</p>'
++'<p>La carte est enregistrée avec vos données mais n’apparaît dans aucun export d’activité ; '
++'un bouton permet de la sortir à part.</p>' },
+
+{ id:"raccourcis", titre:"Raccourcis et questions", vues:[], html:
+ '<h4>Raccourcis</h4>'
++'<table class="pa-tab">'
++'<tr><td><kbd>F1</kbd></td><td>Ouvrir l’aide sur la rubrique de l’onglet affiché</td></tr>'
++'<tr><td><kbd>Échap</kbd></td><td>Fermer la fenêtre ouverte</td></tr>'
++'<tr><td><kbd>Entrée</kbd></td><td>Dans la saisie d’un appel : enregistrer l’appel</td></tr>'
++'</table>'
++'<h4>Version et licence</h4>'
++'<p>Le bouton <b>À propos</b>, à côté d’Aide, donne la version installée, l’auteur, '
++'la licence, et le <b>journal des versions</b> : tout ce qui a changé, de la première version '
++'à celle-ci. Utile pour savoir si le fichier que vous avez sous la main est bien le dernier.</p>'
++'<h4>Questions fréquentes</h4><dl>'
++'<dt>Mes modifications sont-elles enregistrées ?</dt>'
++'<dd>L’état en haut à droite le dit. « Auto · enregistré hh:mm:ss » signifie que le fichier est à jour.</dd>'
++'<dt>Le rapport affiche 0 affaire menée à terme</dt>'
++'<dd>Soit le statut de clôture de la catégorie ne correspond à aucun statut réellement utilisé, soit vos dossiers '
++'soldés sont archivés sans être qualifiés. Le bouton « Qualifier les archives » dans Activités règle le second cas.</dd>'
++'<dt>Une catégorie manque dans le rapport</dt>'
++'<dd>Elle apparaît à zéro, en gris, avec le nombre d’activités qu’elle porte hors période. '
++'C’est presque toujours une question de bornes de dates.</dd>'
++'<dt>Une note a perdu son dossier</dt>'
++'<dd>Elle affiche en rouge le dossier d’origine. Rouvrez-la et choisissez-le de nouveau dans la liste.</dd>'
++'<dt>L’import Excel propose bien trop de dossiers</dt>'
++'<dd>Le filtre gestionnaire n’a pas été appliqué : l’écran le signale et propose de réparer la configuration. '
++'N’appliquez pas l’import avant.</dd>'
++'<dt>Où sont mes données ?</dt>'
++'<dd>Dans le fichier que vous avez lié, à l’emplacement que vous avez choisi. Le nom du fichier courant '
++'est affiché dans Données.</dd>'
++'</dl>' }
+];
+
+var VUE_RUBRIQUE = {};
+A.forEach(function(r){ r.vues.forEach(function(v){ VUE_RUBRIQUE[v] = r.id; }); });
+
+var css = ''
++'#ppAide{padding:0;border:0;margin:0;background:transparent;width:100vw;height:100vh;max-width:none;max-height:none;align-items:center;justify-content:center}'
++'#ppAide[open]{display:flex}#ppAide::backdrop{background:rgba(25,28,27,.45)}'
++'#ppAide .pa-boite{background:#FBFBF9;width:min(1040px,calc(100vw - 32px));height:min(760px,calc(100vh - 40px));display:grid;grid-template-columns:250px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);border-top:3px solid var(--rouge,#D8232A);box-shadow:0 20px 60px rgba(0,0,0,.25)}'
++'#ppAide .pa-tete{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--trait,#d5d7d2)}'
++'#ppAide .pa-tete h3{margin:0;font-size:14px;letter-spacing:.12em;text-transform:uppercase}'
++'#ppAide .pa-tete input{margin-left:auto;width:240px;padding:6px 8px;border:1px solid var(--trait,#d5d7d2);border-radius:2px;font:inherit;font-size:13.5px}'
++'#ppAide .pa-tete button{border:0;background:none;font-size:18px;cursor:pointer;color:#5C625E;padding:2px 6px}'
++'#ppAide .pa-nav{border-right:1px solid var(--trait,#d5d7d2);overflow:auto;padding:8px 0}'
++'#ppAide .pa-nav button{display:block;width:100%;height:auto;text-align:left;border:0;border-left:3px solid transparent;border-radius:0;background:none;padding:7px 16px;margin:0;font:inherit;font-size:13.5px;letter-spacing:normal;text-transform:none;cursor:pointer;color:#191C1B;flex:none}'
++'#ppAide .pa-nav button:hover{background:#F0F1EE}'
++'#ppAide .pa-nav button[aria-current=true]{border-left-color:var(--rouge,#D8232A);background:#F0F1EE;font-weight:600}'
++'#ppAide .pa-corps{outline:none;overflow:auto;padding:18px 26px 30px;font-size:14.5px;line-height:1.55;color:#191C1B}'
++'#ppAide .pa-corps h2{margin:0 0 12px;font-size:20px}'
++'#ppAide .pa-corps h4{margin:20px 0 6px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#3b403d}'
++'#ppAide .pa-corps p{margin:0 0 10px}#ppAide .pa-corps ul,#ppAide .pa-corps ol{margin:0 0 10px;padding-left:22px}#ppAide .pa-corps li{margin:3px 0}'
++'#ppAide .pa-corps dt{font-weight:600;margin-top:10px}#ppAide .pa-corps dd{margin:2px 0 0 0;color:#2d322f}'
++'#ppAide .pa-intro{font-size:15.5px}'
++'#ppAide .pa-astuce{background:#F3F3F0;border-left:3px solid #2B4C6F;padding:8px 12px;margin-top:14px}'
++'#ppAide kbd{display:inline-block;padding:0 5px;border:1px solid #c9cbc5;border-bottom-width:2px;border-radius:3px;font:12px/18px var(--data,monospace);background:#fff}'
++'#ppAide code{font:12.5px var(--data,monospace);background:#F0F1EE;padding:0 4px}'
++'#ppAide .pa-tab td{padding:6px 14px 6px 0;border-bottom:1px dashed var(--trait,#d5d7d2)}'
++'#ppAide mark{background:#FFE9A8;padding:0}'
++'#ppAide .pa-pied{display:flex;justify-content:space-between;margin-top:26px;padding-top:12px;border-top:1px solid var(--trait,#d5d7d2)}'
++'#ppAide .pa-pied button{border:1px solid #191C1B;background:none;padding:6px 12px;font:inherit;font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer}'
++'#btnAide{border-color:#4A514C;color:#C9CFC9;background:transparent;margin-right:6px}'
++'#btnAide:hover{border-color:#8C938E;color:#fff;opacity:1}'
++'@media (max-width:760px){#ppAide .pa-boite{grid-template-columns:1fr;grid-template-rows:auto auto minmax(0,1fr)}#ppAide .pa-nav{border-right:0;border-bottom:1px solid var(--trait,#d5d7d2);display:flex;overflow-x:auto;padding:0}#ppAide .pa-nav button{white-space:nowrap;border-left:0;border-bottom:3px solid transparent}#ppAide .pa-nav button[aria-current=true]{border-bottom-color:var(--rouge,#D8232A)}#ppAide .pa-tete input{width:140px}}';
+
+var boite = null, courante = A[0].id, avantFocus = null;
+function ech(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function sansAcc(t){ return String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
+function texteDe(html){ var d = document.createElement("div"); d.innerHTML = html; return d.textContent || ""; }
+
+function construire(){
+  if (boite) return boite;
+  var st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
+  boite = document.createElement("dialog");   /* au premier plan, meme au-dessus d'une fenetre deja ouverte */
+  boite.id = "ppAide"; boite.setAttribute("role", "dialog"); boite.setAttribute("aria-modal", "true"); boite.setAttribute("aria-label", "Aide");
+  boite.innerHTML = '<div class="pa-boite"><div class="pa-tete"><h3>Aide</h3>'
+    + '<input type="search" id="paCherche" placeholder="Rechercher dans l’aide…" aria-label="Rechercher dans l’aide">'
+    + '<button id="paFermer" title="Fermer (Échap)" aria-label="Fermer">✕</button></div>'
+    + '<div class="pa-nav" id="paNav" role="navigation" aria-label="Rubriques"></div><div class="pa-corps" id="paCorps" tabindex="-1"></div></div>';
+  document.body.appendChild(boite);
+  boite.addEventListener("click", function(e){
+    if (e.target === boite || e.target.id === "paFermer" || e.target.closest("#paFermer")) return fermer();
+    var b = e.target.closest("[data-pa]"); if (b) { afficher(b.dataset.pa); }
+  });
+  boite.querySelector("#paCherche").addEventListener("input", function(){
+    menu(); var q = this.value.trim(); if (q) { var r = resultats(q)[0]; if (r) afficher(r.id, true); }
+  });
+  boite.addEventListener("cancel", function(e){ e.preventDefault(); fermer(); });
+  boite.addEventListener("keydown", function(e){
+    if (e.key !== "Escape") return;
+    e.stopPropagation();
+    if (e.target.id === "paCherche" && e.target.value) return;   /* Echap vide d'abord la recherche */
+    e.preventDefault(); fermer();
+  });
+  return boite;
+}
+function resultats(q){
+  var mots = sansAcc(q).split(/\s+/).filter(Boolean);
+  return A.filter(function(r){
+    var t = sansAcc(r.titre + " " + texteDe(r.html));
+    return mots.every(function(m){ return t.indexOf(m) >= 0; });
+  });
+}
+function menu(){
+  var q = boite.querySelector("#paCherche").value.trim(), l = q ? resultats(q) : A;
+  boite.querySelector("#paNav").innerHTML = l.length ? l.map(function(r){
+    return '<button data-pa="' + r.id + '" aria-current="' + (r.id === courante) + '">' + ech(r.titre) + '</button>';
+  }).join("") : '<div style="padding:10px 16px;font-size:13px;color:#5C625E">Aucun résultat</div>';
+}
+function surligner(html, q){
+  var mots = sansAcc(q).split(/\s+/).filter(function(m){ return m.length > 2; });
+  if (!mots.length) return html;
+  var d = document.createElement("div"); d.innerHTML = html;
+  var w = document.createTreeWalker(d, NodeFilter.SHOW_TEXT), n, aTraiter = [];
+  while ((n = w.nextNode())) aTraiter.push(n);
+  aTraiter.forEach(function(t){
+    var s = t.nodeValue, ns = sansAcc(s), i, dernier = 0, pos = [];
+    mots.forEach(function(m){ for (i = ns.indexOf(m); i >= 0; i = ns.indexOf(m, i + m.length)) pos.push([i, i + m.length]); });
+    if (!pos.length) return;
+    pos.sort(function(a, b){ return a[0] - b[0]; });
+    var f = document.createDocumentFragment();
+    pos.forEach(function(p){
+      if (p[0] < dernier) return;
+      f.appendChild(document.createTextNode(s.slice(dernier, p[0])));
+      var mk = document.createElement("mark"); mk.textContent = s.slice(p[0], p[1]); f.appendChild(mk); dernier = p[1];
+    });
+    f.appendChild(document.createTextNode(s.slice(dernier))); t.parentNode.replaceChild(f, t);
+  });
+  return d.innerHTML;
+}
+function afficher(id, depuisRecherche){
+  var r = A.filter(function(x){ return x.id === id; })[0] || A[0], i = A.indexOf(r);
+  courante = r.id; menu();
+  var q = boite.querySelector("#paCherche").value.trim();
+  var c = boite.querySelector("#paCorps");
+  c.innerHTML = '<h2>' + ech(r.titre) + '</h2>' + (q ? surligner(r.html, q) : r.html)
+    + '<div class="pa-pied">' + (i > 0 ? '<button data-pa="' + A[i - 1].id + '">← ' + ech(A[i - 1].titre) + '</button>' : '<span></span>')
+    + (i < A.length - 1 ? '<button data-pa="' + A[i + 1].id + '">' + ech(A[i + 1].titre) + ' →</button>' : '<span></span>') + '</div>';
+  c.scrollTop = 0;
+  if (!depuisRecherche) c.focus({ preventScroll: true });
+}
+function ouvrir(id){
+  construire();
+  if (!boite.open) { avantFocus = document.activeElement; boite.showModal(); }
+  afficher(id || courante);
+}
+function fermer(){
+  if (!boite) return;
+  if (boite.open) boite.close();
+  if (avantFocus && avantFocus.focus) try { avantFocus.focus(); } catch (e) {}
+}
+/** Ouvre l'aide ; sans argument, sur la rubrique de l'onglet affiche. */
+window.ouvrirAide = function(id){
+  ouvrir(id || VUE_RUBRIQUE[typeof vueActive !== "undefined" ? vueActive : ""] || courante);
+};
+window.fermerAide = fermer;
+
+document.addEventListener("keydown", function(e){
+  if (e.key === "F1") { e.preventDefault(); window.ouvrirAide(); }
+});
+document.addEventListener("click", function(e){
+  var b = e.target.closest && e.target.closest("#btnAide,[data-aide]");
+  if (!b) return;
+  e.preventDefault();
+  window.ouvrirAide(b.dataset.aide || undefined);
+});
+})();
+
 </script>
 <script src="aide.js"></script>
 <script src="perso.js"></script>
