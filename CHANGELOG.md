@@ -4,6 +4,9 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+### Ajouts
+- **Releases GitHub** : le workflow `.github/workflows/releases.yml` crée sur GitHub une release par version du CHANGELOG, avec ses notes et l'archive du code. Il se lance à chaque publication sur `main` (après `scripts/release.sh`) ou à la main depuis l'onglet Actions. Les versions déjà publiées sont rattrapées au premier passage.
+
 ## [0.14.1] - 2026-10-10
 
 ### Corrections
