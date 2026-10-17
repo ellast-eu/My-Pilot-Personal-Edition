@@ -1,0 +1,29 @@
+# Crée les releases GitHub manquantes (une par version du CHANGELOG), avec
+# leurs notes et l'archive du code. Se lance à chaque envoi sur main, ou à la main
+# depuis l'onglet Actions (« Run workflow »).
+name: Releases
+
+on:
+  push:
+    branches: [main]
+    paths: [VERSION, CHANGELOG.md]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: releases
+  cancel-in-progress: false
+
+jobs:
+  releases:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Créer les releases manquantes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/releases-github.sh

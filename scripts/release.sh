@@ -15,4 +15,4 @@ git add VERSION CHANGELOG.md desktop/package.json
 git commit -m "chore(release): v$v"
 git tag -a "v$v" -m "My Pilot Personal Edition v$v"
 scripts/package.sh
-echo "Version v$v prête. Pousser avec : git push && git push --tags"
+echo "Version v$v prête. Pousser avec : git push (la release GitHub est créée par le workflow Releases)"
