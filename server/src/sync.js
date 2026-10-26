@@ -20,7 +20,9 @@ const prives = list => (Array.isArray(list) ? list : []).filter(ch => ch && !est
 export async function motifRefus(res) {
   const type = res.headers.get('content-type') || '';
   let corps = null; try { corps = /json/.test(type) ? await res.json() : null; } catch {}
-  if (corps && corps.message && corps.error !== 'login_required') return corps.message;    // message de l'application elle-même
+  if (corps && corps.error === 'login_required')
+    return 'Cette adresse mène à l\'interface web, pas à la synchronisation : saisissez seulement la racine du serveur (par exemple https://mon-domaine.fr, sans /pilot).';
+  if (corps && corps.message) return corps.message;    // message de l'application elle-même
   const basic = /^\s*basic/i.test(res.headers.get('www-authenticate') || '');
   if (res.status === 401 && basic)
     return 'Le serveur demande un identifiant et un mot de passe AVANT l\'application : une authentification « Basic » est configurée '
@@ -52,6 +54,16 @@ export function hubExchange(store, body) {
   return { hub: store.deviceId, applied: applied.applied, accepted: applied.accepted.map(i => rangs[i]), changes: out.map(({ seq, ...c }) => c), cursor, more };
 }
 
+/**
+ * Adresse du serveur telle que la synchronisation l'attend : la racine du site.
+ * Une adresse copiée depuis le navigateur (…/pilot/, …/connexion/?suite=…, …/cristallisoir/)
+ * est ramenée à cette racine ; sans cela, l'appel partait vers …/pilot/api/sync, une page web.
+ */
+export function adresseServeur(u) {
+  u = String(u || '').trim().replace(/[?#].*$/, '').replace(/\/+$/, '');
+  return u.replace(/\/(pilot|cristallisoir|connexion|rejoindre|api)(\/.*)?$/i, '');
+}
+
 /** Côté appareil : moteur de synchronisation vers le hub configuré. */
 export class SyncEngine {
   constructor(store, { interval = 30000, log = () => {} } = {}) {
@@ -74,7 +86,7 @@ export class SyncEngine {
   config() {
     const s = this.store;
     return {
-      url: (s.getMeta('sync_url') || '').replace(/\/+$/, ''),
+      url: adresseServeur(s.getMeta('sync_url')),
       token: s.getMeta('sync_token') || '',
       enabled: s.getMeta('sync_enabled') === '1',
     };
@@ -83,7 +95,7 @@ export class SyncEngine {
   setConfig({ url, token, enabled }) {
     const s = this.store;
     if (url !== undefined) {
-      const u = String(url || '').trim().replace(/\/+$/, '');
+      const u = adresseServeur(url);
       if (u && !/^https?:\/\/[^\s]+$/i.test(u)) throw Object.assign(new Error('Adresse invalide : elle doit commencer par https://'), { code: 'bad_request' });
       s.setMeta('sync_url', u || null);
     }

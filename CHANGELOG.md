@@ -4,6 +4,11 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+## [0.16.1] - 2026-10-26
+
+### Corrections
+- **Synchronisation refusée (401) quand l'adresse du serveur finit par `/pilot`** (adresse copiée depuis le navigateur) : l'appel partait vers `…/pilot/api/sync`, une page de l'interface web. L'adresse est maintenant ramenée à la racine du serveur, y compris celle déjà enregistrée ; le message d'erreur l'explique si une autre adresse mène encore à l'interface web.
+
 ## [0.16.0] - 2026-10-26
 
 ### Ajouts

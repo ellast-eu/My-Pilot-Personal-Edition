@@ -42,7 +42,11 @@ test('jeton du hub obligatoire', async () => {
   }
   const st = await syncNow('a');
   assert.match(st.lastError, /Jeton de synchronisation refusé/);
-  for (const n of ['a', 'b']) await call(n, '/api/sync/config', 'PUT', { token: 'secret-hub' });
+  // adresse copiée depuis le navigateur (…/pilot/) : ramenée à la racine du serveur
+  for (const n of ['a', 'b']) {
+    const r = await call(n, '/api/sync/config', 'PUT', { url: nodes.hub.url + '/pilot/', token: 'secret-hub' });
+    assert.equal(r.body.url, nodes.hub.url);
+  }
 });
 
 test('deux appareils hors ligne créent chacun une fiche : tout le monde a les deux', async () => {
