@@ -2,7 +2,7 @@
 
 Pilotage des activités personnelles, dérivé de PST·PILOT, avec le Cristallisoir intégré pour faire mûrir les idées jusqu'aux projets.
 
-- **Pilotage** : la journée, le prochain jour, les activités, le journal, les contacts — le moteur de PST·PILOT 3.13.1, réglé pour la vie hors travail (catégories Projet, Maison, Formation, Démarche, Loisir ; modules professionnels désactivés).
+- **Pilotage** : la journée, le prochain jour, les activités, le journal, les contacts — le moteur de My Pilot Pro 3.21.0 (ex-PST·PILOT), réglé pour la vie hors travail (catégories Projet, Maison, Formation, Démarche, Loisir ; modules professionnels désactivés).
 - **Idées** : boîte à idées en bulles ou en tableau, regroupement automatique en méta-idées, cristallisation par Claude, puis conversion en activité du pilotage avec ses tâches.
 - **Application de bureau** (.deb, .exe) : fonctionne seule, sans navigateur ni réseau, avec sa propre base ; elle se synchronise fiche par fiche avec le serveur.
 - **Données** : une base SQLite, avec un historique des versions, des instantanés quotidiens et une réplication continue vers un stockage distant.
@@ -186,7 +186,7 @@ desktop/       application de bureau (Electron) et construction des paquets
 web/pilot/     PST·PILOT adapté : index.html généré + perso.js (couche personnelle)
 web/cristallisoir/  le Cristallisoir (onglet Idées)
 web/rejoindre/ page publique qui explique les liens d’invitation
-vendor/        PST·PILOT d'origine, non modifié
+vendor/        My Pilot Pro d'origine (ex-PST·PILOT), non modifié
 scripts/       construction du pilotage, publication, restauration, banc d’essai du partage
 deploy/        Caddy (HTTPS public) et modèles Litestream
 docs/          architecture, sauvegardes, versions

@@ -145,7 +145,8 @@ serialise=function(format){
 
 /* ================= 2. persistance serveur ================= */
 var Sync={rev:0,etat:"init",envoi:false,encore:false,dernier:null,erreur:"",version:"",schema:""};
-var BASE_PST=APP_VERSION;            /* version de PST·PILOT dont dérive le pilotage */
+var BASE_PST=APP_VERSION;            /* version de My Pilot Pro (ex-PST·PILOT) dont dérive le pilotage */
+window.persoBase=BASE_PST;        /* lu par la fenêtre À propos */
 window.__pilotSync=Sync;            /* diagnostic : état de la synchronisation */
 
 function api(chemin,opts){
@@ -302,33 +303,10 @@ window.persoDiagnostic=function(){
     +ligne("Claude",esc(Idees.claude||"…"),/indisponible|non renseignée/.test(Idees.claude||"")?"ko":"ok")
     +ligne("Version de l'application","My Pilot Personal Edition v"+esc(Sync.version||"?"))
     +ligne("Schéma de la base",Sync.schema?"v"+esc(String(Sync.schema)):"?")
-    +ligne("Base","PST·PILOT v"+esc(BASE_PST))
+    +ligne("Base","My Pilot Pro v"+esc(BASE_PST))
     +ligne("Volume",D.chantiers.length+" activités · "+D.notes.length+" notes · "+(D.contacts||[]).length+" contacts · "+ko+" Ko")
   +'</div></div>';
 };
-/* journal des versions de la perso : affiché en tête de celui de la pro, dans la fenêtre À propos.
-   Du plus récent au plus ancien ; le détail reste dans CHANGELOG.md. */
-window.persoVersions=[
- ["0.14.1","Perso · En-tête stable sur fenêtre étroite ou en portrait : ligne d'état sur une deuxième ligne fixe, largeurs réservées."],
- ["0.14.0","Perso · Aide intégrée (bouton Aide, F1, recherche) et fenêtre de bienvenue au premier lancement."],
- ["0.13.0","Perso · Veilles : sources CISA KEV, NVD et France Travail, filtres score CVSS et contrats, questions de révision hebdomadaires."],
- ["0.12.0","Perso · Veilles : notes, résumés, actions proposées et synthèse par Claude, avec plafond quotidien."],
- ["0.11.0","Perso · Onglet Veilles : flux RSS et Atom, filtres, rythme, exécution par le serveur ou un appareil, fiches."],
- ["0.10.0","Perso · Partage : fusion champ par champ, nouvelle clé au retrait d'un membre, rôle lecteur."],
- ["0.9.0","Perso · Activités partagées : tâches attribuées, notes signées, boîte Reçues étendue aux activités."],
- ["0.8.0","Perso · Partage d'idées dans le Cristallisoir, boîte Reçues et notifications."],
- ["0.8.0-a","Perso · Espaces partagés chiffrés de bout en bout, invitations par lien, exposition par Caddy."],
- ["0.7.1","Perso · Correctifs : saisie « Ajouter à la liste » dans l'application de bureau, listes déroulantes qui ne débordent plus."],
- ["0.7.0","Perso · Réglages modifiables depuis l'application : mot de passe, jetons, Claude Code, instantanés."],
- ["0.6.0","Perso · Application de bureau autonome et synchronisation fiche par fiche avec le serveur."],
- ["0.5.2","Perso · Pause et libellés sans référence professionnelle."],
- ["0.5.1","Perso · Préfixe technique my-pilot-personal-edition et archive versionnée."],
- ["0.5.0","Perso · Nom par défaut My Pilot Personal Edition ; rapports de période retirés."],
- ["0.4.0","Perso · Idées : fiches en fenêtres centrées, idée unifiée modifiable avant de créer l'activité."],
- ["0.3.0","Perso · Restes du cadre professionnel retirés, diagnostic propre, listes limitées aux catégories actives."],
- ["0.2.0","Perso · Assistance téléphonique et compteur retirés ; catégories des idées partagées avec les activités."],
- ["0.1.0","Perso · Première version : pilotage personnel sur serveur, Cristallisoir intégré, pont Claude Code."]
-];
 /* listes modifiables : celles des catégories actives, plus les listes communes */
 var LISTES_PRO={types_intervention:1,motifs_appel:1,motifs_convocation:1,themes_animation:1,types_transverse:1,
   etats_affaire:1,statuts_desherence:1,segments:1,types_dossier:1,marqueurs_fait:1,actes_prevention:1,ouvrages:1};

@@ -29,12 +29,6 @@ PATCHES = [
      r"\+'<div class=\"bloc\" style=\"margin-top:18px\"><div class=\"bloc-tete\">"
      r"<h2>Diagnostic du poste</h2>.*?\n  \+'</div></div>'\n  \+'</div><div>'",
      "+(window.persoDiagnostic?window.persoDiagnostic():'')\n  +'</div><div>'", True),
-    ("journal des versions : entrées de la perso en tête",
-     'var JOURNAL_VERSIONS = [\n',
-     'var JOURNAL_VERSIONS = (window.persoVersions||[]).concat([\n', False),
-    ("journal des versions : fermeture de la liste",
-     '["1.0.0","Dossiers du jour et prochain jour ouvré, journal de notes, suites à donner, imports et exports."]];',
-     '["1.0.0","Dossiers du jour et prochain jour ouvré, journal de notes, suites à donner, imports et exports."]]);', False),
     ("listes gérables : la fenêtre de saisie de la couche perso",
      'saisirValeur("Nouvelle valeur à ajouter à la liste")',
      'window.persoSaisir("Nouvelle valeur à ajouter à la liste")', False),
@@ -129,6 +123,54 @@ PATCHES = [
      "      +'Elle reste absente de tous les exports d\\'activité, et le bouton Exporter permet de la sortir à part.</div>'",
      "'<div class=\"note-aide\">Cette carte est enregistrée avec vos données sur le serveur. '\n"
      "      +'Elle n\\'apparaît dans aucun export d\\'activité ; le bouton Exporter permet de la sauvegarder à part.</div>'", False),
+    # --- fenêtre À propos : celle de la perso, et deux journaux séparés (reprise 3.21.0) ---
+    ("versions de la perso chargées avant le script principal",
+     '</head>', '<script src="versions.js"></script>\n</head>', False),
+    ("à propos : sous-titre du bandeau",
+     r"""+'<div class="ap-sous">pilotage d\u2019activité</div>'""",
+     r"""+'<div class="ap-sous">pilotage personnel</div>'""", False),
+    ("à propos : présentation de la perso",
+     "    +'<p class=\"ap-intro\">'+esc(nom)+' suit votre activité au quotidien : vos dossiers, '\n"
+     "      +'vos rendez-vous, ce que vous en faites, le temps que vous y passez, et ce qu’il en '\n"
+     "      +'reste à présenter.</p>'\n"
+     "    +'<p class=\"ap-intro\">Un seul fichier, qui fonctionne hors ligne. Aucune connexion, aucun '\n"
+     "      +'service tiers, aucune dépendance extérieure : vos données ne quittent jamais votre poste '\n"
+     "      +'et vivent dans le fichier que vous liez.</p>'\n",
+     "    +'<p class=\"ap-intro\">'+esc(nom)+' pilote votre vie personnelle au quotidien : vos activités '\n"
+     "      +'et leurs tâches, votre journal, vos contacts, vos idées et vos veilles.</p>'\n"
+     "    +'<p class=\"ap-intro\">Vos données vivent sur votre propre serveur et se synchronisent entre '\n"
+     "      +'vos appareils ; l\\'application continue de fonctionner hors ligne. Les espaces partagés '\n"
+     "      +'sont chiffrés de bout en bout. Claude n\\'intervient que lorsque vous le demandez, '\n"
+     "      +'avec votre propre abonnement.</p>'\n", False),
+    ("à propos : fonctionnement et base",
+     "      +'<div>Fonctionnement<b>fichier unique, hors ligne</b></div>'",
+     "      +'<div>Fonctionnement<b>serveur personnel, synchronisation, hors ligne possible</b></div>'\n"
+     "      +'<div>Base<b>My Pilot Pro v'+esc(window.persoBase||\"\")+'</b></div>'", False),
+    ("à propos : deux journaux séparés",
+     "      +'<button class=\"lien\" data-act=\"ap-versions\">Journal des versions</button>'\n"
+     "      +'<span class=\"note-aide\" style=\"margin:0\">'+JOURNAL_VERSIONS.length+' versions '\n"
+     "      +'depuis la v'+esc(JOURNAL_VERSIONS[JOURNAL_VERSIONS.length-1][0])+'</span>'\n"
+     "    +'</div>';",
+     "      +'<button class=\"lien\" data-act=\"ap-versions-perso\">Journal des versions</button>'\n"
+     "      +'<span class=\"note-aide\" style=\"margin:0\">'+(window.persoVersions||[]).length+' versions '\n"
+     "      +((window.persoVersions||[]).length?'depuis la v'+esc(window.persoVersions[window.persoVersions.length-1][0]):'')+'</span>'\n"
+     "    +'</div>'\n"
+     "    +'<div class=\"ligne\" style=\"margin-top:6px\">'\n"
+     "      +'<button class=\"lien\" data-act=\"ap-versions\">Journal de My Pilot Pro</button>'\n"
+     "      +'<span class=\"note-aide\" style=\"margin:0\">'+JOURNAL_VERSIONS.length+' versions '\n"
+     "      +'depuis la v'+esc(JOURNAL_VERSIONS[JOURNAL_VERSIONS.length-1][0])+', base de la perso</span>'\n"
+     "    +'</div>';", False),
+    ("à propos : un journal au choix",
+     "function fragJournalVersions(){\n  return '<div class=\"diag\">'+JOURNAL_VERSIONS.map(",
+     "function fragJournalVersions(liste){\n  return '<div class=\"diag\">'+(liste||JOURNAL_VERSIONS).map(", False),
+    ("à propos : ouverture de l'un ou l'autre journal",
+     "  if(page===\"versions\"){\n    arreterAnimApropos();\n    ouvrirModale(\"Journal des versions\",fragJournalVersions(),[",
+     "  if(page===\"versions\"||page===\"versions-perso\"){\n    arreterAnimApropos();\n"
+     "    ouvrirModale(page===\"versions\"?\"Journal de My Pilot Pro\":\"Journal des versions\","
+     "fragJournalVersions(page===\"versions\"?JOURNAL_VERSIONS:(window.persoVersions||[])),[", False),
+    ("à propos : bouton du journal de la perso",
+     'else if(a==="ap-versions") ouvrirApropos("versions");',
+     'else if(a==="ap-versions") ouvrirApropos("versions");\n    else if(a==="ap-versions-perso") ouvrirApropos("versions-perso");', False),
     ("couche perso et aide chargées après le script principal",
      '</body>', '<script src="aide.js"></script>\n<script src="perso.js"></script>\n</body>', False),
 ]

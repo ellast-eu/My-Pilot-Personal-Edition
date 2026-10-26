@@ -653,6 +653,7 @@ tr.arch td b{font-weight:normal}
 hr.sep{border:0;border-top:1px solid var(--trait);margin:18px 0}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
+<script src="versions.js"></script>
 </head>
 <body>
 <div id="splash" class="splash"><div class="sp-in">
@@ -6099,7 +6100,7 @@ function ajouterNote(){
   toast("Note ajoutée à "+n.heure+(n.duree?" · "+n.duree+" min":""));
 }
 
-var JOURNAL_VERSIONS = (window.persoVersions||[]).concat([
+var JOURNAL_VERSIONS = [
  ["3.21.0","Le modèle de catégories livré avec le code est désormais générique. Le modèle métier s'importe depuis une configuration, hors du code."],
  ["3.20.0","À propos : bandeau d'en-tête reprenant l'animation d'ouverture, sur le nom du logiciel."],
  ["3.19.1","Correctif : le bouton Enregistrer était invisible sur le bandeau quand l'enregistrement automatique est actif."],
@@ -6204,7 +6205,7 @@ var JOURNAL_VERSIONS = (window.persoVersions||[]).concat([
       ["1.3.0","Convocations et animations : trois catégories d'activité, filtres, comptes-rendus et exports distincts."],
       ["1.2.0","Chronomètre de session DT/DICT, cadence calculée sur le temps réellement travaillé, versionnage de l'application."],
       ["1.1.0","Points de vigilance du jour, comptage DT/DICT, enregistrement automatique du fichier, listes déroulantes modifiables."],
-      ["1.0.0","Dossiers du jour et prochain jour ouvré, journal de notes, suites à donner, imports et exports."]]);
+      ["1.0.0","Dossiers du jour et prochain jour ouvré, journal de notes, suites à donner, imports et exports."]];
 
 /* ================= à propos =================
    Fiche du logiciel : ce qu'il est, qui l'a écrit, sous quelle licence, et le journal
@@ -6220,7 +6221,7 @@ function fragBandeauApropos(){
   return '<div class="ap-ban">'
     +'<span class="ap-logo" id="apLogo"></span>'
     +'<div class="ap-nom" id="apNom" aria-label="'+esc(NOM_DEFAUT)+'"></div>'
-    +'<div class="ap-sous">pilotage d\u2019activité</div>'
+    +'<div class="ap-sous">pilotage personnel</div>'
   +'</div>';
 }
 var animApropos=null;
@@ -6256,28 +6257,34 @@ function animerNomApropos(){
 function fragApropos(){
   var nom=String((D.parametres&&D.parametres.nom_app)||NOM_DEFAUT);
   return fragBandeauApropos()
-    +'<p class="ap-intro">'+esc(nom)+' suit votre activité au quotidien : vos dossiers, '
-      +'vos rendez-vous, ce que vous en faites, le temps que vous y passez, et ce qu’il en '
-      +'reste à présenter.</p>'
-    +'<p class="ap-intro">Un seul fichier, qui fonctionne hors ligne. Aucune connexion, aucun '
-      +'service tiers, aucune dépendance extérieure : vos données ne quittent jamais votre poste '
-      +'et vivent dans le fichier que vous liez.</p>'
+    +'<p class="ap-intro">'+esc(nom)+' pilote votre vie personnelle au quotidien : vos activités '
+      +'et leurs tâches, votre journal, vos contacts, vos idées et vos veilles.</p>'
+    +'<p class="ap-intro">Vos données vivent sur votre propre serveur et se synchronisent entre '
+      +'vos appareils ; l\'application continue de fonctionner hors ligne. Les espaces partagés '
+      +'sont chiffrés de bout en bout. Claude n\'intervient que lorsque vous le demandez, '
+      +'avec votre propre abonnement.</p>'
     +'<div class="diag" style="margin-top:14px">'
       +'<div>Version<b>'+esc(nom)+' v'+esc(APP_VERSION)+'</b></div>'
       +'<div>Auteur<b>'+esc(AUTEUR)+'</b></div>'
       +'<div>Licence<b>'+esc(LICENCE)+'</b></div>'
-      +'<div>Fonctionnement<b>fichier unique, hors ligne</b></div>'
+      +'<div>Fonctionnement<b>serveur personnel, synchronisation, hors ligne possible</b></div>'
+      +'<div>Base<b>My Pilot Pro v'+esc(window.persoBase||"")+'</b></div>'
     +'</div>'
     +'<p class="ap-legal">© '+esc(ANNEE)+' '+esc(AUTEUR)+'. '+esc(LICENCE)+'.</p>'
     +'<hr class="sep">'
     +'<div class="ligne" style="margin-top:0">'
-      +'<button class="lien" data-act="ap-versions">Journal des versions</button>'
+      +'<button class="lien" data-act="ap-versions-perso">Journal des versions</button>'
+      +'<span class="note-aide" style="margin:0">'+(window.persoVersions||[]).length+' versions '
+      +((window.persoVersions||[]).length?'depuis la v'+esc(window.persoVersions[window.persoVersions.length-1][0]):'')+'</span>'
+    +'</div>'
+    +'<div class="ligne" style="margin-top:6px">'
+      +'<button class="lien" data-act="ap-versions">Journal de My Pilot Pro</button>'
       +'<span class="note-aide" style="margin:0">'+JOURNAL_VERSIONS.length+' versions '
-      +'depuis la v'+esc(JOURNAL_VERSIONS[JOURNAL_VERSIONS.length-1][0])+'</span>'
+      +'depuis la v'+esc(JOURNAL_VERSIONS[JOURNAL_VERSIONS.length-1][0])+', base de la perso</span>'
     +'</div>';
 }
-function fragJournalVersions(){
-  return '<div class="diag">'+JOURNAL_VERSIONS.map(function(v){
+function fragJournalVersions(liste){
+  return '<div class="diag">'+(liste||JOURNAL_VERSIONS).map(function(v){
       return '<div style="display:block;padding:6px 0">'
         +'<b style="float:none;margin:0;color:var(--encre)">v'+esc(v[0])+'</b>'
         +'<div style="font-family:var(--corps);font-size:13px;color:var(--encre-2);margin-top:2px">'
@@ -6286,9 +6293,9 @@ function fragJournalVersions(){
 }
 /** page vaut "versions" pour le journal, sinon la fiche du logiciel. */
 function ouvrirApropos(page){
-  if(page==="versions"){
+  if(page==="versions"||page==="versions-perso"){
     arreterAnimApropos();
-    ouvrirModale("Journal des versions",fragJournalVersions(),[
+    ouvrirModale(page==="versions"?"Journal de My Pilot Pro":"Journal des versions",fragJournalVersions(page==="versions"?JOURNAL_VERSIONS:(window.persoVersions||[])),[
       {txt:"← À propos",classe:"creux",fn:function(){ ouvrirApropos() }},
       {txt:"Fermer",classe:"",droite:true,fn:fermerModale}
     ]);
@@ -7743,6 +7750,7 @@ document.addEventListener("click",function(e){
       cristalliser(lc);
     }
     else if(a==="ap-versions") ouvrirApropos("versions");
+    else if(a==="ap-versions-perso") ouvrirApropos("versions-perso");
     else if(a==="id-zplus") zoomIdees(1.25);
     else if(a==="id-zmoins") zoomIdees(1/1.25);
     else if(a==="id-zraz") razVueIdees();
