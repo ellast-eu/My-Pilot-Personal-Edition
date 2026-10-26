@@ -12,6 +12,29 @@ const BATCH = 500;
 // ils ont leur propre canal chiffré vers leur hôte (espaces.js).
 const prives = list => (Array.isArray(list) ? list : []).filter(ch => ch && !estEspace(ch.doc));
 
+/**
+ * Pourquoi le serveur distant refuse l'échange, en clair. Distingue ce que dit l'application
+ * (jeton absent ou différent, trop d'essais) de ce qu'impose un intermédiaire placé devant elle
+ * (authentification « Basic » d'un proxy, portail de connexion d'entreprise, autre service).
+ */
+export async function motifRefus(res) {
+  const type = res.headers.get('content-type') || '';
+  let corps = null; try { corps = /json/.test(type) ? await res.json() : null; } catch {}
+  if (corps && corps.message && corps.error !== 'login_required') return corps.message;    // message de l'application elle-même
+  const basic = /^\s*basic/i.test(res.headers.get('www-authenticate') || '');
+  if (res.status === 401 && basic)
+    return 'Le serveur demande un identifiant et un mot de passe AVANT l\'application : une authentification « Basic » est configurée '
+      + 'dans le proxy (Caddy basic_auth, Nginx auth_basic…). Retirez-la : l\'application fait sa propre authentification et la synchronisation passe par le jeton.';
+  if (res.status === 401 || res.status === 403)
+    return 'Accès refusé par le serveur (' + res.status + ') : vérifiez l\'adresse (elle doit mener à My Pilot Personal Edition) et le jeton de synchronisation.';
+  if (res.redirected || /html/.test(type))
+    return 'Le serveur a répondu par une page web au lieu de l\'API de synchronisation : un portail de connexion ou un autre site '
+      + 'se trouve à cette adresse (' + (res.url || 'adresse inconnue') + ').';
+  if (res.status === 404) return 'Adresse joignable mais sans API de synchronisation (404) : vérifiez l\'adresse du serveur.';
+  if (res.status === 429) return 'Trop de tentatives refusées : le serveur fait patienter, réessayez dans quelques minutes.';
+  return 'Le serveur de synchronisation a répondu ' + res.status;
+}
+
 /** Côté hub : traite un échange (POST /api/sync). */
 export function hubExchange(store, body) {
   const device = String(body.device || '').slice(0, 64);
@@ -121,11 +144,7 @@ export class SyncEngine {
           body: JSON.stringify({ device: store.deviceId, since: st.pulled_cursor, changes: changes.map(({ seq, ...c }) => c) }),
           signal: AbortSignal.timeout(30000),
         });
-        if (res.status === 401 || res.status === 403) throw new Error('Jeton refusé par le serveur de synchronisation');
-        if (!res.ok) {
-          let msg = ''; try { msg = (await res.json()).message || ''; } catch {}
-          throw new Error(msg || 'Le serveur de synchronisation a répondu ' + res.status);
-        }
+        if (!res.ok || !/json/.test(res.headers.get('content-type') || '')) throw new Error(await motifRefus(res));
         const body = await res.json();
         const pushed = changes.length ? changes[changes.length - 1].seq : st.pushed_seq;
         // fiches gardées telles quelles par le serveur : c'est la nouvelle version commune pour la fusion

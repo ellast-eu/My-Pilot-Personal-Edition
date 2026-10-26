@@ -108,12 +108,17 @@ Le port est lié à `127.0.0.1` par défaut : rien n'est joignable de l'extérie
 2. Dans `.env` : `PILOT_DOMAIN=pilot.ellast.eu`, `TRUST_PROXY=1`, un `APP_PASSWORD` solide et un `SYNC_TOKEN` (`openssl rand -hex 32`).
 3. `docker compose --profile caddy up -d`. Caddy obtient et renouvelle seul le certificat ([deploy/Caddyfile](deploy/Caddyfile)).
 
-L'authentification reste celle de l'application ; Caddy ne fait que le HTTPS et les en-têtes de sécurité. **N'ajoutez pas de `basic_auth` dans Caddy** : il intercepterait les jetons de synchronisation.
+L'authentification reste celle de l'application ; Caddy ne fait que le HTTPS et les en-têtes de sécurité. **N'ajoutez aucune authentification dans le proxy** (`basic_auth` de Caddy, `auth_basic` de Nginx, portail SSO…) : elle intercepterait le jeton de synchronisation, et l'application de bureau afficherait « une authentification « Basic » est configurée dans le proxy ».
+
+Deux accès distincts :
+- **navigateur** : page de connexion (`/connexion/`) avec l'identifiant et le mot de passe de l'interface. Elle ouvre une session de 30 jours (cookie `HttpOnly`, `SameSite=Strict`, `Secure` en HTTPS), qui se ferme partout si le mot de passe change. Aucune fenêtre d'identification du navigateur : cela fonctionne aussi avec un navigateur d'entreprise qui bloque l'authentification « Basic ». Bouton **Se déconnecter** dans Données → Réglages du serveur ;
+- **applications de bureau** : le **jeton de synchronisation**, jamais le mot de passe. Il doit être défini sur le serveur (`SYNC_TOKEN` ou Données → Réglages) et saisi à l'identique dans chaque application (Données → Synchronisation). En cas de refus, l'application en donne le motif exact : pas de jeton sur le serveur, jeton différent, authentification d'un proxy, page web à la place de l'API, essais trop nombreux.
 
 Protections de l'application :
 - **mot de passe obligatoire** : avec `TRUST_PROXY=1`, le serveur refuse de démarrer sans `APP_PASSWORD`, sinon le premier visiteur pourrait le choisir ;
 - **essais en série freinés** : après 5 échecs (mot de passe, jeton, invitation) depuis une même adresse, attente croissante de 1 à 60 s ; au 20ᵉ, adresse bloquée 15 min. Les échecs apparaissent dans `docker compose logs app` ;
-- **seules routes sans mot de passe** : `/api/health` (répond `{"ok":true}`, rien d'autre), la page `/rejoindre/` qui explique les liens d'invitation, et les routes des espaces, protégées par les jetons de membre.
+- **seules routes sans mot de passe** : `/api/health` (répond `{"ok":true}`, rien d'autre), la page `/connexion/`, la page `/rejoindre/` qui explique les liens d'invitation, et les routes des espaces, protégées par les jetons de membre ;
+- les scripts peuvent toujours s'authentifier en « Basic » (`curl -u identifiant:motdepasse`).
 
 ## Espaces partagés (0.8)
 
