@@ -115,4 +115,6 @@ test('synchronisation : motifs côté application (proxy Basic, portail web, jet
   assert.match(await motifRefus(rep(401, { 'content-type': 'application/json' }, JSON.stringify({ error: 'bad_token', message: 'Jeton de synchronisation refusé : x' }))),
     /Jeton de synchronisation refusé/);
   assert.match(await motifRefus(rep(404, {})), /404/);
+  assert.match(await motifRefus(rep(401, { 'content-type': 'application/json' }, JSON.stringify({ error: 'login_required', message: 'Connexion requise' }))),
+    /interface web, pas à la synchronisation/);
 });

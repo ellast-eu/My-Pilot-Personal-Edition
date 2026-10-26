@@ -532,6 +532,7 @@ function modaleSync(){
   var st=SyncDist.st||{};
   ouvrirModale("Synchronisation",
     '<label class="champ">Adresse du serveur<input type="text" id="syUrl" value="'+esc(st.url||"")+'" placeholder="https://pilot.exemple.fr"></label>'
+    +'<div class="note-aide" style="margin:-4px 0 8px">La racine du serveur seulement, sans /pilot à la fin.</div>'
     +'<label class="champ" style="margin-top:10px">Jeton de synchronisation<input type="password" id="syTok" autocomplete="off" '
       +'style="padding:6px 8px;border:1px solid var(--trait);border-radius:2px;background:#fff" '
       +'placeholder="'+(st.hasToken?"déjà renseigné : laisser vide pour le garder":"valeur de SYNC_TOKEN sur le serveur")+'"></label>'
