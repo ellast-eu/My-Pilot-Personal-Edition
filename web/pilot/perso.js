@@ -145,7 +145,8 @@ serialise=function(format){
 
 /* ================= 2. persistance serveur ================= */
 var Sync={rev:0,etat:"init",envoi:false,encore:false,dernier:null,erreur:"",version:"",schema:""};
-var BASE_PST=APP_VERSION;            /* version de PST·PILOT dont dérive le pilotage */
+var BASE_PST=APP_VERSION;            /* version de My Pilot Pro (ex-PST·PILOT) dont dérive le pilotage */
+window.persoBase=BASE_PST;        /* lu par la fenêtre À propos */
 window.__pilotSync=Sync;            /* diagnostic : état de la synchronisation */
 
 function api(chemin,opts){
@@ -302,38 +303,9 @@ window.persoDiagnostic=function(){
     +ligne("Claude",esc(Idees.claude||"…"),/indisponible|non renseignée/.test(Idees.claude||"")?"ko":"ok")
     +ligne("Version de l'application","My Pilot Personal Edition v"+esc(Sync.version||"?"))
     +ligne("Schéma de la base",Sync.schema?"v"+esc(String(Sync.schema)):"?")
-    +ligne("Base","PST·PILOT v"+esc(BASE_PST))
+    +ligne("Base","My Pilot Pro v"+esc(BASE_PST))
     +ligne("Volume",D.chantiers.length+" activités · "+D.notes.length+" notes · "+(D.contacts||[]).length+" contacts · "+ko+" Ko")
   +'</div></div>';
-};
-var journalTexte=null;
-function chargerJournal(){
-  fetch(API+"changelog",{credentials:"same-origin"}).then(function(r){ return r.ok?r.text():"" })
-    .then(function(t){ journalTexte=t||""; if(vueActive==="donnees") rendreDonneesSiCalme() })
-    .catch(function(){ journalTexte="" });
-}
-window.persoJournal=function(){
-  if(journalTexte===null){ chargerJournal(); journalTexte="" }
-  var h="",courant=null;
-  journalTexte.split("\n").forEach(function(l){
-    var m=/^## \[([^\]]+)\](?: - (\S+))?/.exec(l);
-    if(m){
-      if(m[1]==="Non publié"){ courant=null; return }
-      if(courant!==null) h+='</div>';
-      courant=m[1];
-      h+='<div style="display:block;padding:6px 0"><b style="float:none;margin:0;color:var(--encre)">v'+esc(m[1])+'</b>'
-        +(m[2]?' <span class="mono" style="font-size:12px;color:var(--encre-3)">'+esc(m[2])+'</span>':"");
-      return;
-    }
-    if(courant===null) return;
-    if(/^### /.test(l)) h+='<div class="puce-lbl" style="margin-top:6px">'+esc(l.slice(4))+'</div>';
-    else if(/^- /.test(l)) h+='<div style="font-family:var(--corps);font-size:13px;color:var(--encre-2);margin-top:2px">'+esc(l.slice(2))+'</div>';
-  });
-  if(courant!==null) h+='</div>';
-  return '<div class="bloc" style="margin-top:18px"><div class="bloc-tete"><h2>Journal des versions</h2>'
-    +'<span class="compte">v'+esc(Sync.version||"")+'</span></div><div class="bloc-corps diag">'
-    +(h||'<div class="note-aide">Journal indisponible.</div>')
-    +'<div class="note-aide">My Pilot Personal Edition dérive de PST·PILOT v'+esc(BASE_PST)+'.</div></div></div>';
 };
 /* listes modifiables : celles des catégories actives, plus les listes communes */
 var LISTES_PRO={types_intervention:1,motifs_appel:1,motifs_convocation:1,themes_animation:1,types_transverse:1,
