@@ -4,6 +4,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+## [0.15.0] - 2026-10-26
+
 ### Modifications
 - **Base My Pilot Pro 3.21.0** (au lieu de PST·PILOT 3.13.1). Ce que la pro apporte : fiches Compte rendu, permanence détaillée, champ Affaire, fenêtre **À propos**, modèle de catégories générique ; le bouton Enregistrer redevient visible (contour discret quand tout est enregistré).
   - `scripts/build_pilot.py` : 44 patchs, appliqués l'un après l'autre sans échec ni doublon. Les patchs devenus inutiles sont retirés ; la pro a désormais son propre bouton Aide et son propre onglet Idées, qui affiche toujours le Cristallisoir dans la perso.
