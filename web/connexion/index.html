@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>Connexion · My Pilot Personal Edition</title>
+<style>
+  :root { --fond:#E6E7E3; --carte:#FBFBF9; --encre:#191C1B; --doux:#5b605d; --trait:#c9cbc5; --accent:#D8232A; --bandeau:#191C1B; }
+  @media (prefers-color-scheme: dark) { :root { --fond:#151716; --carte:#1f2220; --encre:#e9eae6; --doux:#a3a7a2; --trait:#3a3e3b; } }
+  * { box-sizing:border-box }
+  html, body { height:100% }
+  body { margin:0; display:grid; place-items:center; background:var(--fond); color:var(--encre);
+    font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; padding:16px }
+  main { width:100%; max-width:400px; background:var(--carte); border-top:3px solid var(--accent); border-radius:2px;
+    box-shadow:0 1px 2px rgba(0,0,0,.06) }
+  .tete { background:var(--bandeau); color:#fff; padding:18px 22px 16px }
+  .nom { font-family:ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace; font-size:15px; letter-spacing:.14em; text-transform:uppercase }
+  .nom i { font-style:normal; color:var(--accent) }
+  .sous { font-family:ui-monospace, Menlo, Consolas, monospace; font-size:10.5px; letter-spacing:.22em; color:#8C938E;
+    text-transform:uppercase; margin-top:6px }
+  form { padding:20px 22px 22px }
+  label { display:block; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--doux); margin:0 0 14px }
+  input { display:block; width:100%; margin-top:6px; padding:9px 10px; font:inherit; font-size:15px; color:inherit;
+    background:transparent; border:1px solid var(--trait); border-radius:2px; letter-spacing:normal; text-transform:none }
+  input:focus { outline:2px solid var(--encre); outline-offset:1px }
+  button { width:100%; margin-top:4px; background:var(--encre); color:var(--carte); border:0; padding:10px 16px; font:inherit;
+    font-size:13px; letter-spacing:.1em; text-transform:uppercase; cursor:pointer; border-radius:2px }
+  button[disabled] { opacity:.55; cursor:wait }
+  #msg { min-height:1.5em; margin:12px 0 0; font-size:14px }
+  #msg.ko { color:var(--accent) }
+  .doux { color:var(--doux); font-size:13px; margin:14px 0 0 }
+</style>
+</head>
+<body>
+<main>
+  <div class="tete">
+    <div class="nom">My<i>·</i>Pilot<i>·</i>Personal<i>·</i>Edition</div>
+    <div class="sous">Connexion</div>
+  </div>
+  <form id="f" novalidate>
+    <label>Identifiant
+      <input id="u" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required value="pilot">
+    </label>
+    <label>Mot de passe
+      <input id="p" name="password" type="password" autocomplete="current-password" required>
+    </label>
+    <button id="b" type="submit">Se connecter</button>
+    <p id="msg" role="status" aria-live="polite"></p>
+    <p class="doux">La session reste ouverte 30 jours sur ce navigateur. Elle se ferme partout si le mot de passe change.</p>
+  </form>
+</main>
+<script>
+(function () {
+  var f = document.getElementById('f'), u = document.getElementById('u'), p = document.getElementById('p'),
+      b = document.getElementById('b'), msg = document.getElementById('msg');
+  var suite = new URLSearchParams(location.search).get('suite') || '/';
+  if (!/^\/(?![\/\\])/.test(suite) || suite.indexOf('/connexion') === 0) suite = '/';
+  try { var dernier = localStorage.getItem('mppe_identifiant'); if (dernier) u.value = dernier; } catch (e) {}
+  (u.value ? p : u).focus();
+  function dire(t, ko) { msg.textContent = t; msg.className = ko ? 'ko' : ''; }
+  f.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!u.value.trim() || !p.value) { dire('Saisissez l’identifiant et le mot de passe.', true); return; }
+    b.disabled = true; dire('Connexion…');
+    fetch('/api/connexion', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ utilisateur: u.value.trim(), mot_de_passe: p.value, suite: suite })
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) { return { s: r.status, j: j }; });
+    }).then(function (x) {
+      if (x.s === 200 && x.j.ok) {
+        try { localStorage.setItem('mppe_identifiant', u.value.trim()); } catch (e) {}
+        location.replace(x.j.suite || suite);
+        return;
+      }
+      b.disabled = false; p.select();
+      dire(x.j.message || (x.s === 429 ? 'Trop de tentatives : patientez un peu.' : 'Connexion refusée (' + x.s + ').'), true);
+    }).catch(function () {
+      b.disabled = false;
+      dire('Serveur injoignable. Vérifiez la connexion réseau.', true);
+    });
+  });
+})();
+</script>
+</body>
+</html>

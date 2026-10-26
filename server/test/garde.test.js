@@ -41,7 +41,7 @@ test('serveur : jeton faux répété → 429, état public minimal', async () =>
   assert.deepEqual(await fetch(base + '/api/health').then(r => r.json()), { ok: true });
   // un navigateur qui n'a encore rien envoyé n'est pas compté comme un échec
   const g = app.garde; g.reussite('127.0.0.1');
-  for (let i = 0; i < 10; i++) assert.equal((await fetch(base + '/pilot/')).status, 401);
+  for (let i = 0; i < 10; i++) assert.equal((await fetch(base + '/pilot/', { redirect: 'manual' })).status, 302);
   assert.equal(g.attente('127.0.0.1'), 0);
   app.server.close(); app.store.close(); fs.rmSync(dir, { recursive: true, force: true });
 });

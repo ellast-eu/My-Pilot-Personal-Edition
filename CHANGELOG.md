@@ -4,6 +4,15 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+## [0.16.0] - 2026-10-26
+
+### Ajouts
+- **Page de connexion** pour l'interface web du serveur (`/connexion/`), à la place de la fenêtre d'identification « Basic » du navigateur, que certains navigateurs d'entreprise (Edge géré par stratégie) n'affichent jamais. Session de 30 jours par cookie signé (`HttpOnly`, `SameSite=Strict`, `Secure` derrière Caddy en HTTPS), close partout quand le mot de passe change. Bouton **Se déconnecter** dans Données → Réglages du serveur. Session expirée : retour automatique à la page de connexion, puis à la page en cours.
+- Requêtes de modification venues d'un autre site refusées (contrôle de l'origine).
+
+### Corrections
+- **Synchronisation refusée sans explication** : l'application affichait seulement « Jeton refusé ». Elle donne maintenant le motif exact : serveur sans jeton de synchronisation (il retombait alors sur le mot de passe, que l'application n'envoie pas), jeton différent, authentification « Basic » imposée par un proxy devant l'application, page web (portail de connexion) au lieu de l'API, adresse sans API, essais trop nombreux.
+
 ## [0.15.0] - 2026-10-26
 
 ### Modifications

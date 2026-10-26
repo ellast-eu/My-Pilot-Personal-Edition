@@ -41,7 +41,7 @@ test('jeton du hub obligatoire', async () => {
     assert.equal(s.status, 200);
   }
   const st = await syncNow('a');
-  assert.match(st.lastError, /Jeton refusé/);
+  assert.match(st.lastError, /Jeton de synchronisation refusé/);
   for (const n of ['a', 'b']) await call(n, '/api/sync/config', 'PUT', { token: 'secret-hub' });
 });
 

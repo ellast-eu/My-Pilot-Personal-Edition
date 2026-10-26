@@ -1,9 +1,10 @@
 # HTTPS public devant My Pilot Personal Edition (certificat Let's Encrypt obtenu et renouvelé seul).
 # Lancement : PILOT_DOMAIN et TRUST_PROXY=1 dans .env, puis docker compose --profile caddy up -d
 #
-# Pas d'authentification ici : c'est l'application qui la fait (mot de passe de l'interface,
+# Pas d'authentification ici : c'est l'application qui la fait (page de connexion de l'interface,
 # jeton de synchronisation, jetons des membres des espaces). Un « basic_auth » Caddy
 # intercepterait l'en-tête Authorization et casserait la synchronisation.
+# Caddy transmet X-Forwarded-Proto : le cookie de session est alors marqué Secure.
 {$PILOT_DOMAIN} {
 	encode zstd gzip
 

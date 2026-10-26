@@ -155,8 +155,21 @@ function api(chemin,opts){
     headers:opts.body?{"Content-Type":"application/json"}:{},
     body:opts.body?JSON.stringify(opts.body):undefined,credentials:"same-origin"})
   .then(function(r){
-    return r.json().catch(function(){return null}).then(function(b){ return {status:r.status,ok:r.ok,body:b} });
+    return r.json().catch(function(){return null}).then(function(b){
+      if(r.status===401 && b && b.error==="login_required") versConnexion();
+      return {status:r.status,ok:r.ok,body:b};
+    });
   });
+}
+/* session web expirée ou mot de passe changé ailleurs : page de connexion, puis retour ici */
+var versConnexionFait=false;
+function versConnexion(){
+  if(versConnexionFait) return; versConnexionFait=true;
+  location.replace("/connexion/?suite="+encodeURIComponent(location.pathname+location.search));
+}
+function seDeconnecter(){
+  fetch("/api/deconnexion",{method:"POST",credentials:"same-origin"}).then(function(){ location.replace("/connexion/") },
+    function(){ toast("Serveur injoignable",true) });
 }
 function lireSync(){ try{ return JSON.parse(localStorage.getItem(CLE_SYNC)||"null") }catch(e){ return null } }
 function poserSync(v){ try{ v?localStorage.setItem(CLE_SYNC,JSON.stringify(v)):localStorage.removeItem(CLE_SYNC) }catch(e){} }
@@ -373,7 +386,8 @@ window.persoBlocReglages=function(){
           return '<div>'+esc(it.label)+' <span class="mono" style="font-size:11px;color:var(--encre-3)">'+esc(SOURCE_LIB[it.source]||it.source)+'</span>'+val(it)+'</div>';
         }).join("")+'</div>';
     }).join("")
-    +'<div class="ligne" style="margin-top:12px"><button class="b" data-pp="reglages">Modifier les réglages</button></div>'
+    +'<div class="ligne" style="margin-top:12px"><button class="b" data-pp="reglages">Modifier les réglages</button>'
+      +(!app && SyncDist.auth?'<button class="b creux" data-pp="deconnexion">Se déconnecter</button>':'')+'</div>'
     +'<div class="puce-lbl" style="margin:14px 0 4px">'+"Informations"+'</div><div class="diag">'
       +d.readonly.map(function(x){ return '<div>'+esc(x.label)+'<b style="font-weight:400">'+esc(x.value)+'</b></div>' }).join("")
     +'</div>'
@@ -428,11 +442,11 @@ function enregistrerReglages(){
   if(ch.app_password && ch.app_password.length<8){ z.textContent="Mot de passe : 8 caractères au moins."; z.style.color="var(--rouge)"; return }
   api("settings",{method:"PUT",body:ch}).then(function(r){
     if(!r.ok) throw new Error((r.body&&r.body.message)||"réglages refusés");
-    Reglages.data.items=r.body.items;
+    Reglages.data.items=r.body.items; SyncDist.auth=!!r.body.auth;
     fermerModale(); rendre();
     if(mdp && r.body.auth){
-      toast("Accès modifié : le navigateur va demander l'identifiant et le mot de passe");
-      setTimeout(function(){ location.reload() },1800);
+      toast("Accès modifié : ce navigateur reste connecté, les autres devront se reconnecter");
+      SyncDist.auth=true;
     } else toast("Réglages enregistrés");
     chargerReglages();
   }).catch(function(e){ z.textContent=e.message; z.style.color="var(--rouge)" });
@@ -451,7 +465,7 @@ function premierAcces(){
   var local=/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
   ouvrirModale("Protéger l'accès au serveur",
     '<p style="margin:0 0 10px;font-size:14px">Ce serveur n\'a pas encore de mot de passe : toute personne qui l\'atteint peut lire et modifier vos données. '
-    +'Choisissez un identifiant et un mot de passe ; le navigateur les demandera ensuite.</p>'
+    +'Choisissez un identifiant et un mot de passe : ils seront demandés sur la page de connexion.</p>'
     +'<div class="grille">'
       +'<label class="champ">Identifiant<input type="text" id="paUser" value="pilot" autocomplete="username"></label>'
       +'<label class="champ">Mot de passe (8 caractères au moins)<input type="password" id="paMdp" autocomplete="new-password" style="padding:6px 8px;border:1px solid var(--trait);border-radius:2px;background:#fff"></label>'
@@ -463,8 +477,8 @@ function premierAcces(){
       if(p!==p2){ z.textContent="Les deux saisies ne correspondent pas."; z.style.color="var(--rouge)"; return }
       api("settings",{method:"PUT",body:{app_user:u,app_password:p}}).then(function(r){
         if(!r.ok) throw new Error((r.body&&r.body.message)||"refusé");
-        z.textContent="Accès protégé. Le navigateur va maintenant demander l'identifiant et le mot de passe."; z.style.color="var(--vert)";
-        setTimeout(function(){ location.reload() },1800);
+        z.textContent="Accès protégé. Ce navigateur reste connecté ; les autres passeront par la page de connexion."; z.style.color="var(--vert)";
+        SyncDist.auth=true; setTimeout(function(){ fermerModale(); rendre() },1800);
       }).catch(function(e){ z.textContent=e.message; z.style.color="var(--rouge)" });
     }}]));
   if(!local){
@@ -602,6 +616,7 @@ document.addEventListener("click",function(e){
   else if(a==="sync-conflits") journalConflits();
   else if(a==="reglages") modaleReglages();
   else if(a==="rg-generer") genererJeton();
+  else if(a==="deconnexion") seDeconnecter();
   else if(a==="conflit-remettre") remettreConflit(+el.dataset.i);
 });
 
@@ -1853,7 +1868,7 @@ function accueillir(){
      {txt:"Découvrir l’application",droite:true,fn:function(){ vu(); fermerModale(); if(window.ouvrirAide) window.ouvrirAide("prise-en-main") }}]);
 }
 api("health").then(function(h){
-  if(h.ok){ Sync.version=h.body.version; Sync.schema=h.body.schema; APP_VERSION=h.body.version; SyncDist.mode=h.body.mode||"";
+  if(h.ok){ Sync.version=h.body.version; Sync.schema=h.body.schema; APP_VERSION=h.body.version; SyncDist.mode=h.body.mode||""; SyncDist.auth=!!h.body.auth;
     if(h.body.firstRun) setTimeout(premierAcces,1200) }
   return api("docs/"+DOC);
 }).then(function(r){

@@ -12,6 +12,7 @@ import { Garde, adresseClient } from './garde.js';
 import { Hote } from './espaces-hote.js';
 import { Espaces } from './espaces.js';
 import { Veilles, opsClaude } from './veilles.js';
+import { Sessions, COOKIE } from './session.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(here, '../..');
@@ -100,6 +101,13 @@ export function createApp(opts = {}) {
   const trustProxy = opts.trustProxy ?? process.env.TRUST_PROXY === '1';
   const garde = opts.garde ?? new Garde();
   const bearer = req => { const h = req.headers.authorization || ''; return h.startsWith('Bearer ') ? h.slice(7) : ''; };
+  // sessions de l'interface web (cookie signé), à la place de la fenêtre « Basic » du navigateur
+  const sessions = new Sessions({
+    secret: store.getMeta('session_secret') || store.setMeta('session_secret', crypto.randomBytes(32).toString('hex')),
+    user: () => user() || 'pilot', pass,
+  });
+  const enHttps = req => trustProxy ? String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() === 'https' : !!req.socket.encrypted;
+  const parSession = req => !localToken && sessions.valide(cookie(req, COOKIE));
 
   function cookie(req, name) {
     const m = new RegExp('(?:^|;\\s*)' + name + '=([^;]+)').exec(req.headers.cookie || '');
@@ -113,7 +121,8 @@ export function createApp(opts = {}) {
       return h.startsWith('Bearer ') && safeEqual(h.slice(7), jeton);
     }
     if (!mdp) return true;
-    const h = req.headers.authorization || '';
+    if (parSession(req)) return true;
+    const h = req.headers.authorization || '';           // Basic reste accepté pour les scripts (curl…)
     if (!h.startsWith('Basic ')) return false;
     const [u, p] = Buffer.from(h.slice(6), 'base64').toString('utf8').split(/:(.*)/s);
     return safeEqual(u, user() || 'pilot') && safeEqual(p ?? '', mdp);
@@ -238,7 +247,10 @@ export function createApp(opts = {}) {
         const body = await readJson(req);
         try { settings.update(body); }
         catch (e) { throw new HttpError(400, e.code || 'bad_request', e.message); }
-        return send(res, 200, { items: settings.describe(), auth: !!pass() });
+        // identifiant ou mot de passe changé : la session en cours suit, les autres sont closes
+        const acces = mode !== 'application' && ('app_password' in body || 'app_user' in body);
+        return send(res, 200, { items: settings.describe(), auth: !!pass() },
+          acces ? { 'Set-Cookie': pass() ? sessions.cookie(sessions.emettre(), { secure: enHttps(req) }) : sessions.effacer({ secure: enHttps(req) }) } : {});
       }
     }
     if (parts[0] === 'changelog' && m === 'GET') {
@@ -344,6 +356,25 @@ export function createApp(opts = {}) {
     throw new HttpError(404, 'not_found', 'Route inconnue');
   }
 
+  /** Adresse de retour après connexion : un chemin de ce serveur, jamais un autre site. */
+  function suiteSure(s) {
+    s = String(s || '');
+    return /^\/(?![\/\\])/.test(s) && !s.startsWith('/connexion') ? s : '/';
+  }
+
+  async function connexion(req, res, ip) {
+    const body = await readJson(req);
+    if (!pass()) return send(res, 200, { ok: true, suite: suiteSure(body.suite) });       // serveur sans mot de passe
+    const ok = safeEqual(String(body.utilisateur ?? '').trim(), user() || 'pilot') && safeEqual(String(body.mot_de_passe ?? ''), pass());
+    if (!ok) {
+      garde.echec(ip, 'connexion');
+      return send(res, 401, { error: 'bad_credentials', message: 'Identifiant ou mot de passe incorrect' });
+    }
+    garde.reussite(ip);
+    return send(res, 200, { ok: true, suite: suiteSure(body.suite) },
+      { 'Set-Cookie': sessions.cookie(sessions.emettre(), { secure: enHttps(req) }) });
+  }
+
   function serveStatic(req, res, url) {
     let p = decodeURIComponent(url.pathname);
     if (p.endsWith('/')) p += 'index.html';
@@ -373,16 +404,38 @@ export function createApp(opts = {}) {
       // routes publiques : état minimal du serveur, page d'explication des liens d'invitation
       if (url.pathname === '/api/health' && req.method === 'GET' && !localToken && !authorized(req, url)) return send(res, 200, { ok: true });
       if (!localToken && (url.pathname === '/rejoindre' || url.pathname.startsWith('/rejoindre/')) && req.method === 'GET') return serveStatic(req, res, url);
+      if (!localToken && (url.pathname === '/connexion' || url.pathname.startsWith('/connexion/')) && req.method === 'GET') {
+        if (pass() && parSession(req)) return send(res, 302, '', { Location: suiteSure(url.searchParams.get('suite')) });
+        return serveStatic(req, res, url);
+      }
+      if (!localToken && url.pathname === '/api/deconnexion' && req.method === 'POST')
+        return send(res, 200, { ok: true }, { 'Set-Cookie': sessions.effacer({ secure: enHttps(req) }) });
       if (!localToken) {
         const attente = garde.attente(ip);
         if (attente > 0) return send(res, 429, { error: 'rate_limited', message: 'Trop de tentatives : réessayez dans ' + Math.ceil(attente / 1000) + ' s' },
           { 'Retry-After': String(Math.ceil(attente / 1000)) });
       }
       if (!localToken && (url.pathname === '/api/spaces' || url.pathname.startsWith('/api/spaces/'))) return await apiEspaces(req, res, url, ip);
+      if (!localToken && url.pathname === '/api/connexion' && req.method === 'POST') return await connexion(req, res, ip);
       if (!authorized(req, url)) {
         if (localToken) return send(res, 403, 'Accès réservé à l\'application');
-        if (req.headers.authorization) garde.echec(ip, url.pathname === '/api/sync' ? 'jeton de synchronisation' : 'mot de passe');
-        return send(res, 401, 'Authentification requise', url.pathname === '/api/sync' ? {} : { 'WWW-Authenticate': 'Basic realm="My Pilot Personal Edition", charset="UTF-8"' });
+        if (url.pathname === '/api/sync') {
+          // motif précis : l'application l'affiche tel quel
+          if (!syncToken()) return send(res, 401, { error: 'no_sync_token',
+            message: 'Ce serveur n\'a pas de jeton de synchronisation : définissez-le sur le serveur (Données → Réglages, ou SYNC_TOKEN dans .env), puis saisissez le même dans l\'application.' });
+          if (req.headers.authorization) garde.echec(ip, 'jeton de synchronisation');
+          return send(res, 401, { error: 'bad_token', message: 'Jeton de synchronisation refusé : il ne correspond pas à celui du serveur.' });
+        }
+        if (req.headers.authorization) garde.echec(ip, 'mot de passe');
+        // page demandée par le navigateur : vers la page de connexion ; API : 401 sans fenêtre « Basic »
+        if ((req.method === 'GET' || req.method === 'HEAD') && !url.pathname.startsWith('/api/'))
+          return send(res, 302, '', { Location: '/connexion/?suite=' + encodeURIComponent(url.pathname + url.search) });
+        return send(res, 401, { error: 'login_required', message: 'Connexion requise' });
+      }
+      // requêtes qui modifient : refusées si elles viennent d'un autre site (le cookie est déjà SameSite=Strict)
+      if (!localToken && req.method !== 'GET' && req.method !== 'HEAD' && req.headers.origin && parSession(req)) {
+        let hote = ''; try { hote = new URL(req.headers.origin).host; } catch {}
+        if (hote !== req.headers.host) return send(res, 403, { error: 'bad_origin', message: 'Requête refusée : origine inconnue' });
       }
       if (!localToken && req.headers.authorization) garde.reussite(ip);
       if (url.pathname === '/api' || url.pathname.startsWith('/api/')) return await api(req, res, url);
