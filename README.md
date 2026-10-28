@@ -120,6 +120,34 @@ Protections de l'application :
 - **seules routes sans mot de passe** : `/api/health` (répond `{"ok":true}`, rien d'autre), la page `/connexion/`, la page `/rejoindre/` qui explique les liens d'invitation, et les routes des espaces, protégées par les jetons de membre ;
 - les scripts peuvent toujours s'authentifier en « Basic » (`curl -u identifiant:motdepasse`).
 
+## Démarrage automatique (systemd)
+
+Deux unités prêtes dans [deploy/systemd](deploy/systemd), à copier dans `/etc/systemd/system/`. Le dépôt est supposé dans `/opt/my-pilot-personal-edition` (sinon : `sudo systemctl edit <unité>`, puis `WorkingDirectory=…`).
+
+**Avec Docker Compose** (installation habituelle) : l'unité lance `docker compose up -d` au démarrage de la machine, après Docker.
+
+```bash
+sudo cp deploy/systemd/my-pilot-personal-edition.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now my-pilot-personal-edition
+```
+
+Les profils (Caddy, réplication) se choisissent dans `.env` : `COMPOSE_PROFILES=caddy` ou `COMPOSE_PROFILES=caddy,replication`. Mise à jour : `git pull && docker compose build && sudo systemctl reload my-pilot-personal-edition`.
+
+**Sans Docker** (Node.js 22 ou plus récent) : service durci, sous un utilisateur dédié `mypilot`, données dans `/var/lib/my-pilot-personal-edition`, configuration dans `/etc/my-pilot-personal-edition.env` (format systemd : pas de commentaire en fin de ligne).
+
+```bash
+sudo useradd --system --home /var/lib/my-pilot-personal-edition --shell /usr/sbin/nologin mypilot
+sudo install -m 600 deploy/systemd/my-pilot-personal-edition.env.example /etc/my-pilot-personal-edition.env
+sudo nano /etc/my-pilot-personal-edition.env
+sudo cp deploy/systemd/my-pilot-personal-edition-node.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now my-pilot-personal-edition-node
+journalctl -u my-pilot-personal-edition-node -f
+```
+
+Un plantage est relancé après 5 s ; une configuration incorrecte (`TRUST_PROXY=1` sans mot de passe) arrête le service avec le code 78 et son motif dans le journal, sans relance en boucle.
+
 ## Espaces partagés (0.8)
 
 Partager avec une personne qui a sa propre installation, chiffré de bout en bout. Conception : [docs/PARTAGE.md](docs/PARTAGE.md).
