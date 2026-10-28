@@ -4,6 +4,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+## [0.17.1] - 2026-10-28
+
 ### Ajouts
 - **Podman** : `scripts/compose.sh` utilise le moteur présent (`podman compose`, `podman-compose` ou `docker compose`, ou celui imposé par `COMPOSE`). Le service systemd s'appuie dessus et peut s'installer comme **service utilisateur** (Podman « rootless », avec `loginctl enable-linger`) ou comme service système.
 
