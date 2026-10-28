@@ -1,0 +1,64 @@
+# My Pilot Personal Edition — serveur lancé directement avec Node.js (sans Docker).
+#
+# Prérequis : Node.js 22 ou plus récent, le dépôt dans /opt/my-pilot-personal-edition.
+# Installation :
+#   sudo useradd --system --home /var/lib/my-pilot-personal-edition --shell /usr/sbin/nologin mypilot
+#   sudo install -m 600 -o root -g root deploy/systemd/my-pilot-personal-edition.env.example /etc/my-pilot-personal-edition.env
+#   sudo nano /etc/my-pilot-personal-edition.env          # mot de passe, jeton…
+#   sudo cp deploy/systemd/my-pilot-personal-edition-node.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now my-pilot-personal-edition-node
+#
+# Données : /var/lib/my-pilot-personal-edition (base, instantanés, configuration de Claude Code).
+# Journal : journalctl -u my-pilot-personal-edition-node -f
+
+[Unit]
+Description=My Pilot Personal Edition (Node.js)
+Documentation=https://github.com/Numidara/My-Pilot-Personal-Edition
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mypilot
+Group=mypilot
+WorkingDirectory=/opt/my-pilot-personal-edition
+EnvironmentFile=/etc/my-pilot-personal-edition.env
+Environment=NODE_ENV=production
+Environment=HOME=/var/lib/my-pilot-personal-edition
+Environment=DATA_DIR=/var/lib/my-pilot-personal-edition/data
+ExecStart=/usr/bin/env node --disable-warning=ExperimentalWarning server/src/server.js
+Restart=on-failure
+RestartSec=5s
+# Configuration incorrecte (TRUST_PROXY=1 sans mot de passe) : sortie 78, pas de relance en boucle,
+# le motif est dans le journal. Un plantage, lui, est relancé.
+RestartPreventExitStatus=78
+TimeoutStopSec=30s
+
+# Dossier propre au service (/var/lib/my-pilot-personal-edition), créé par systemd
+StateDirectory=my-pilot-personal-edition
+StateDirectoryMode=0700
+UMask=0077
+
+# Durcissement : seul le dossier des données est accessible en écriture
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

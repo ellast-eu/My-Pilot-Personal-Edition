@@ -475,7 +475,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   // Exposé derrière un proxy (Caddy) : sans mot de passe, le premier visiteur venu pourrait le choisir.
   if (process.env.TRUST_PROXY === '1' && !app.settings.get('app_password')) {
     console.error('TRUST_PROXY=1 (serveur exposé) mais aucun mot de passe : définissez APP_PASSWORD dans .env, puis relancez.');
-    store.close(); process.exit(1);
+    store.close(); process.exit(78);      // EX_CONFIG : systemd ne relance pas en boucle (RestartPreventExitStatus)
   }
   server.listen(port, host, () => console.log(`My Pilot Personal Edition ${VERSION} sur http://${host}:${port}`));
   const stop = () => { server.close(); store.close(); process.exit(0); };
