@@ -14,7 +14,7 @@ L'application contient son aide : bouton **Aide** en haut à droite, ou touche *
 
 ## Démarrer
 
-Prérequis : Docker avec Compose.
+Prérequis : Docker avec Compose, ou Podman avec `podman compose` / `podman-compose`. Dans ce README, `docker compose …` s'écrit aussi `scripts/compose.sh …`, qui utilise le moteur présent sur la machine.
 
 ```sh
 cp .env.example .env        # renseigner au minimum APP_PASSWORD
@@ -124,15 +124,30 @@ Protections de l'application :
 
 Deux unités prêtes dans [deploy/systemd](deploy/systemd), à copier dans `/etc/systemd/system/`. Le dépôt est supposé dans `/opt/my-pilot-personal-edition` (sinon : `sudo systemctl edit <unité>`, puis `WorkingDirectory=…`).
 
-**Avec Docker Compose** (installation habituelle) : l'unité lance `docker compose up -d` au démarrage de la machine, après Docker.
+**Avec Podman ou Docker** (installation habituelle) : l'unité lance la pile compose au démarrage de la machine. Le moteur est détecté par `scripts/compose.sh` (`podman compose`, `podman-compose`, puis `docker compose` ; `COMPOSE=…` pour l'imposer).
 
-```bash
-sudo cp deploy/systemd/my-pilot-personal-edition.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now my-pilot-personal-edition
-```
+- **Podman « rootless »** (conteneurs lancés sous votre compte, sans `sudo`) : installer un **service utilisateur**. Les conteneurs et le volume de la base appartiennent à votre compte : un service système, lancé en root, démarrerait une autre pile, avec une base vide.
 
-Les profils (Caddy, réplication) se choisissent dans `.env` : `COMPOSE_PROFILES=caddy` ou `COMPOSE_PROFILES=caddy,replication`. Mise à jour : `git pull && docker compose build && sudo systemctl reload my-pilot-personal-edition`.
+  ```bash
+  mkdir -p ~/.config/systemd/user
+  cp deploy/systemd/my-pilot-personal-edition.service ~/.config/systemd/user/
+  systemctl --user daemon-reload
+  systemctl --user enable --now my-pilot-personal-edition
+  sudo loginctl enable-linger "$USER"     # démarrage au boot sans ouvrir de session
+  ```
+
+  Avec le Caddy fourni en rootless, autoriser les ports 80 et 443 : `net.ipv4.ip_unprivileged_port_start=80` dans `/etc/sysctl.d/`.
+- **Podman en root ou Docker** : **service système**.
+
+  ```bash
+  sudo cp deploy/systemd/my-pilot-personal-edition.service /etc/systemd/system/
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now my-pilot-personal-edition
+  ```
+
+Les profils (Caddy, réplication) se choisissent dans `.env` : `COMPOSE_PROFILES=caddy` ou `COMPOSE_PROFILES=caddy,replication`.
+
+**Mise à jour** : `git pull`, puis `systemctl --user reload my-pilot-personal-edition` (ou `sudo systemctl reload …`). Le rechargement **reconstruit l'image** puis remplace le conteneur ; un simple redémarrage, lui, reprend l'image existante : sans reconstruction, c'est l'ancienne version qui tourne.
 
 **Sans Docker** (Node.js 22 ou plus récent) : service durci, sous un utilisateur dédié `mypilot`, données dans `/var/lib/my-pilot-personal-edition`, configuration dans `/etc/my-pilot-personal-edition.env` (format systemd : pas de commentaire en fin de ligne).
 
