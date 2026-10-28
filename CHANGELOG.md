@@ -4,6 +4,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+## [0.17.0] - 2026-10-28
+
 ### Ajouts
 - **Démarrage automatique par systemd** (`deploy/systemd`) : une unité pour la pile Docker Compose (profils choisis par `COMPOSE_PROFILES` dans `.env`), une unité durcie pour lancer le serveur directement avec Node.js (utilisateur dédié, système en lecture seule sauf les données), avec son fichier de configuration d'exemple.
 
