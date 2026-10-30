@@ -4,6 +4,12 @@
  * Une ligne par version, de la plus récente à la plus ancienne ; le détail est dans CHANGELOG.md.
  */
 window.persoVersions=[
+ ["0.18.0","Base My Pilot Pro 3.33.0 : onglet Calendrier, bouton Accompagnement, Reporter sur les tâches, rapport « Charge à venir ». Nom My Pilot Personal Edition partout."],
+ ["0.17.1","Service systemd compatible Podman (service utilisateur sans root) ; « reload » reconstruit l'image."],
+ ["0.17.0","Démarrage automatique par systemd, avec Docker Compose ou directement avec Node.js."],
+ ["0.16.1","Synchronisation : adresse du serveur ramenée à sa racine (…/pilot retiré)."],
+ ["0.16.0","Page de connexion à la place de la fenêtre du navigateur ; motif précis des refus de synchronisation."],
+ ["0.15.0","Base My Pilot Pro 3.21.0 : fenêtre À propos propre à la perso, deux journaux des versions séparés."],
  ["0.14.1","En-tête stable sur fenêtre étroite ou en portrait : ligne d'état sur une deuxième ligne fixe, largeurs réservées."],
  ["0.14.0","Aide intégrée (bouton Aide, F1, recherche) et fenêtre de bienvenue au premier lancement."],
  ["0.13.0","Veilles : sources CISA KEV, NVD et France Travail, filtres score CVSS et contrats, questions de révision hebdomadaires."],
