@@ -1,34 +1,52 @@
-# My Pilot Personal Edition — démarrage automatique de la pile Docker Compose au boot.
+# My Pilot Personal Edition — démarrage automatique de la pile compose (Podman ou Docker) au boot.
+# Le moteur est détecté par scripts/compose.sh : podman compose, podman-compose, docker compose.
 #
-# Installation (le dépôt dans /opt/my-pilot-personal-edition, .env complété) :
+# ── Podman « rootless » (conteneurs lancés sans sudo, sous votre compte) : service UTILISATEUR ──
+# Vos conteneurs et vos volumes (donc la base) appartiennent à votre compte : un service système,
+# lancé en root, démarrerait une autre pile, avec une base vide.
+#   mkdir -p ~/.config/systemd/user
+#   cp deploy/systemd/my-pilot-personal-edition.service ~/.config/systemd/user/
+#   systemctl --user edit my-pilot-personal-edition     # WorkingDirectory=… si le dépôt n'est pas dans /opt
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now my-pilot-personal-edition
+#   sudo loginctl enable-linger "$USER"                 # démarrage au boot, sans ouvrir de session
+# Caddy en rootless : les ports 80 et 443 demandent
+#   sudo sysctl -w net.ipv4.ip_unprivileged_port_start=80   (et le même réglage dans /etc/sysctl.d/)
+#
+# ── Podman en root (sudo podman …) ou Docker : service SYSTÈME ──
 #   sudo cp deploy/systemd/my-pilot-personal-edition.service /etc/systemd/system/
 #   sudo systemctl daemon-reload
 #   sudo systemctl enable --now my-pilot-personal-edition
 #
 # Profils (caddy, replication) : COMPOSE_PROFILES dans .env, par exemple COMPOSE_PROFILES=caddy
-# Autre emplacement du dépôt : sudo systemctl edit my-pilot-personal-edition
+# Mise à jour : git pull, puis systemctl [--user] reload my-pilot-personal-edition (reconstruit l'image).
+# Outil compose hors du PATH de systemd (ex. ~/.local/bin/podman-compose) : dans « systemctl edit »,
 #   [Service]
-#   WorkingDirectory=/chemin/vers/my-pilot-personal-edition
+#   Environment=COMPOSE=/home/vous/.local/bin/podman-compose
 
 [Unit]
-Description=My Pilot Personal Edition (Docker Compose)
+Description=My Pilot Personal Edition (compose : Podman ou Docker)
 Documentation=https://github.com/Numidara/My-Pilot-Personal-Edition
-Requires=docker.service
-After=docker.service network-online.target
+# Démarre après le moteur s'il existe ; une unité absente est simplement ignorée.
+After=network-online.target docker.service podman.socket
 Wants=network-online.target
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=/opt/my-pilot-personal-edition
-# Le .env est lu par docker compose lui-même (pas par systemd) : ses commentaires en fin de ligne restent valables.
+# Le .env est lu par compose lui-même (pas par systemd) : ses commentaires en fin de ligne restent valables.
 ExecStartPre=/usr/bin/test -f .env
-ExecStart=/usr/bin/docker compose up -d --remove-orphans
-ExecReload=/usr/bin/docker compose up -d --remove-orphans
-ExecStop=/usr/bin/docker compose stop
-# La première construction de l'image (Claude Code compris) peut être longue.
+# Au démarrage : l'image existante (construite seulement si elle manque), pour un boot rapide.
+ExecStart=/bin/sh scripts/compose.sh up -d --remove-orphans
+# reload : reconstruit l'image depuis le dépôt (après un git pull) puis remplace le conteneur.
+# Rapide quand rien n'a changé, grâce au cache de construction.
+ExecReload=/bin/sh scripts/compose.sh up -d --build --remove-orphans
+ExecStop=/bin/sh scripts/compose.sh stop
+# Une construction (Claude Code compris) peut être longue.
 TimeoutStartSec=15min
 TimeoutStopSec=2min
 
 [Install]
-WantedBy=multi-user.target
+# default.target : convient au service système comme au service utilisateur.
+WantedBy=default.target
