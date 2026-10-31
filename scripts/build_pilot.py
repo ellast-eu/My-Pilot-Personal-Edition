@@ -13,15 +13,18 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SOURCE = ROOT / 'vendor' / 'mypilot-pro-3.21.0.html'
+SOURCE = ROOT / 'vendor' / 'mypilot-pro-3.33.0.html'
 TARGET = ROOT / 'web' / 'pilot' / 'index.html'
 
 PATCHES = [
     # (description, motif, remplacement, regex?)
-    # --- reprise de My Pilot Pro 3.21.0 ---
+    # --- reprise de My Pilot Pro (3.21.0, puis 3.33.0) ---
     ("titre de l'onglet",
      r'<title>My Pilot Professional Edition</title>',
      '<title>My Pilot Personal Edition</title>', True),
+    ("nom par défaut de l'application (en-tête, onglet, À propos, rapport)",
+     'var NOM_DEFAUT = "My Pilot Professional Edition";',
+     'var NOM_DEFAUT = "My Pilot Personal Edition";', False),
     ("onglet Veilles dans la navigation",
      '<button data-vue="idees">Idées</button>',
      '<button data-vue="idees">Idées</button>\n    <button data-vue="veilles">Veilles</button>', False),

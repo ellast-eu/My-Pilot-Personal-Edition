@@ -4,6 +4,18 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+## [0.18.0] - 2026-10-30
+
+### Modifications
+- **Base My Pilot Pro 3.33.0** (au lieu de 3.21.0). Ce que la pro apporte : onglet **Calendrier** (mois entier, activités et échéances, journée ouverte au clic), bouton **Accompagnement** dans l'en-tête, bouton **Reporter** sur les tâches, modules de pause dans une fenêtre, rapport sur quatre pages avec « Charge à venir », bloc « Passées sans trace ».
+  - `scripts/build_pilot.py` : 45 patchs, appliqués l'un après l'autre sans échec ni doublon ; nouveau patch du nom par défaut (« My Pilot Personal Edition » dans l'en-tête, l'onglet du navigateur, À propos et le rapport, au lieu de « My Pilot Professional Edition »).
+  - Aide : rubrique **Calendrier** (F1 depuis l'onglet).
+- En-tête : la ligne d'état passe sur une deuxième ligne fixe dès que l'en-tête ne tient plus sur une ligne (sous 1500 px, avec les cinq boutons de la pro), au lieu de flotter à droite sous la date.
+- Journal des versions de la perso (fenêtre À propos) complété de la 0.15.0 à la 0.18.0.
+
+### Corrections
+- Onglet Données : un chemin long (dossier des instantanés…) ne fait plus déborder la page sur un écran étroit.
+
 ## [0.17.1] - 2026-10-28
 
 ### Ajouts

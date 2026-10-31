@@ -1937,11 +1937,14 @@ window.addEventListener("focus",reessayer);
   +'#etat .b{flex:none}'
   +'nav{scrollbar-width:thin;scrollbar-color:#4A514C transparent}'
   +'nav::-webkit-scrollbar{height:4px}nav::-webkit-scrollbar-thumb{background:#4A514C}'
-  +'@media (max-width:1180px){'
+  +'.diag b{min-width:0;overflow-wrap:anywhere;text-align:right}'      /* chemins longs : jamais de débordement */
+  /* sous 1500 px, l'en-tête (cinq boutons depuis la pro 3.26) ne tient plus sur une ligne :
+     la ligne d'état prend une deuxième ligne fixe, au lieu de flotter à droite sous la date */
+  +'@media (max-width:1499px){'
   +  '.bandeau{row-gap:6px;padding:8px 14px}'
   +  '.jour{margin-left:auto}'
   +  '.etat{flex:1 0 100%;margin-left:0;justify-content:flex-start;flex-wrap:nowrap;gap:10px;border-top:1px solid #2E3430;padding-top:6px}'
-  +  '#btnAide{margin-left:auto}'
+  +  '.etat-btns{margin-left:auto}'
   +'}'
   +'@media (max-width:640px){'
   +  '.marque{font-size:15px;letter-spacing:.08em;white-space:normal}'

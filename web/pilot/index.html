@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Généré par scripts/build_pilot.py depuis mypilot-pro-3.21.0.html : ne pas modifier ici, modifier le script ou web/pilot/perso.js -->
+<!-- Généré par scripts/build_pilot.py depuis mypilot-pro-3.33.0.html : ne pas modifier ici, modifier le script ou web/pilot/perso.js -->
 
 <html lang="fr">
 <head>
@@ -65,9 +65,15 @@ h1,h2,h3,.dsp{
   /* les longues listes se coupent entre deux lignes plutot que de sauter en bloc :
      une seule rubrique de trop renvoyait tout le tableau a la page suivante et
      laissait une demi-page blanche. */
-  table.rp-rep,table.rp-tab,table.rp-dense,.rp-detail{break-inside:auto;page-break-inside:auto}
+  /* Un tableau du rapport est toujours plafonne : il tient sur une page. Le laisser se
+     couper produisait une page entiere pour une seule ligne orpheline. S'il ne tient
+     plus, c'est le tableau entier qui passe — lisible, au moins. */
+  table.rp-rep,table.rp-tab,table.rp-dense,.rp-detail{break-inside:avoid;page-break-inside:avoid}
   table.rp-rep tr,table.rp-tab tr,table.rp-dense tr{break-inside:avoid;page-break-inside:avoid}
-  .rp-cles,.rp-saisie{break-inside:avoid;page-break-inside:avoid}
+  .rp-cles{break-inside:avoid;page-break-inside:avoid}
+  /* une prose plus longue qu'une page doit couler : la faire sauter en entier
+     laisserait une page a moitie vide derriere elle */
+  .rp-saisie{break-inside:auto;page-break-inside:auto}
 }
 .rp-tete{border-bottom:2px solid var(--rouge);padding-bottom:7px;margin-bottom:5px;display:flex;align-items:flex-end;gap:14px}
 .rp-tete .qui{flex:1}
@@ -76,16 +82,19 @@ h1,h2,h3,.dsp{
 .rp-per{text-align:right;font-family:var(--data);font-size:10.5px;color:#4A514C;line-height:1.55}
 .rp-per b{display:block;font-family:var(--display);font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;color:#191C1B}
 .rp-st{font-family:var(--data);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#878D88;margin-bottom:13px}
+/* Le rythme a ete resserre en 3.30.1 : un portefeuille reel remplit tous les plafonds
+   et la page depassait d'une ligne. Mieux vaut un interligne plus serre qu'une donnee
+   retiree — et qu'un fragment orphelin sur une page de plus. */
 #impression h2{font-family:var(--display);font-size:12px;letter-spacing:.11em;text-transform:uppercase;
-  margin:15px 0 7px;padding-bottom:3px;border-bottom:1px solid #191C1B;font-weight:700}
-#impression p.rp-i{font-size:10.5px;color:#4A514C;margin:0 0 9px;line-height:1.5}
+  margin:11px 0 5px;padding-bottom:2px;border-bottom:1px solid #191C1B;font-weight:700}
+#impression p.rp-i{font-size:10.5px;color:#4A514C;margin:0 0 7px;line-height:1.45}
 .rp-cles{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
 .rp-cle{border:1px solid #C8CCC7;border-top:3px solid #191C1B;padding:8px 9px 9px}
 .rp-cle .v{font-family:var(--display);font-size:24px;line-height:1;font-weight:700}
 .rp-cle .l{font-size:9.5px;color:#4A514C;margin-top:4px;line-height:1.3}
 .rp-cle .e{font-family:var(--data);font-size:9.5px;margin-top:5px;padding-top:4px;border-top:1px dotted #C8CCC7}
 table.rp-rep{width:100%;border-collapse:collapse;font-size:10.5px}
-table.rp-rep td{padding:3px 0;vertical-align:middle}
+table.rp-rep td{padding:2.2px 0;vertical-align:middle}
 table.rp-rep td.l{width:38%;padding-right:8px}
 table.rp-rep td.b{width:44%}
 table.rp-rep td.v{width:18%;text-align:right;font-family:var(--data);font-size:10px;white-space:nowrap}
@@ -100,16 +109,18 @@ table.rp-tab tr.nul td{color:#8B918C}
 .rp-flux-t{font-family:var(--display);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
   color:#5C625E;margin-bottom:5px}
 table.rp-tab th{font-family:var(--display);font-size:9px;letter-spacing:.09em;text-transform:uppercase;
-  text-align:left;border-bottom:1px solid #191C1B;padding:4px 6px 3px;color:#4A514C}
-table.rp-tab td{padding:3.5px 6px;border-bottom:1px solid #C8CCC7}
+  text-align:left;border-bottom:1px solid #191C1B;padding:3px 6px 2px;color:#4A514C}
+table.rp-tab td{padding:2.6px 6px;border-bottom:1px solid #C8CCC7}
 table.rp-tab td.n{text-align:right;font-family:var(--data);font-size:10px}
-table.rp-dense td{padding:2.5px 6px;font-size:10px;line-height:1.35}
+table.rp-dense td{padding:1.9px 6px;font-size:10px;line-height:1.3}
 table.rp-dense tr.tete td{padding-top:6px}
 .rp-duo{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .rp-saisie{border:1px solid #C8CCC7;border-left:3px solid #191C1B;padding:9px 11px;font-size:10.5px;
   line-height:1.55;white-space:pre-wrap;min-height:11mm}
 .rp-saisie.vide{color:#878D88;font-style:italic}
 .rp-mention{font-family:var(--data);font-size:8.5px;color:#878D88;margin-top:9px;line-height:1.5}
+.rp-l{margin:6px 0 0 0;padding-left:16px;font-size:10.5px;line-height:1.55;color:#2B302C}
+.rp-l li{margin-bottom:3px}
 
 /* ---------- ecran de demarrage ---------- */
 .splash{
@@ -168,7 +179,9 @@ nav::-webkit-scrollbar-thumb{background:#4A514C}
 @media (max-width:1180px){
   .bandeau{row-gap:6px;padding:8px 14px}
   .jour{margin-left:auto}
-  .etat{flex:1 0 100%;margin-left:0;justify-content:flex-start;flex-wrap:nowrap;gap:10px;
+  /* « nowrap » ici faisait deborder la ligne d'etat des qu'un bouton s'ajoutait : elle
+     ne pouvait pas ceder. Elle passe a la ligne, le groupe de boutons restant soude. */
+  .etat{flex:1 0 100%;margin-left:0;justify-content:flex-start;flex-wrap:wrap;gap:10px;row-gap:6px;
     border-top:1px solid #2E3430;padding-top:6px}
   .etat-btns{margin-left:auto}
 }
@@ -364,8 +377,8 @@ td .ref{font-family:var(--data);font-size:11px;color:var(--encre-3);margin-top:1
 .cd-pause:hover{color:#fff;border-bottom-color:#8C938E}
 .cd-pause.proche{color:#FFD466}
 .cd-pause:empty{display:none}
-#btnPause,#btnAide,#btnApropos{border-color:#4A514C;color:#C9CFC9;background:transparent}
-#btnPause:hover,#btnAide:hover,#btnApropos:hover{border-color:#8C938E;color:#fff;opacity:1}
+#btnPause,#btnAide,#btnApropos,#btnAccomp{border-color:#4A514C;color:#C9CFC9;background:transparent}
+#btnPause:hover,#btnAide:hover,#btnApropos:hover,#btnAccomp:hover{border-color:#8C938E;color:#fff;opacity:1}
 /* les trois boutons forment un bloc : en fenetre etroite ils passent a la ligne ensemble,
    au lieu de laisser Pause seule en bas */
 .etat-btns{display:flex;align-items:center;gap:8px;flex:none;margin-right:2px}
@@ -385,7 +398,7 @@ td .ref{font-family:var(--data);font-size:11px;color:var(--encre-3);margin-top:1
 .ap-nom{
   font-family:var(--display);font-variation-settings:"wght" 700,"wdth" 75;
   font-size:27px;letter-spacing:.16em;text-transform:uppercase;color:#F2F3F1;
-  white-space:nowrap;min-height:32px;
+  white-space:nowrap;min-height:32px;overflow:hidden;
 }
 .ap-nom .bit{font-family:var(--data);color:var(--rouge);letter-spacing:.16em}
 .ap-nom .pt{color:var(--rouge)}
@@ -490,6 +503,62 @@ td .ref{font-family:var(--data);font-size:11px;color:var(--encre-3);margin-top:1
 }
 .pause-item{font-size:19px;line-height:1.35;max-width:420px}
 .pause-ok{font-size:14px;padding:11px 22px;background:var(--rouge);border-color:var(--rouge)}
+/* ----- fenetre de module : un .html du dossier voisin, joue dans l'application ----- */
+dialog.jeu-dlg{max-width:none;width:calc(100vw - 20px);height:calc(100vh - 20px);max-height:calc(100vh - 20px)}
+@supports(height:100dvh){ dialog.jeu-dlg{height:calc(100dvh - 20px);max-height:calc(100dvh - 20px)} }
+.jeu-tete{display:flex;align-items:center;gap:12px;padding:9px 14px;border-bottom:1px solid var(--trait);
+  background:#F1F2EF;flex:0 0 auto}
+.jeu-tete h3{font-size:14px;letter-spacing:.07em;text-transform:uppercase;margin:0}
+.jeu-tete .chemin{font-family:var(--data);font-size:11.5px;color:var(--encre-3);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.jeu-tete .chrono{font-family:var(--data);font-size:15.5px;font-variant-numeric:tabular-nums;
+  letter-spacing:.04em;white-space:nowrap;padding:2px 9px;color:var(--encre);flex:0 0 auto}
+.jeu-tete .chrono em{font-style:normal;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--encre-3);display:block;line-height:1.1}
+.jeu-tete .chrono.depasse{color:var(--rouge);font-weight:700}
+.jeu-tete .chrono.depasse em{color:var(--rouge)}
+.jeu-corps{flex:1 1 auto;min-height:0;position:relative;background:var(--papier)}
+.jeu-corps iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;background:#fff}
+.jeu-vide{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;
+  font-size:13.5px;line-height:1.6;color:var(--encre-3);pointer-events:none}
+.item .mod{font-family:var(--data);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
+  background:var(--ardoise);color:#fff;padding:2px 6px;margin-left:6px;white-space:nowrap}
+.item .jouer{border:0;background:none;cursor:pointer;color:var(--ardoise);font-size:15px;padding:0 4px}
+.item .jouer:hover{color:var(--rouge)}
+.note .report{border-top:1px dotted var(--trait);padding-top:6px;flex-wrap:wrap;row-gap:5px}
+/* ----- calendrier ----- */
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--trait);
+  border:1px solid var(--trait)}
+.cal .jn{background:var(--papier);font-family:var(--data);font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--encre-3);text-align:center;padding:5px 0}
+.cal .c{background:#fff;min-height:74px;padding:4px 5px 5px;cursor:pointer;position:relative;
+  display:flex;flex-direction:column;gap:3px;border:0;text-align:left;font:inherit;color:inherit}
+.cal .c:hover{background:#F6F7F5}
+.cal .c.hors{background:#FAFBF9;color:var(--encre-3)}
+.cal .c.chome{background:#EAEDE9}
+.cal .c.chome.hors{background:#F2F4F1}
+.cal .c .n{font-family:var(--data);font-size:12.5px;line-height:1}
+.cal .c.auj .n{font-weight:700;color:var(--rouge)}
+.cal .c.auj{box-shadow:inset 0 0 0 2px var(--rouge)}
+.cal .c.sel{box-shadow:inset 0 0 0 2px var(--encre);background:#EFF1EE}
+.cal .c.auj.sel{box-shadow:inset 0 0 0 2px var(--encre),inset 0 0 0 4px var(--rouge)}
+.cal .pts{display:flex;flex-wrap:wrap;gap:2px;align-items:center}
+.cal .pt{width:7px;height:7px;border-radius:50%;display:block}
+.cal .pl{font-family:var(--data);font-size:9.5px;color:var(--encre-3)}
+.cal .ech{font-family:var(--data);font-size:9.5px;letter-spacing:.04em;padding:1px 4px;
+  background:var(--ardoise);color:#fff;align-self:flex-start;white-space:nowrap}
+.cal .ech.retard{background:var(--rouge)}
+.cal .c .mot{font-size:9px;color:var(--encre-3);line-height:1.15;margin-top:auto}
+.cal-tete{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.cal-mois{font-family:var(--display);font-size:15px;letter-spacing:.06em;text-transform:uppercase;
+  font-weight:700;min-width:150px}
+@media(max-width:620px){ .cal .c{min-height:58px} .cal .c .mot{display:none} }
+.saisie .manque{outline:2px solid var(--rouge);outline-offset:1px;border-color:var(--rouge)}
+.carte-sec h4 .quand{margin-left:auto;font-family:var(--corps);font-weight:400;
+  font-size:11.5px;letter-spacing:0;text-transform:none;color:var(--encre-3)}
+.carte-sec h4 .quand select{font-size:11.5px;padding:1px 4px;margin-left:4px}
+.carte-sec h4{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.pa-arbre{font-family:var(--data);font-size:12px;line-height:1.6;background:var(--papier-2,#F1F2EF);padding:10px 12px;margin:0 0 12px;overflow:auto;border-left:3px solid var(--trait)}
 .pause-reg .opt{
   display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--trait);
   font-size:13.5px;cursor:pointer;
@@ -549,18 +618,20 @@ tbody tr:hover{background:#F2F3F0;cursor:pointer}
 
 /* ---------- comptes rendus ---------- */
 dialog.cr-dlg{max-width:720px;width:calc(100% - 28px)}
-.cr-tete{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--trait)}
+.cr-tete{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--trait);flex:0 0 auto}
 .cr-tete h3{font-size:15px;letter-spacing:.08em;text-transform:uppercase;flex:1}
-.cr-corps{padding:16px}
+.cr-corps{padding:16px;overflow:auto;flex:1 1 auto;min-height:0}
 .cr-corps textarea{
   width:100%;height:min(52vh,420px);resize:vertical;padding:10px;
   border:1px solid var(--trait);border-radius:2px;background:#fff;color:var(--encre);
   font-family:var(--data);font-size:12.5px;line-height:1.55;white-space:pre;overflow-wrap:normal;
 }
 .cr-corps textarea:focus{outline:2px solid var(--ardoise);outline-offset:-1px}
-.cr-pied{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--trait);
-  background:#F1F2EF;flex-wrap:wrap;align-items:center}
-.cr-pied .droite{margin-left:auto;display:flex;gap:8px}
+.cr-pied{display:flex;column-gap:8px;row-gap:10px;padding:12px 16px;border-top:1px solid var(--trait);
+  background:#F1F2EF;flex-wrap:wrap;align-items:center;flex:0 0 auto}
+.cr-pied .droite{margin-left:auto;display:flex;column-gap:8px;row-gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.cr-pied>.droite:not(:first-child){flex:1 0 auto}
+@media(max-width:760px){ .cr-pied>.droite:not(:first-child){flex-basis:100%;margin-left:0} }
 
 /* ---------- idees ---------- */
 .id-bulles{
@@ -603,14 +674,29 @@ dialog.cr-dlg{max-width:720px;width:calc(100% - 28px)}
 dialog{
   border:1px solid var(--encre);border-top:4px solid var(--rouge);border-radius:2px;padding:0;
   max-width:720px;width:calc(100% - 28px);background:var(--papier);color:var(--encre);
+  /* Sans plafond sur la fenetre elle-meme, tete + corps + pied peuvent depasser l'ecran
+     et c'est le pied qui sort du cadre : les boutons du bas deviennent inatteignables.
+     C'est la fenetre qui borne, et le corps qui cede. */
+  max-height:calc(100vh - 24px);
 }
+@supports(height:100dvh){ dialog{max-height:calc(100dvh - 24px)} }
+/* [open] est indispensable : une dialog fermee doit rester en display:none. */
+dialog[open]{display:flex;flex-direction:column}
 dialog::backdrop{background:rgba(25,28,27,.45)}
 dialog.saisie-val{max-width:430px}
-.mod-tete{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--trait)}
+.mod-tete{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--trait);flex:0 0 auto}
 .mod-tete h3{font-size:15px;letter-spacing:.08em;text-transform:uppercase}
-.mod-corps{padding:16px;max-height:min(66vh,560px);overflow:auto}
-.mod-pied{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--trait);background:#F1F2EF;flex-wrap:wrap;align-items:center}
-.mod-pied .droite{margin-left:auto;display:flex;gap:8px}
+.mod-corps{padding:16px;max-height:min(66vh,560px);overflow:auto;flex:1 1 auto;min-height:0}
+.mod-pied{display:flex;column-gap:8px;row-gap:10px;padding:12px 16px;border-top:1px solid var(--trait);background:#F1F2EF;flex-wrap:wrap;align-items:center;flex:0 0 auto}
+/* Le pied passe a la ligne des qu'il manque de place. Sans flex-basis, le groupe de
+   droite se coince contre le dernier bouton de gauche et les deux rangees se lisent
+   comme une seule ; sans flex-wrap sur le groupe lui-meme, ses boutons debordent. */
+.mod-pied .droite{margin-left:auto;display:flex;column-gap:8px;row-gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.mod-pied>.droite:not(:first-child){flex:1 0 auto}
+@media(max-width:760px){
+  .mod-pied{row-gap:12px}
+  .mod-pied>.droite:not(:first-child){flex-basis:100%;margin-left:0}
+}
 
 /* ---------- divers ---------- */
 .toast{
@@ -676,6 +762,8 @@ hr.sep{border:0;border-top:1px solid var(--trait);margin:18px 0}
         <button class="b mini creux" id="btnApropos" title="À propos de l’application"
           ><span class="ap-long">À propos</span><span class="ap-court">Infos</span></button>
         <button class="b mini creux" id="btnAide" title="Aide (F1)">Aide</button>
+        <button class="b mini creux" id="btnAccomp" title="Mettre un accompagnement en fond"
+          ><span class="ap-long">Accompagnement</span><span class="ap-court">Fond</span></button>
         <button class="b mini creux" id="btnPause">Pause</button>
       </span>
       <button class="b mini" id="btnEnr">Enregistrer</button>
@@ -684,6 +772,7 @@ hr.sep{border:0;border-top:1px solid var(--trait);margin:18px 0}
   <nav id="nav">
     <button data-vue="jour" aria-current="true">Aujourd'hui</button>
     <button data-vue="suivant">Prochain jour ouvré</button>
+    <button data-vue="calendrier">Calendrier</button>
     <button data-vue="chantiers">Activités</button>
     <button data-vue="idees">Idées</button>
     <button data-vue="veilles">Veilles</button>
@@ -713,7 +802,7 @@ hr.sep{border:0;border-top:1px solid var(--trait);margin:18px 0}
 "use strict";
 
 /* ================= etat ================= */
-var APP_VERSION = "3.21.0";
+var APP_VERSION = "3.33.0";
 
 /* ============================================================
    NOM DU POSTE — a modifier ici lors du deploiement sur un
@@ -722,7 +811,7 @@ var APP_VERSION = "3.21.0";
    Une fois le fichier ouvert, le nom enregistre dedans prend
    le relais.
    ============================================================ */
-var NOM_DEFAUT = "My Pilot";
+var NOM_DEFAUT = "My Pilot Personal Edition";
 var VERSION = 1;   /* version du schema de donnees */
 var TYPES_DEFAUT = ["Visite de chantier","Consignation","Mise hors tension","Réception / DOE",
   "Réunion","Déraccordement","Autre"];
@@ -1295,6 +1384,156 @@ function vigilancesDu(date,strict){
     return (RANG[a.niveau]||9)-(RANG[b.niveau]||9);
   });
 }
+/* ============ activités passées sans trace ============
+   Une date d'intervention ou un rendez-vous qui tombe, et rien de noté : le dossier
+   passe sans qu'on s'en apercoive. Au retour d'une absence, c'est la premiere chose
+   a voir. Une activite sort de la liste des qu'une note lui est rattachee le jour dit
+   ou apres, des qu'elle est close ou annulee, ou si l'on declare qu'il n'y a rien a
+   noter. Le jour meme ne compte pas : la journee n'est pas finie. */
+var horizonSansTrace=30, voirEcartesST=false;
+var HORIZONS_ST=[[7,"1 sem."],[14,"2 sem."],[30,"1 mois"],[90,"3 mois"],[0,"Tout"]];
+function sansTraceListes(){
+  var h=auj(), derniere={}, ouvertes=[], ecartees=[];
+  /* un index des notes par activite : sans lui, le balayage est quadratique */
+  (D.notes||[]).forEach(function(n){
+    if(!n.chantier_id || !n.date) return;
+    if(!derniere[n.chantier_id] || n.date>derniere[n.chantier_id]) derniere[n.chantier_id]=n.date;
+  });
+  (D.chantiers||[]).forEach(function(c){
+    if(!c.date || c.date>=h) return;
+    if(estArchive(c) || estClos(c) || estAnnule(c)) return;
+    if(derniere[c.id] && derniere[c.id]>=c.date) return;
+    (c.rien_a_noter?ecartees:ouvertes).push(c);
+  });
+  var parDate=function(a,b){ return String(b.date).localeCompare(String(a.date)) };
+  return {ouvertes:ouvertes.sort(parDate), ecartees:ecartees.sort(parDate)};
+}
+function dansHorizonST(l){
+  if(!horizonSansTrace) return l;
+  var d=new Date(); d.setDate(d.getDate()-horizonSansTrace);
+  var lim=iso(d);
+  return l.filter(function(c){ return c.date>=lim });
+}
+function joursDepuis(d){
+  var a=new Date(d+"T00:00:00"), b=new Date(auj()+"T00:00:00");
+  return Math.max(0,Math.round((b-a)/86400000));
+}
+function ligneSansTrace(c,ecarte){
+  var K=catDe(c), j=joursDepuis(c.date), meta=[];
+  if(c.commune) meta.push(esc(c.commune));
+  if(c.tiers) meta.push(esc(c.tiers));
+  if(c.statut) meta.push(esc(libStatut(c.statut)));
+  return '<div class="note">'
+    +'<div class="h">'+esc(libCourt(c.date))+' \u00b7 il y a '+j+' jour'+(j>1?"s":"")
+      +' \u00b7 '+esc(K.lib)+'</div>'
+    +'<div class="txt">'+esc(K.sym)+' '+esc(c.libelle||"sans libellé")+'</div>'
+    +(meta.length?'<div class="lien">'+meta.join(" \u00b7 ")+'</div>':"")
+    +(c.reference?'<div class="ref">'+esc(c.reference)+'</div>':"")
+    +'<div class="ligne" style="margin-top:6px">'
+    +(ecarte
+      ? '<button class="b mini creux" data-reprendst="'+esc(c.id)+'">Remettre dans la liste</button>'
+      : '<button class="b mini" data-noter="'+esc(c.id)+'">Noter</button>'
+        +'<button class="b mini creux" data-rienst="'+esc(c.id)+'">Rien à noter</button>')
+    +'</div></div>';
+}
+function fragBlocSansTrace(){
+  var t=sansTraceListes(), l=dansHorizonST(t.ouvertes), ec=dansHorizonST(t.ecartees);
+  if(!t.ouvertes.length && !t.ecartees.length) return "";
+  var barre='<div class="ligne" style="margin:0 0 10px">'
+    +HORIZONS_ST.map(function(x){
+        return '<button class="b mini'+(horizonSansTrace===x[0]?"":" creux")+'" data-horst="'+x[0]+'">'+x[1]+'</button>';
+      }).join("")
+    +(t.ouvertes.length>l.length
+      ? '<span class="note-aide" style="margin:0 0 0 auto">'+(t.ouvertes.length-l.length)+' plus anciennes</span>'
+      : "")
+  +'</div>';
+  var corps = l.length
+    ? l.map(function(c){ return ligneSansTrace(c,false) }).join("")
+    : '<div class="vide"><b>Rien d\u2019oublié sur cet horizon</b>'
+      +(t.ouvertes.length?'Élargissez le filtre pour voir les '+t.ouvertes.length+' activité(s) sans trace.'
+                         :'Chaque activité passée porte une note, une clôture ou une annulation.')+'</div>';
+  var pied = ec.length
+    ? '<div class="ligne" style="margin-top:10px"><button class="b mini creux" data-voirecartesst="1">'
+      +(voirEcartesST?'Masquer':'Voir')+' les '+ec.length+' écartée(s)</button></div>'
+      +(voirEcartesST?'<hr class="sep">'+ec.map(function(c){ return ligneSansTrace(c,true) }).join(""):"")
+    : "";
+  return '<div class="bloc" style="margin-bottom:18px'
+      +(l.length?';border-left:4px solid var(--jaune)':"")+'">'
+    +'<div class="bloc-tete"><h2>Passées sans trace</h2>'
+      +'<span class="compte">'+l.length+(t.ouvertes.length!==l.length?' / '+t.ouvertes.length:"")+'</span></div>'
+    +'<div class="bloc-corps">'
+      +'<div class="note-aide" style="margin:0 0 10px">Activités dont la date est passée sans qu’aucune '
+      +'note leur soit rattachée. Notez-les, ou écartez-les s’il n’y avait rien à dire.</div>'
+      +barre+corps+pied
+    +'</div></div>';
+}
+/* ============ dossiers non pilotés ============
+   Un dossier est pilote s'il porte au moins une tache ouverte, ou une date a venir
+   (aujourd'hui compris). Sinon rien ne le ramenera jamais sous les yeux : il sort du
+   radar sans que personne ne decide quoi que ce soit.
+
+   Le parametre « sansLesSansTrace » sert au bloc du jour : ce qui est deja reclame
+   par « Passees sans trace » n'a pas a etre reclame deux fois sur le meme ecran. Le
+   filtre des Activites et le rapport, eux, prennent la definition entiere. */
+function nonPilotes(sansLesSansTrace){
+  var h=auj(), aTache={}, deja={};
+  (D.notes||[]).forEach(function(n){
+    if(n.chantier_id && n.suite && n.suite.texte && !n.suite.fait) aTache[n.chantier_id]=1;
+  });
+  if(sansLesSansTrace) sansTraceListes().ouvertes.forEach(function(c){ deja[c.id]=1 });
+  return (D.chantiers||[]).filter(function(c){
+    if(estArchive(c) || estClos(c) || estAnnule(c)) return false;
+    if(aTache[c.id]) return false;
+    if(c.date && c.date>=h) return false;
+    if(deja[c.id]) return false;
+    return true;
+  }).sort(function(x,y){
+    /* jamais dates d'abord : ils n'ont jamais ete pilotes du tout */
+    var a=x.date||"", b=y.date||"";
+    if(!a && !b) return String(x.libelle||"").localeCompare(String(y.libelle||""));
+    if(!a) return -1;
+    if(!b) return 1;
+    return a.localeCompare(b);          /* puis du plus anciennement échu */
+  });
+}
+function clesNonPilotes(){
+  var m={}; nonPilotes(false).forEach(function(c){ m[c.id]=1 }); return m;
+}
+function fragBlocNonPilotes(){
+  var l=nonPilotes(true);
+  if(!l.length) return "";
+  var MAX=5, montres=l.slice(0,MAX);
+  var lignes=montres.map(function(c){
+    var K=catDe(c), meta=[];
+    if(c.commune) meta.push(esc(c.commune));
+    if(c.statut) meta.push(esc(libStatut(c.statut)));
+    return '<div class="note">'
+      +'<div class="h">'+(c.date?('échéance passée le '+esc(libCourt(c.date))
+          +' \u00b7 il y a '+joursDepuis(c.date)+' jour'+(joursDepuis(c.date)>1?"s":""))
+        :'jamais datée')+' \u00b7 '+esc(K.lib)+'</div>'
+      +'<div class="txt">'+esc(K.sym)+' '+esc(c.libelle||"sans libellé")+'</div>'
+      +(meta.length?'<div class="lien">'+meta.join(" \u00b7 ")+'</div>':"")
+      +(c.reference?'<div class="ref">'+esc(c.reference)+'</div>':"")
+      +'<div class="ligne" style="margin-top:6px">'
+        +'<button class="b mini" data-pilote="'+esc(c.id)+'">Ouvrir</button>'
+        +'<button class="b mini creux" data-noter="'+esc(c.id)+'">Noter</button>'
+      +'</div></div>';
+  }).join("");
+  return '<div class="bloc" style="margin-bottom:18px;border-left:4px solid var(--ardoise)">'
+    +'<div class="bloc-tete"><h2>Dossiers non pilotés</h2>'
+      +'<span class="compte">'+l.length+'</span></div>'
+    +'<div class="bloc-corps">'
+      +'<div class="note-aide" style="margin:0 0 10px">Ni tâche en attente, ni date à venir : '
+      +'rien ne les ramènera sous vos yeux. Posez une suite à donner, ou une date.</div>'
+      +lignes
+      +(l.length>MAX
+        ? '<div class="ligne" style="margin-top:10px">'
+          +'<button class="b mini creux" data-voirpilote="1">Voir les '+l.length+' dans Activités</button>'
+          +'<span class="note-aide" style="margin:0 0 0 auto">'+(l.length-MAX)+' de plus</span></div>'
+        : '<div class="ligne" style="margin-top:10px">'
+          +'<button class="b mini creux" data-voirpilote="1">Voir dans Activités</button></div>')
+    +'</div></div>';
+}
 function compteurDu(date,creer){
   var l=D.dtdict||(D.dtdict=[]);
   for(var i=0;i<l.length;i++) if(l[i].date===date) return l[i];
@@ -1636,7 +1875,8 @@ function normaliser(o){
       ORPHELINS.cles[kb]=(ORPHELINS.cles[kb]||0)+1; ORPHELINS.n++;
       c.categorie=_prem;
     }
-    if(c.date && !dateValide(c.date)) c.date="";   /* valeur texte issue d'un import */
+    /* toujours une chaine : « absente » et « vide » doivent se comporter pareil */
+    if(!dateValide(c.date)) c.date="";
     var Kx=_cles[c.categorie];
     if(Kx && Kx.miroir && c[Kx.miroir]) c.statut=c[Kx.miroir];
     /* la reecriture de statut heritee de la v1.17 est retiree : les categories etant
@@ -1988,6 +2228,9 @@ function chercherContact(tel){
 function tracerVerification(r){
   (D.appels||(D.appels=[])).push({
     id:uid(),date:auj(),heure:hNow(),nature:"verif",
+    /* la cle en plus du nom : renommer un rappel ne doit pas faire perdre sa cadence
+       a tout l'historique deja trace */
+    rappel:r.cle||"",
     qui:"",objet:"",motif:r.nom,entreprise:"",tel:"",commune:"",duree:0,
     suite:"",suite_faite:false
   });
@@ -2068,12 +2311,192 @@ var MENU_SECTIONS=[
   ["specialite","Spécialités","Rares, à préparer, à attendre"],
   ["dessert","Desserts","Faciles — jamais proposés d'office"]
 ];
+/* ================= modules de pause =================
+   Un element de la carte peut porter un fichier .html range a cote de l'application :
+
+     MyPilot_Pro.html
+     ↳ module/
+        ↳ jeu.html
+
+   Il s'ouvre dans une fenetre de l'application, dans une iframe. Mesure faite : deux
+   documents file:// sont d'origines opaques l'un pour l'autre, donc le module ne peut
+   ni lire ni ecrire les donnees du pilotage, et le pilotage ne peut pas entrer dans le
+   module. L'attribut sandbox, lui, est a proscrire ici : il met l'iframe en origine
+   nulle et le navigateur refuse alors au module ses propres css, js et images.
+
+   L'application reste sans reseau. Un module, lui, fait ce que son auteur a ecrit : s'il
+   appelle une bibliotheque en ligne, il ne fonctionnera pas sur un poste sans acces. */
+/* Un element peut porter un lien : playlist, podcast, page de revision. L'application
+   n'appelle jamais rien d'elle-meme — elle passe l'adresse au systeme, exactement comme
+   si vous la tapiez. Les schemas qui executent du code dans la page sont refuses. */
+var SCHEMAS_INTERDITS={javascript:1,data:1,vbscript:1,blob:1};
+function lienSain(v){
+  var s=String(v||"").trim();
+  if(!s || /[\u0000-\u001f\u007f]/.test(s)) return "";
+  var m=/^([a-zA-Z][a-zA-Z0-9+.\-]*):/.exec(s);
+  if(!m) return "";                                   /* un lien dit son protocole */
+  if(SCHEMAS_INTERDITS[m[1].toLowerCase()]) return "";
+  return s;
+}
+function ouvrirLien(u){
+  var s=lienSain(u); if(!s){ toast("Lien invalide",true); return }
+  /* un <a> plutot que window.open : les schemas applicatifs (spotify:, etc.) passent */
+  var a=document.createElement("a");
+  a.href=s; a.target="_blank"; a.rel="noopener noreferrer";
+  document.body.appendChild(a); a.click(); a.parentNode.removeChild(a);
+}
+function nomDossierModule(v){
+  var s=String(v==null?"module":v).trim().replace(/^[\/\\]+|[\/\\]+$/g,"");
+  if(!s || /(^|[\/\\])\.\.([\/\\]|$)/.test(s)) return "module";
+  return s.replace(/\\/g,"/");
+}
+function cheminModuleSain(v){
+  var s=String(v||"").trim().replace(/^[\/\\]+/,"").replace(/\\/g,"/");
+  if(!s) return "";
+  if(/(^|\/)\.\.(\/|$)/.test(s)) return "";       /* on ne remonte pas hors du dossier */
+  if(!/\.x?html?$/i.test(s)) return "";            /* un module est une page, rien d'autre */
+  return s;
+}
+function urlModule(fichier){
+  var f=cheminModuleSain(fichier); if(!f) return "";
+  return nomDossierModule(M.reglages.dossier_modules)+"/"+f;
+}
+var jeuBoite=null;
+function construireBoiteModule(){
+  if(jeuBoite) return jeuBoite;
+  jeuBoite=document.createElement("dialog");
+  jeuBoite.id="jeuBoite"; jeuBoite.className="jeu-dlg";
+  jeuBoite.setAttribute("aria-label","Module de pause");
+  jeuBoite.innerHTML='<div class="jeu-tete"><h3 id="jeuTitre">Module</h3>'
+    +'<span class="chemin" id="jeuChemin"></span>'
+    +'<span class="chrono" id="jeuChrono" hidden></span>'
+    +'<button class="b mini creux" data-jeu="recharger">Recharger</button>'
+    +'<button class="b mini" data-jeu="fermer" '
+      +'title="Fermer le module — Échap ne fonctionne que si le focus est hors du module">Fermer</button></div>'
+    +'<div class="jeu-corps"><div class="jeu-vide" id="jeuVide"></div>'
+    +'<iframe id="jeuCadre" allow="fullscreen" title="Module de pause"></iframe></div>';
+  document.body.appendChild(jeuBoite);
+  jeuBoite.addEventListener("click",function(e){
+    var b=e.target.closest("[data-jeu]"); if(!b) return;
+    if(b.dataset.jeu==="fermer") fermerModule();
+    else if(b.dataset.jeu==="recharger"){
+      var f=$("#jeuCadre"); if(f) f.src=f.src;
+    }
+  });
+  jeuBoite.addEventListener("cancel",function(){ setTimeout(fermerModule,0) });
+  return jeuBoite;
+}
+/* Le temps de l'activite, au cadran. Passe l'echeance, le decompte repart en negatif
+   et vire au rouge : la pause n'est pas interrompue, elle est seulement chiffree. */
+var jeuChrono=null, jeuDepasseVu=false;
+function mmss(ms){
+  var s=Math.floor(Math.abs(ms)/1000);
+  var hh=Math.floor(s/3600), mm=Math.floor((s%3600)/60), ss=s%60;
+  var d2=function(n){ return (n<10?"0":"")+n };
+  return hh ? (hh+":"+d2(mm)+":"+d2(ss)) : (d2(mm)+":"+d2(ss));
+}
+function arreterChrono(){
+  if(jeuChrono){ clearInterval(jeuChrono); jeuChrono=null }
+}
+function demarrerChrono(minutes){
+  arreterChrono(); jeuDepasseVu=false;
+  var e=$("#jeuChrono"); if(!e) return;
+  var t0=Date.now(), cible=Math.max(0,+minutes||0)*60000;
+  e.hidden=false; e.classList.remove("depasse");
+  var pas=function(){
+    var z=$("#jeuChrono");
+    /* la fenetre a pu etre fermee entre deux battements : rien ne tourne en fond */
+    if(!z || !jeuBoite || !jeuBoite.open){ arreterChrono(); return }
+    var ecoule=Date.now()-t0;
+    if(cible>0){
+      var reste=cible-ecoule, trop=reste<0;
+      z.innerHTML='<em>'+(trop?"dépassé de":"il reste")+'</em>'+(trop?"−":"")+esc(mmss(reste));
+      z.classList.toggle("depasse",trop);
+      z.title=trop?"Le temps prévu pour cette activité est dépassé":"Temps restant sur cette activité";
+      if(trop && !jeuDepasseVu){
+        jeuDepasseVu=true;
+        toast("Temps de la pause atteint \u00b7 le décompte continue en négatif");
+      }
+    }else{
+      z.innerHTML='<em>écoulé</em>'+esc(mmss(ecoule));
+      z.title="Aucune durée n’est fixée sur cette activité : temps écoulé depuis l’ouverture";
+    }
+  };
+  pas(); jeuChrono=setInterval(pas,1000);
+}
+/* Un module ne peut pas nous parler autrement que par postMessage : les deux documents
+   sont d'origines opaques. On n'ecoute que la fenetre affichee, et on n'accepte que deux
+   messages — « pret », qui retire le message d'absence, et « fermer », qui rend la main.
+   Rien qui touche aux donnees : l'isolement doit rester entier. */
+function ecouterModules(){
+  addEventListener("message",function(e){
+    if(!jeuBoite || !jeuBoite.open) return;
+    var f=$("#jeuCadre");
+    if(!f || !e.source || e.source!==f.contentWindow) return;
+    var d=e.data;
+    if(!d || typeof d!=="object" || d.mypilot==null) return;
+    if(d.mypilot==="pret"){ var v=$("#jeuVide"); if(v) v.innerHTML=""; return }
+    if(d.mypilot==="fermer") fermerModule();
+  });
+}
+ecouterModules();
+function ouvrirModule(titre,fichier,minutes){
+  var u=urlModule(fichier);
+  if(!u){ toast("Chemin de module invalide : attendu un .html dans le dossier des modules",true); return }
+  var d=construireBoiteModule();
+  $("#jeuTitre").textContent=titre||"Module";
+  $("#jeuChemin").textContent=u;
+  $("#jeuVide").innerHTML='Si rien ne s\u2019affiche, le fichier <b>'+esc(u)+'</b> est introuvable '
+    +'\u2014 il doit se trouver \u00e0 c\u00f4t\u00e9 de l\u2019application.';
+  $("#jeuCadre").src=u;
+  if(!d.open) d.showModal();
+  demarrerChrono(minutes);
+}
+function fermerModule(){
+  arreterChrono();
+  if(!jeuBoite) return;
+  var f=$("#jeuCadre"); if(f) f.src="about:blank";   /* on arrete le module en le quittant */
+  try{ jeuBoite.close() }catch(e){}
+}
+/* Enumere les .html du dossier choisi pour eviter de les saisir un par un. */
+function parcourirModules(cle){
+  if(typeof window.showDirectoryPicker!=="function"){
+    toast("Ce navigateur ne sait pas parcourir un dossier : saisissez le nom du fichier",true); return;
+  }
+  window.showDirectoryPicker().then(function(rep){
+    var noms=[],it=rep.values();
+    function suite(){
+      return it.next().then(function(r){
+        if(r.done) return;
+        var e=r.value;
+        if(e.kind==="file" && /\.x?html?$/i.test(e.name)) noms.push(e.name);
+        return suite();
+      });
+    }
+    return suite().then(function(){
+      if(!noms.length){ toast("Aucun fichier .html dans ce dossier",true); return }
+      M.reglages.dossier_modules=nomDossierModule(rep.name);
+      var l=M.sections[cle]||(M.sections[cle]=[]), connus={},n=0;
+      l.forEach(function(i){ if(i.module) connus[i.module]=1 });
+      noms.sort().forEach(function(f){
+        if(connus[f]) return;
+        l.push({id:uid(),texte:f.replace(/\.x?html?$/i,"").replace(/[_-]+/g," ").trim()||f,
+          duree:0,favori:false,module:f});
+        n++;
+      });
+      modifieMenu(); ouvrirPause();
+      toast(n?(n+" module(s) ajouté(s) depuis « "+rep.name+" »"):"Tous ces modules sont déjà dans la carte");
+    });
+  }).catch(function(e){ if(e && e.name!=="AbortError") toast("Dossier non lu : "+(e.message||e.name),true) });
+}
 var CLE_M="pst-pilot-menu-v1";        /* ancien tampon, relu une fois pour migration */
 var M=viergeMenu();
 var suggestion=null;
 
 function viergeMenu(){
-  return {reglages:{rappel_jour:90,suggerer:true,sur_cloture:true,sur_eprouvante:true,filtrer_duree:true},
+  return {reglages:{rappel_jour:90,suggerer:true,sur_cloture:true,sur_eprouvante:true,filtrer_duree:true,
+      dossier_modules:"module",seuil_long:30,
+      quand:{amuse:"courte",accomp:"demande",plat:"demande",specialite:"demande",dessert:"demande"}},
     sections:{amuse:[],accomp:[],plat:[],specialite:[],dessert:[]}};
 }
 function normaliserMenu(o){
@@ -2085,11 +2508,19 @@ function normaliserMenu(o){
     v.reglages.sur_cloture=(o.reglages.sur_cloture!==false);
     v.reglages.sur_eprouvante=(o.reglages.sur_eprouvante!==false);
     v.reglages.filtrer_duree=(o.reglages.filtrer_duree!==false);
+    v.reglages.dossier_modules=nomDossierModule(o.reglages.dossier_modules);
+    v.reglages.seuil_long=Math.max(5,+o.reglages.seuil_long||30);
+    var qs=(o.reglages.quand&&estObjet(o.reglages.quand))?o.reglages.quand:{};
+    MENU_SECTIONS.forEach(function(s){
+      var q=String(qs[s[0]]||"");
+      v.reglages.quand[s[0]]=(q==="courte"||q==="longue"||q==="demande")?q:v.reglages.quand[s[0]];
+    });
   }
   MENU_SECTIONS.forEach(function(s){
     var src=(o.sections||{})[s[0]];
     v.sections[s[0]]=(estTableau(src)?src:[]).map(function(i){
-      return {id:i.id||uid(),texte:String(i.texte||""),duree:+i.duree||0,favori:!!i.favori};
+      return {id:i.id||uid(),texte:String(i.texte||""),duree:+i.duree||0,favori:!!i.favori,
+        module:cheminModuleSain(i.module),lien:lienSain(i.lien)};
     }).filter(function(i){return i.texte});
   });
   return v;
@@ -2170,15 +2601,44 @@ function proposer(cle,motif,maxMin){
     item:it,limite:(maxMin!=null&&!deborde)?maxMin:null};
   return true;
 }
+/* Le temps disponible choisit la section, au lieu de servir seulement de filtre.
+   Une section reglee sur « demande » n'est jamais tiree : elle se consulte. */
+function sectionsTirables(maxMin){
+  var q=M.reglages.quand||{}, seuil=M.reglages.seuil_long||30;
+  var large=(maxMin==null)||(maxMin>=seuil);
+  var longues=[],courtes=[];
+  MENU_SECTIONS.forEach(function(s){
+    var r=q[s[0]]||"demande";
+    if(r==="longue"){ if(large) longues.push(s[0]) }
+    else if(r==="courte") courtes.push(s[0]);
+  });
+  return longues.concat(courtes);        /* du plus généreux au plus court */
+}
+function proposerPause(motif,maxMin){
+  if(!M.reglages.suggerer) return false;
+  var ordre=sectionsTirables(maxMin),it=null,pris="",i;
+  for(i=0;i<ordre.length && !it;i++){ it=tirer(ordre[i],maxMin); if(it) pris=ordre[i] }
+  var deborde=false;
+  if(!it && maxMin!=null){
+    for(i=0;i<ordre.length && !it;i++){ it=tirer(ordre[i],null); if(it){ pris=ordre[i]; deborde=true } }
+  }
+  if(!it) return false;
+  var sup=[];
+  if(deborde) sup.push("rien ne tient dans ce créneau");
+  if(ordre.length>1) sup.push("dans « "+libSection(pris).toLowerCase()+" »");
+  suggestion={cle:pris,motif:motif+(sup.length?" · "+sup.join(" · "):""),
+    item:it,limite:(maxMin!=null&&!deborde)?maxMin:null};
+  return true;
+}
 function suggererCloture(c){
   if(!M.reglages.suggerer) return;
   if(c.eprouvante && M.reglages.sur_eprouvante!==false){
-    if(proposer("amuse","après une activité éprouvante — prenez le temps qu'il faut",null)) setTimeout(fenetrePause,60);
+    if(proposerPause("après une activité éprouvante — prenez le temps qu'il faut",null)) setTimeout(fenetrePause,60);
     return;
   }
   if(M.reglages.sur_cloture===false) return;
   var d=(M.reglages.filtrer_duree!==false)?tempsDispo():null;
-  if(proposer("amuse", d!=null?("activité close · "+dureeLisible(d)+" avant la suivante"):"activité close", d)) setTimeout(fenetrePause,60);
+  if(proposerPause(d!=null?("activité close · "+dureeLisible(d)+" avant la suivante"):"activité close", d)) setTimeout(fenetrePause,60);
 }
 function fenetrePause(force){
   if(!suggestion) return;
@@ -2207,21 +2667,69 @@ function revelerPause(){
   var i=suggestion.item;
   z.innerHTML='<div class="pause-lbl">Au menu</div>'
     +'<div class="pause-item">'+esc(i.texte)+(i.duree?' <span class="mono">· '+i.duree+' min</span>':"")+'</div>'
+    +(i.module?'<div class="ligne" style="justify-content:center;margin-top:10px">'
+        +'<button class="b" data-act="pause-jouer">Lancer</button></div>':"")
     +'<div class="ligne" style="justify-content:center;margin-top:8px">'
       +'<button class="b mini creux" data-act="pause-autre">Autre suggestion</button>'
       +(suggestion.limite!=null?'<button class="b mini creux" data-act="pause-libre">Peu importe le temps</button>':"")
     +'</div>';
 }
+/* Accompagnements : ce qu'on met en fond pendant une tache fastidieuse. Ce n'est pas
+   une pause, donc ce n'est pas propose — c'est un bouton, a cote d'Aide. */
+function ligneAccomp(i){
+  var act="";
+  if(i.module) act+='<button class="b mini" data-accjouer="'+esc(i.id)+'">Lancer</button>';
+  if(i.lien)   act+='<button class="b mini'+(i.module?" creux":"")+'" data-acclien="'+esc(i.id)+'">Ouvrir</button>';
+  return '<div class="item">'
+    +'<button class="fav'+(i.favori?" on":"")+'" data-fav="'+esc(i.id)+'" data-sec="accomp" title="Favori">'
+      +(i.favori?"★":"☆")+'</button>'
+    +'<span class="txt">'+esc(i.texte)+'</span>'
+    +(i.duree?'<span class="dur">'+i.duree+' min</span>':"")
+    +(act?'<span style="margin-left:auto;display:flex;gap:6px">'+act+'</span>':"")
+    +'</div>';
+}
+function ouvrirAccompagnements(){
+  var l=(M.sections.accomp||[]).slice().sort(function(a,b){
+    return (b.favori?1:0)-(a.favori?1:0);           /* les favoris en tête */
+  });
+  var corps = l.length
+    ? '<div class="note-aide" style="margin:0 0 10px">À mettre en fond pendant une tâche '
+      +'fastidieuse. Rien ne s’interrompt, rien n’est chronométré.</div>'
+      +'<div class="carte-items">'+l.map(ligneAccomp).join("")+'</div>'
+      +'<div class="ligne" style="margin-top:10px">'
+        +'<button class="b mini creux" data-acchasard="1">Au hasard</button></div>'
+    : '<div class="vide"><b>Aucun accompagnement</b>'
+      +'Ajoutez-en dans la carte, section « Accompagnements » : un module à lancer, '
+      +'un lien vers une playlist ou un podcast, ou simplement une note pour vous-même.</div>';
+  ouvrirModale("Accompagnement",corps,[
+    {txt:"Modifier la carte",classe:"creux",fn:function(){ fermerModale(); setTimeout(ouvrirPause,60) }},
+    {txt:"Fermer",classe:"",droite:true,fn:fermerModale}
+  ]);
+}
+function lancerAccomp(i){
+  if(!i) return;
+  if(i.module) ouvrirModule(i.texte,i.module,i.duree);
+  else if(i.lien){ ouvrirLien(i.lien); toast("Accompagnement ouvert · "+i.texte) }
+  else toast(i.texte);
+}
 function ouvrirPause(){
   var corps=MENU_SECTIONS.map(function(s){
     var cle=s[0],l=M.sections[cle]||[];
-    return '<div class="carte-sec"><h4>'+esc(s[1])+' <em>'+esc(s[2])+'</em></h4>'
+    var q=(M.reglages.quand||{})[cle]||"demande";
+    var opts=[["courte","Pause courte"],["longue","Pause longue"],["demande","Jamais — sur demande"]]
+      .map(function(o){ return '<option value="'+o[0]+'"'+(q===o[0]?" selected":"")+'>'+o[1]+'</option>' }).join("");
+    return '<div class="carte-sec"><h4>'+esc(s[1])+' <em>'+esc(s[2])+'</em>'
+      +'<span class="quand"><label>Proposée <select data-quand="'+cle+'">'+opts+'</select></label></span></h4>'
       +'<div class="carte-items">'
       +(l.length? l.map(function(i){
           return '<div class="item">'
             +'<button class="fav'+(i.favori?" on":"")+'" data-fav="'+esc(i.id)+'" data-sec="'+cle+'" title="Favori">'+(i.favori?"★":"☆")+'</button>'
             +'<span class="txt">'+esc(i.texte)+'</span>'
+            +(i.module?'<span class="mod" title="'+esc(urlModule(i.module))+'">module</span>':"")
             +(i.duree?'<span class="dur">'+i.duree+' min</span>':"")
+            +(i.module?'<button class="jouer" data-jouer="'+esc(i.id)+'" data-sec="'+cle+'" title="Lancer le module">\u25b6</button>':"")
+            +(i.lien?'<button class="jouer" data-ouvrir="'+esc(i.id)+'" data-sec="'+cle+'" title="'+esc(i.lien)+'">\u2197</button>':"")
+            +'<button class="jouer" data-lier="'+esc(i.id)+'" data-sec="'+cle+'" title="Modifier : nom, durée, module, lien">\u2699</button>'
             +'<button class="sup" data-supitem="'+esc(i.id)+'" data-sec="'+cle+'" title="Retirer">✕</button>'
             +'</div>';
         }).join("") : '<div class="carte-vide">Rien pour l\'instant.</div>')
@@ -2229,21 +2737,28 @@ function ouvrirPause(){
       +'<div class="ligne" style="margin-top:6px">'
         +'<input type="text" data-ajout="'+cle+'" placeholder="Ajouter une activité…" style="flex:1;min-width:150px">'
         +'<input type="number" data-duree="'+cle+'" min="0" step="5" placeholder="min" style="width:70px">'
+        +'<input type="text" data-modajout="'+cle+'" placeholder="jeu.html (facultatif)" style="width:150px">'
         +'<button class="b mini creux" data-additem="'+cle+'">Ajouter</button>'
         +(l.length?'<button class="b mini creux" data-hasard="'+cle+'">Au hasard</button>':"")
+        +'<button class="b mini creux" data-parcourir="'+cle+'" title="Lister les .html d\'un dossier">Parcourir un dossier…</button>'
       +'</div></div>';
   }).join("");
   var vide=function(c){ return !((M.sections[c]||[]).length) };
   var alerte="";
-  if(vide("amuse") || vide("accomp")){
-    var q=[];
-    if(vide("amuse")) q.push("amuse-bouches");
-    if(vide("accomp")) q.push("accompagnements");
+  /* l'alerte suit le réglage : on ne reproche une section vide que si elle est tirée */
+  var tirees=MENU_SECTIONS.filter(function(s){ return ((M.reglages.quand||{})[s[0]]||"demande")!=="demande" });
+  if(!tirees.length){
+    alerte='<div class="vigi" data-niveau="info" style="margin-bottom:14px">'
+      +'<div class="sig">▪</div><div class="corps"><div class="txt">'
+      +'Aucune section n\'est réglée sur « pause courte » ou « pause longue » : '
+      +'plus aucune pause ne vous sera proposée. Les sections restent consultables depuis cette carte.'
+      +'</div></div></div>';
+  }else if(tirees.every(function(s){ return vide(s[0]) })){
     alerte='<div class="vigi" data-niveau="attention" style="margin-bottom:14px">'
       +'<div class="sig">▲</div><div class="corps"><div class="txt">'
-      +'Aucun élément dans : '+esc(q.join(", "))+'. Ce sont les sections dans lesquelles '
-      +'l\'application pioche pour vous proposer une pause — sans elles, elle se rabat sur les autres, '
-      +'et si tout est vide rien ne se déclenche.</div></div></div>';
+      +'Les seules sections tirées ('+esc(tirees.map(function(s){return s[1].toLowerCase()}).join(", "))
+      +') sont vides : rien ne se déclenchera. Remplissez-les, ou réglez une autre section '
+      +'sur « pause courte ».</div></div></div>';
   }
   var reg='<hr class="sep">'
     +'<div class="pause-reg"><div class="pause-lbl" style="text-align:left;margin-bottom:8px">Quand vous proposer une pause</div>'
@@ -2263,6 +2778,10 @@ function ouvrirPause(){
     +'<label class="opt"><input type="checkbox" id="sugDur" '+(M.reglages.filtrer_duree!==false?"checked":"")+'>'
       +'<span><b>Tenir compte du temps disponible</b>'
       +'<em>N\'affiche que ce qui tient avant votre prochaine activité de la journée.</em></span></label>'
+    +'<div class="opt"><span style="padding-left:22px"><b>Un créneau est « long » à partir de '
+      +'<input type="number" id="sugSeuil" min="5" step="5" value="'+(M.reglages.seuil_long||30)+'"> minutes</b>'
+      +'<em>En dessous, seules les sections réglées sur « pause courte » sont tirées. '
+      +'Une section sur « jamais » ne l\'est dans aucun cas : elle se consulte depuis cette carte.</em></span></div>'
     +'</div>'
     +'<div class="ligne" style="margin-top:12px"><button class="b creux" data-act="pause-essai">Voir à quoi ça ressemble</button></div>'
     +'<div class="note-aide">Cette carte est enregistrée avec vos données sur le serveur. '
@@ -2301,6 +2820,88 @@ function saisirValeur(question,defaut){
     d.showModal(); e.focus(); e.select();
   });
 }
+/* Tout ce qui fait un element de la carte se regle au meme endroit : son nom, sa duree,
+   le module et le lien qu'il porte. « Parcourir un dossier » nomme les modules d'apres
+   leurs fichiers, donc renommer est le premier geste qu'on veut faire. Meme empilement
+   que saisirValeur, qui s'ouvre par-dessus la fenetre courante sans la fermer. */
+function reglerElement(item){
+  return new Promise(function(fin){
+    var d=document.createElement("dialog"), fait=false;
+    d.className="saisie-val";
+    d.innerHTML='<div class="mod-tete"><h3>Modifier l\u2019élément</h3>'
+      +'<button class="mod-fermer" data-s="non" title="Annuler">\u2715</button></div>'
+      +'<div class="mod-corps">'
+        +'<label class="champ">Nom'
+          +'<input type="text" id="raNom" maxlength="200" placeholder="Ce que vous ferez"></label>'
+        +'<label class="champ" style="margin-top:10px">Durée (min) \u2014 vide ou 0 : aucune'
+          +'<input type="number" id="raDur" min="0" step="5" placeholder="10"></label>'
+        +'<hr class="sep">'
+        +'<label class="champ">Module \u2014 fichier .html du dossier « '
+          +esc(nomDossierModule(M.reglages.dossier_modules))+' »'
+          +'<input type="text" id="raMod" maxlength="200" placeholder="jeu.html"></label>'
+        +'<label class="champ" style="margin-top:10px">Lien \u2014 playlist, podcast, page'
+          +'<input type="text" id="raLien" maxlength="500" placeholder="https://… ou spotify:…"></label>'
+        +'<div class="note-aide" style="margin-top:8px">Module et lien : laissez vide pour détacher. '
+          +'L\'application n\'appelle rien d\'elle-même : elle passe le lien au système, '
+          +'comme si vous le tapiez.</div>'
+      +'</div>'
+      +'<div class="mod-pied"><button class="b creux" data-s="non">Annuler</button>'
+      +'<div class="droite"><button class="b" data-s="oui">Enregistrer</button></div></div>';
+    document.body.appendChild(d);
+    var en=d.querySelector("#raNom"), ed=d.querySelector("#raDur");
+    var em=d.querySelector("#raMod"), el=d.querySelector("#raLien");
+    en.value=item.texte||""; ed.value=item.duree?String(item.duree):"";
+    em.value=item.module||""; el.value=item.lien||"";
+    function clore(v){ if(fait) return; fait=true; try{ d.close() }catch(x){} d.remove(); fin(v) }
+    d.addEventListener("click",function(ev){
+      var b=ev.target.closest("[data-s]"); if(!b) return;
+      ev.preventDefault(); ev.stopPropagation();
+      if(b.dataset.s!=="oui"){ clore(null); return }
+      var vn=en.value.trim(), vm=em.value.trim(), vl=el.value.trim();
+      /* un element sans nom disparaitrait de la carte : on refuse plutot que d'effacer */
+      if(!vn){ en.focus(); toast("Un élément doit garder un nom",true); return }
+      var cm=cheminModuleSain(vm), cl=lienSain(vl);
+      if(vm && !cm){ em.focus(); toast("Le module doit être un .html du dossier des modules",true); return }
+      if(vl && !cl){ el.focus(); toast("Lien invalide : indiquez le protocole (https://…)",true); return }
+      clore({texte:vn,duree:Math.max(0,+ed.value||0),module:cm,lien:cl});
+    });
+    d.addEventListener("keydown",function(ev){
+      if(ev.key==="Enter"){ ev.preventDefault(); ev.stopPropagation();
+        d.querySelector('[data-s="oui"]').click() }
+    });
+    d.addEventListener("cancel",function(ev){ ev.preventDefault(); clore(null) });
+    d.showModal(); en.focus(); en.select();
+  });
+}
+/* Meme empilement que saisirValeur, mais sur un champ date : taper « 2026-11-03 »
+   a la main dans un champ texte est une source d'erreur gratuite. */
+function saisirDate(question,defaut){
+  return new Promise(function(fin){
+    var d=document.createElement("dialog"), fait=false;
+    d.className="saisie-val";
+    d.innerHTML='<div class="mod-tete"><h3>'+esc(question)+'</h3>'
+      +'<button class="mod-fermer" data-s="non" title="Annuler">\u2715</button></div>'
+      +'<div class="mod-corps"><input type="date" id="sdDate" style="width:100%"></div>'
+      +'<div class="mod-pied"><button class="b creux" data-s="non">Annuler</button>'
+      +'<div class="droite"><button class="b" data-s="oui">Valider</button></div></div>';
+    document.body.appendChild(d);
+    var e=d.querySelector("#sdDate"); e.value=defaut||"";
+    function clore(v){ if(fait) return; fait=true; try{ d.close() }catch(x){} d.remove(); fin(v) }
+    d.addEventListener("click",function(ev){
+      var b=ev.target.closest("[data-s]"); if(!b) return;
+      ev.preventDefault(); ev.stopPropagation();
+      if(b.dataset.s!=="oui"){ clore(null); return }
+      if(!dateValide(e.value)){ e.focus(); toast("Date invalide",true); return }
+      clore(e.value);
+    });
+    d.addEventListener("keydown",function(ev){
+      if(ev.key==="Enter"){ ev.preventDefault(); ev.stopPropagation();
+        d.querySelector('[data-s="oui"]').click() }
+    });
+    d.addEventListener("cancel",function(ev){ ev.preventDefault(); clore(null) });
+    d.showModal(); e.focus();
+  });
+}
 function ouvrirModale(titre,corps,boutons){
   $("#modTitre").textContent=titre;
   $("#modCorps").innerHTML=corps;
@@ -2317,6 +2918,13 @@ function ouvrirModale(titre,corps,boutons){
   if(pf) pf.focus();
 }
 function fermerModale(){ $("#modale").close() }
+/* Echap ferme une <dialog> par defaut : on intercepte pour la meme garde. */
+(function(){
+  var d=document.getElementById("modale");
+  if(d) d.addEventListener("cancel",function(e){
+    if(!quitterFicheAutorise()) e.preventDefault();
+  });
+})();
 function valChamp(n){ var e=$("#modCorps").querySelector('[name="'+n+'"]'); return e?e.value.trim():"" }
 
 /* ================= formulaires ================= */
@@ -2367,7 +2975,12 @@ function formChantier(c){
   +'<div class="grille">'
   +'<label class="champ">Libellé<input type="text" name="libelle" value="'+esc(c.libelle)+'" placeholder="'+esc(K.place)+'"></label>'
   +'<label class="champ">Référence<input type="text" name="reference" value="'+esc(c.reference)+'" placeholder="Ex. : n° de commande, de contrat…"></label>'
-  +'<label class="champ">Date<input type="date" name="date" value="'+esc(c.date!=null?c.date:auj())+'"></label>'
+  /* Un formulaire n'invente pas de donnee. Une fiche importee sans date d'intervention
+     n'a pas de propriete « date » du tout : proposer aujourd'hui faisait atterrir le
+     dossier dans le planning du jour au premier enregistrement, sans rien demander.
+     Une activite creee a la main, elle, recoit sa date a la creation (chantierNeuf). */
+  +'<label class="champ">Date<input type="date" name="date" value="'+esc(c.date||"")+'">'
+    +'<span class="note-aide" style="margin:2px 0 0">Vide : le dossier reste hors planning.</span></label>'
   +'<label class="champ">Heure<input type="time" name="heure" value="'+esc(c.heure||"08:30")+'"></label>'
   +'<label class="champ">Durée (min)<input type="number" name="duree" min="0" step="15" value="'+esc(c.duree||60)+'"></label>'
   +'<label class="champ">'+esc(K.champ)+selGerable('name="type"',K.liste,c.type)+'</label>'
@@ -2479,6 +3092,39 @@ function ajouterDepuisFiche(kind){
   fermerModale(); editerChantier(c.id);
   toast(kind==="note"?"Note ajoutée au dossier":"Tâche ajoutée");
 }
+/* Le formulaire « + Note / + Tache » de la fiche est un ilot : « Enregistrer » lit les
+   champs de l'activite, pas celui-la. Ce qui y etait tape partait donc en silence, par
+   n'importe quelle sortie — bouton, croix ou Echap. */
+function saisieFicheEnAttente(){
+  var t=$("#fnTxt");
+  if(t && t.value.trim()) return {champ:t,quoi:"note",bouton:"Ajouter la note"};
+  var q=$("#ftTxt");
+  if(q && q.value.trim()) return {champ:q,quoi:"tâche",bouton:"Ajouter la tâche"};
+  return null;
+}
+function signalerSaisieFiche(p){
+  p.champ.classList.add("manque");
+  p.champ.addEventListener("input",function(){ p.champ.classList.remove("manque") },{once:true});
+  try{ p.champ.focus(); if(p.champ.select) p.champ.select() }catch(e){}
+}
+/* Enregistrer : on bloque. La sortie est a deux pas — ajouter, ou vider le champ. */
+function bloqueSiSaisieFiche(){
+  var p=saisieFicheEnAttente();
+  if(!p) return false;
+  signalerSaisieFiche(p);
+  toast("Votre "+p.quoi+" n\u2019est pas encore ajoutée : cliquez « "+p.bouton
+    +" », ou videz le champ",true);
+  return true;
+}
+/* Fermer, la croix, Echap : ce sont des sorties volontaires, on demande confirmation
+   plutot que d'interdire. */
+function quitterFicheAutorise(){
+  var p=saisieFicheEnAttente();
+  if(!p) return true;
+  if(confirm("Votre "+p.quoi+" n\u2019a pas été ajoutée.\n\nFermer quand même et la perdre ?")) return true;
+  signalerSaisieFiche(p);
+  return false;
+}
 function editerChantier(id){
   var c=chantierPar(id); if(!c) return;
   var liees=D.notes.filter(function(n){return n.chantier_id===id})
@@ -2515,8 +3161,9 @@ function editerChantier(id){
         fermerModale(); modifie(); rendre(); toast("Activité supprimée");
       }
     }},
-    {txt:"Fermer",fn:fermerModale,droite:true},
+    {txt:"Fermer",fn:function(){ if(quitterFicheAutorise()) fermerModale() },droite:true},
     {txt:"Enregistrer",classe:"",droite:true,fn:function(){
+      if(bloqueSiSaisieFiche()) return;
       var avant=c.statut;
       lireChantier(c); fermerModale(); modifie();
       if(!CLOS[avant] && estClos(c)) suggererCloture(c);
@@ -2835,7 +3482,15 @@ function cloreSuite(id,retour){
       +'<span class="puce-lbl">Temps passé</span>'
       +[5,15,30,60].map(function(m){ return '<button class="puce" data-dsu="'+m+'">'+m+'</button>' }).join("")
       +'<span class="puce-lbl">min</span>'
-    +'</div>';
+    +'</div>'
+    /* enchainer sans repasser par la fiche : ce qui reste a faire se saisit ici meme */
+    +'<hr class="sep">'
+    +'<div class="grille">'
+      +'<label class="champ">Et ensuite<input type="text" id="suiteSuivTxt" '
+        +'placeholder="Ex : relancer si pas de retour"></label>'
+      +'<label class="champ">Échéance<input type="date" id="suiteSuivEch"></label>'
+    +'</div>'
+    +'<div class="note-aide" style="margin:2px 0 0">Laissez vide si l\u2019action est close.</div>';
   ouvrirModale("Action terminée",corps,[
     {txt:"Sans note",classe:"creux",fn:function(){ validerSuite(false) }},
     {txt:"Annuler",fn:function(){
@@ -2851,17 +3506,22 @@ function validerSuite(avecNote){
   if(!n){ fermerModale(); return }
   var txt=avecNote && $("#suiteNote") ? $("#suiteNote").value.trim() : "";
   if(avecNote && !txt){ $("#suiteNote").focus(); toast("Décrivez l'action, ou choisissez « Sans note »",true); return }
+  /* la suite suivante se saisit dans la meme fenetre : elle vaut pour « Sans note » aussi */
+  var sq=$("#suiteSuivTxt")?$("#suiteSuivTxt").value.trim():"";
+  var se=$("#suiteSuivEch")?$("#suiteSuivEch").value:"";
+  var suivante=sq?{texte:sq,echeance:se,fait:false}:null;
   if(n.suite) n.suite.fait=true;
-  if(txt){
+  if(txt || suivante){
     D.notes.push({id:uid(),date:auj(),heure:hNow(),
       type:$("#suiteType")?$("#suiteType").value:"",
       chantier_id:n.chantier_id||"",rubrique_id:n.rubrique_id||"",
-      contenu:txt,duree:dureeSuite||0,suite:null});
+      chantier_ref:n.chantier_ref||"",
+      contenu:txt,duree:txt?(dureeSuite||0):0,suite:suivante});
   }
   suiteEnCours=null; dureeSuite=0;
   var rev=retourNote; retourNote=null;
   fermerModale(); modifie(); rendre();
-  toast(txt?"Action soldée · note ajoutée":"Action soldée");
+  toast("Action soldée"+(txt?" \u00b7 note ajoutée":"")+(suivante?" \u00b7 suite créée":""));
   if(rev && notePar(rev)) editerNote(rev);   /* on rouvre la note d'ou l'on vient */
 }
 var horizonAttente=7;                 /* une semaine au demarrage */
@@ -2882,6 +3542,49 @@ function suitesHorizon(){
 function suitesDuJour(){
   var h=auj();
   return suitesOuvertes().filter(function(n){ return n.suite.echeance && n.suite.echeance<=h });
+}
+/* ============ reporter une tache ============
+   Le report part d'aujourd'hui pour une tache en retard, et de son echeance pour une
+   tache encore a venir : decaler « d'un jour » une tache echue depuis une semaine en
+   la laissant dans le passe n'avance a rien.
+   Si la date calculee tombe un jour non travaille, elle glisse au prochain jour ouvre :
+   une echeance posee un dimanche est en retard des le lundi matin. */
+var reportOuvert=null;
+var REPORTS=[["1J",1],["2J",2],["5J",5],["1S",7],["2S",14],["1M","mois"]];
+function baseReport(s){
+  var h=auj();
+  return (s && s.echeance && s.echeance>h) ? s.echeance : h;
+}
+function dateReport(s,pas){
+  var d=pIso(baseReport(s));
+  if(pas==="mois") d.setMonth(d.getMonth()+1); else d.setDate(d.getDate()+(+pas||0));
+  var brut=iso(d), motif=motifNonOuvre(brut);
+  /* prochainOuvre part du lendemain : on l'amorce la veille pour qu'il puisse
+     retomber sur la date brute si celle-ci est deja ouvree */
+  return {date:motif?prochainOuvre(iso(new Date(d.getTime()-86400000))):brut,
+          glisse:motif||""};
+}
+function reporterSuite(id,pas){
+  var n=notePar(id);
+  if(!n || !n.suite){ reportOuvert=null; rendre(); return }
+  var avant=n.suite.echeance;
+  var r=dateReport(n.suite,pas);
+  n.suite.echeance=r.date; reportOuvert=null;
+  modifie(); rendre();
+  toast("Reporté au "+libCourt(r.date)
+    +(avant?"":" \u00b7 échéance posée")
+    +(r.glisse?" \u00b7 décalé : "+r.glisse:""));
+}
+function fragReport(id,s){
+  return '<div class="ligne report" style="margin-top:6px">'
+    +'<span class="puce-lbl">Reporter au</span>'
+    +REPORTS.map(function(r){
+        return '<button class="puce" data-rep="'+esc(id)+'" data-pas="'+r[1]+'" '
+          +'title="'+esc(libCourt(dateReport(s,r[1]).date))+'">'+r[0]+'</button>';
+      }).join("")
+    +'<button class="b mini creux" data-rep="'+esc(id)+'" data-pas="autre">Autre…</button>'
+    +'<button class="lien" data-repoff="1">Annuler</button>'
+  +'</div>';
 }
 function fragAttente(){
   var l=suitesHorizon(),tot=suitesOuvertes().length;
@@ -2908,7 +3611,9 @@ function fragAttente(){
       +'<div class="txt">'+esc(s.texte)+'</div>'
       +(c?'<div class="lien">↳ '+esc(c.libelle)+'</div>':"")
       +'<div class="ligne"><button class="b mini creux" data-fait="'+esc(n.id)+'">Marquer fait</button>'
-      +'<button class="lien" data-note="'+esc(n.id)+'">Ouvrir la note</button></div></div>';
+      +(reportOuvert===n.id?"":'<button class="b mini creux" data-repon="'+esc(n.id)+'">Reporter</button>')
+      +'<button class="lien" data-note="'+esc(n.id)+'">Ouvrir la note</button></div>'
+      +(reportOuvert===n.id?fragReport(n.id,s):"")+'</div>';
   }).join("");
 }
 function fragVigilances(date){
@@ -3047,7 +3752,7 @@ function tickPause(){
   if(Date.now() < prochainRappelJour) return;
   var d=$("#modale");
   if(d && d.open){ prochainRappelJour=Date.now()+3*60000; return }              /* on ne coupe pas une saisie */
-  if(proposer("amuse","pause régulière de la journée",
+  if(proposerPause("pause régulière de la journée",
       (M.reglages.filtrer_duree!==false)?tempsDispo():null)){
     rendre(); fenetrePause();
   }
@@ -3207,6 +3912,8 @@ function vueJour(){
     +(nv.length?';border-left:4px solid '+(nv[0].niveau==="critique"?"var(--rouge)":(nv[0].niveau==="attention"?"var(--jaune)":"var(--ardoise)")):"")+'">'
     +'<div class="bloc-tete"><h2>Points de vigilance</h2><span class="compte">'+nv.length+(nv.filter(vigilanceEnRetard).length?' · '+nv.filter(vigilanceEnRetard).length+' dépassé(s)':'')+'</span></div>'
     +'<div class="bloc-corps">'+fragVigilances(d)+'</div></div>'
+  +fragBlocSansTrace()
+  +fragBlocNonPilotes()
   +'<div class="duo">'
   +'<div>'
     +'<div class="bloc"><div class="bloc-tete"><h2>Planning du jour</h2>'
@@ -3307,7 +4014,143 @@ function ligneAvancement(c){
   if(!st || st.charAt(0)==="#") return "";
   return '<span title="'+esc(st)+'">'+esc(tronque(st,46))+'</span>';
 }
-var filtreCh={q:"",statut:"",periode:"futur",cat:"",arch:"actifs"};
+var filtreCh={q:"",statut:"",periode:"tous",cat:"",arch:"actifs",pilotage:""};
+/* ============ calendrier ============
+   Une grille mensuelle qui montre ce qui est deja pose : les rendez-vous datés, et le
+   nombre d'echeances par jour. Elle ne cree rien et ne deplace rien — on y lit, puis
+   on ouvre la journee pour agir. Les donnees sont celles des autres vues, pas une copie. */
+var moisCal="", jourCal="";
+function moisCalCourant(){
+  if(!moisCal) moisCal=auj().slice(0,7)+"-01";
+  return moisCal;
+}
+function jourCalCourant(){
+  if(!jourCal) jourCal=auj();
+  return jourCal;
+}
+function decalerMois(n){
+  var d=pIso(moisCalCourant());
+  d.setDate(1); d.setMonth(d.getMonth()+n);
+  moisCal=iso(d).slice(0,7)+"-01";
+}
+var MOIS_LONG=["janvier","février","mars","avril","mai","juin",
+  "juillet","août","septembre","octobre","novembre","décembre"];
+/* index par date, construit une fois : sans lui la grille rebalaie tout le portefeuille
+   pour chacune de ses quarante-deux cases */
+function indexCalendrier(){
+  var rdv={}, ech={};
+  (D.chantiers||[]).forEach(function(c){
+    if(!c.date || estArchive(c)) return;
+    (rdv[c.date]||(rdv[c.date]=[])).push(c);
+  });
+  suitesOuvertes().forEach(function(n){
+    if(!n.suite.echeance) return;
+    (ech[n.suite.echeance]||(ech[n.suite.echeance]=[])).push(n);
+  });
+  Object.keys(rdv).forEach(function(k){
+    rdv[k].sort(function(a,b){ return (a.heure||"99:99").localeCompare(b.heure||"99:99") });
+  });
+  return {rdv:rdv,ech:ech};
+}
+function caseCalendrier(s,ix,moisAff){
+  var rd=(ix.rdv[s]||[]), ec=(ix.ech[s]||[]);
+  var d=pIso(s), hors=(s.slice(0,7)!==moisAff), chome=motifNonOuvre(s);
+  var cl="c"+(hors?" hors":"")+(chome?" chome":"")
+    +(s===auj()?" auj":"")+(s===jourCalCourant()?" sel":"");
+  /* une pastille par rendez-vous, a la couleur de sa categorie ; au-dela de quatre on
+     compte, pour ne pas transformer la case en confetti */
+  var MAX=4;
+  var pts=rd.slice(0,MAX).map(function(c){
+    var K=catDe(c);
+    return '<span class="pt" style="background:'+esc(K.couleur||"#4A514C")+'" title="'
+      +esc((c.heure?c.heure+" · ":"")+(c.libelle||""))+'"></span>';
+  }).join("")+(rd.length>MAX?'<span class="pl">+'+(rd.length-MAX)+'</span>':"");
+  var retard=(s<auj());
+  return '<button class="'+cl+'" data-caljour="'+esc(s)+'" '
+      +'aria-label="'+esc(libDate(s))+' — '+rd.length+' rendez-vous, '+ec.length+' échéance(s)'
+      +'"><span class="n">'+d.getDate()+'</span>'
+    +(rd.length?'<span class="pts">'+pts+'</span>':"")
+    +(ec.length?'<span class="ech'+(retard?" retard":"")+'">'+ec.length+' éch.</span>':"")
+    /* « samedi » ecrit dans dix cases par mois n'apprend rien : la trame grise le dit
+       deja. On ne nomme que ce qui ne se devine pas — ferie, absence declaree. */
+    +(chome&&!hors&&!/^(samedi|dimanche|jour non travaill)/.test(chome)
+      ?'<span class="mot">'+esc(chome)+'</span>':"")
+  +'</button>';
+}
+function fragGrilleCal(){
+  var ix=indexCalendrier(), m=moisCalCourant(), moisAff=m.slice(0,7);
+  var prem=pIso(m);
+  /* la semaine commence lundi : getDay() rend 0 pour dimanche */
+  var dec=(prem.getDay()+6)%7;
+  var dep=pIso(m); dep.setDate(dep.getDate()-dec);
+  var jn=["lun","mar","mer","jeu","ven","sam","dim"]
+    .map(function(x){ return '<div class="jn">'+x+'</div>' }).join("");
+  var cases="",i,cur=dep;
+  for(i=0;i<42;i++){
+    cases+=caseCalendrier(iso(cur),ix,moisAff);
+    cur=new Date(cur.getTime()+86400000);
+    if(i>=34 && iso(cur).slice(0,7)>moisAff && (i+1)%7===0) break;   /* 5 semaines suffisent souvent */
+  }
+  return '<div class="cal">'+jn+cases+'</div>';
+}
+function fragJourCal(){
+  var s=jourCalCourant(), ix=indexCalendrier();
+  var rd=(ix.rdv[s]||[]), ec=(ix.ech[s]||[]), mot=motifNonOuvre(s);
+  var tete='<div class="bloc-tete"><h2>'+esc(libDate(s))+'</h2>'
+    +'<span class="compte">'+rd.length+' rdv · '+ec.length+' éch.</span></div>';
+  var corps="";
+  if(mot) corps+='<div class="ligne" style="margin:0 0 10px">'
+    +'<span class="etiq jaune">'+esc(mot)+'</span></div>';
+  corps+= rd.length
+    ? '<div class="trace">'+rd.map(function(c){
+        return '<div class="piquet" data-cat="'+esc(c.categorie||"chantier")+'" '
+          +'data-statut="'+esc(c.statut||"planifie")+'">'
+          +'<div class="h">'+esc(c.heure||"--:--")+'</div><div class="croix">'+catDe(c).sym+'</div>'
+          +fragChantier(c,s===auj())+'</div>';
+      }).join("")+'</div>'
+    : '<div class="vide"><b>Aucun rendez-vous</b>Rien n\u2019est daté sur cette journée.</div>';
+  corps+='<hr class="sep"><div class="pause-lbl" style="text-align:left;margin-bottom:6px">'
+    +'Échéances du jour</div>';
+  corps+= ec.length
+    ? ec.map(function(n){
+        var c=n.chantier_id?chantierPar(n.chantier_id):null;
+        return '<div class="note"><div class="h">'
+          +(s<auj()?'<span style="color:var(--rouge)">en retard</span> · ':"")
+          +'noté le '+libCourt(n.date)+'</div>'
+          +'<div class="txt">'+esc(n.suite.texte)+'</div>'
+          +(c?'<div class="lien">↳ '+esc(c.libelle)+'</div>':"")
+          +'<div class="ligne"><button class="b mini creux" data-fait="'+esc(n.id)+'">Marquer fait</button>'
+          +'<button class="lien" data-note="'+esc(n.id)+'">Ouvrir la note</button></div></div>';
+      }).join("")
+    : '<div class="vide"><b>Aucune échéance</b>Rien n\u2019est attendu ce jour-là.</div>';
+  corps+=boutonsNeuf(s);
+  return '<div class="bloc">'+tete+'<div class="bloc-corps">'+corps+'</div></div>';
+}
+function vueCalendrier(){
+  var m=moisCalCourant(), d=pIso(m), ix=indexCalendrier();
+  var nr=0,ne=0,i,cur=pIso(m);
+  for(i=0;i<32;i++){
+    var s=iso(cur); if(s.slice(0,7)!==m.slice(0,7)) break;
+    nr+=(ix.rdv[s]||[]).length; ne+=(ix.ech[s]||[]).length;
+    cur.setDate(cur.getDate()+1);
+  }
+  var tete='<div class="cal-tete">'
+    +'<button class="b mini creux" data-calmois="-1" title="Mois précédent">‹</button>'
+    +'<span class="cal-mois">'+esc(MOIS_LONG[d.getMonth()]+" "+d.getFullYear())+'</span>'
+    +'<button class="b mini creux" data-calmois="1" title="Mois suivant">›</button>'
+    +'<button class="b mini creux" data-calauj="1">Aujourd\u2019hui</button>'
+    +'<span class="note-aide" style="margin:0 0 0 auto">'+nr+' rendez-vous · '+ne+' échéance(s) ce mois-ci</span>'
+  +'</div>';
+  return '<div class="duo"><div>'
+    +'<div class="bloc"><div class="bloc-tete"><h2>Calendrier</h2>'
+      +'<span class="compte">'+esc(libCourt(jourCalCourant()))+'</span></div>'
+      +'<div class="bloc-corps">'+tete+fragGrilleCal()
+      +'<div class="note-aide" style="margin-top:8px">Une pastille par rendez-vous, '
+      +'à la couleur de sa catégorie. L\u2019étiquette compte les échéances, en rouge '
+      +'si la date est passée. Cliquez un jour pour l\u2019ouvrir à droite.</div>'
+    +'</div></div></div>'
+    +'<div>'+fragJourCal()+'</div></div>';
+}
 function vueChantiers(){
   var l=D.chantiers.slice();
   var q=filtreCh.q.toLowerCase();
@@ -3323,6 +4166,10 @@ function vueChantiers(){
   if(filtreCh.periode==="futur") l=l.filter(function(c){return c.date && c.date>=auj()});
   if(filtreCh.periode==="passe") l=l.filter(function(c){return c.date && c.date<auj()});
   if(filtreCh.periode==="sansdate") l=l.filter(function(c){return !c.date});
+  if(filtreCh.pilotage){
+    var np=clesNonPilotes();
+    l=l.filter(function(c){ return filtreCh.pilotage==="non" ? !!np[c.id] : !np[c.id] });
+  }
   l.sort(function(a,b){
     var x=(a.date||"")+(a.heure||""),y=(b.date||"")+(b.heure||"");
     return filtreCh.periode==="passe"? y.localeCompare(x) : x.localeCompare(y);
@@ -3356,6 +4203,8 @@ function vueChantiers(){
       +selOpts(categories().map(function(K){return [K.cle,K.plur||K.lib]}),filtreCh.cat)+'</select>'
     +'<select id="fstatut"><option value="">Tous les statuts</option>'+selOpts(tousStatuts(),filtreCh.statut)+'</select>'
     +'<select id="fperiode">'+selOpts([["futur","À venir"],["passe","Passés"],["sansdate","Sans date"],["tous","Tous"]],filtreCh.periode)+'</select>'
+    +'<select id="fpilotage" title="Un dossier piloté porte une tâche en attente ou une date à venir">'
+      +selOpts([["","Pilotés ou non"],["non","Non pilotés"],["oui","Pilotés"]],filtreCh.pilotage)+'</select>'
     +(function(){ var n=aQualifier().length;
         return n?'<button class="b mini" data-act="qa-arch">Qualifier les archives ('+n+')</button>':"" })()
     +'<select id="farch">'+selOpts([["actifs","Activités en cours"],["archives","Archivés ("+nbArchives()+")"],["tous","Actifs et archivés"]],filtreCh.arch)+'</select>'
@@ -3428,6 +4277,7 @@ function vueDonnees(){
       +'<button class="b creux" data-act="exp-json">Exporter en JSON</button>'
       +'<button class="b creux" data-act="exp-csv">Exporter les activités (CSV)</button>'
       +'<button class="b creux" data-act="exp-csvn">Exporter les notes (CSV)</button>'
+      +'<button class="b creux" data-act="exp-csvv">Exporter les vérifications (CSV)</button>'
     +'</div>'
     +'<div class="ligne" style="margin-top:8px">'
       +'<span class="puce-lbl">Période des CSV</span>'
@@ -3777,6 +4627,7 @@ function libelleDesh(o){
   return client||poste||repli;
 }
 function appliquerDesh(c,o,garderLib){
+  if(c.date==null) c.date="";        /* jamais absente : une fiche sans date l'a vide */
   /* le reporting ne renseigne pas toujours toutes les colonnes : une cellule vide
      est une absence d'information, jamais une demande d'effacement. */
   champsImport().forEach(function(def){
@@ -4131,12 +4982,52 @@ function exportDtdictCSV(){
    });
   telecharger("pstp-dtdict-"+suffixePeriode()+".csv",csv(e,l),"text/csv;charset=utf-8");
 }
+/* Les verifications de permanence vivent dans D.appels, avec nature:"verif". Elles n'en
+   sont pas pour autant des appels : un appel a un interlocuteur, une duree, un objet ;
+   une verification n'a qu'une heure et un intitule. Les verser dans le meme fichier
+   donnait neuf colonnes vides sur onze et rendait tout decompte faux. Deux exports. */
 function exportAppelsCSV(){
-  var e=["Date","Heure","Qui appelle","Entreprise","Téléphone","Motif","Commune","Durée (min)","Objet","Suite à donner","Traitée"];
-  var l=(D.appels||[]).filter(function(a){return dansPeriode(a.date)}).sort(function(a,b){return (a.date+a.heure).localeCompare(b.date+b.heure)})
-   .map(function(a){return [a.date,a.heure,a.qui,a.entreprise,a.tel,a.motif,a.commune,a.duree||"",a.objet,
-     a.suite||"",a.suite?(a.suite_faite?"oui":"non"):""]});
+  var e=["Date","Heure","Qui appelle","Entreprise","Téléphone","Motif","Affaire","Commune",
+         "Durée (min)","Objet","Suite à donner","Traitée"];
+  var l=(D.appels||[]).filter(function(a){ return a.nature!=="verif" && dansPeriode(a.date) })
+   .sort(function(a,b){return (a.date+a.heure).localeCompare(b.date+b.heure)})
+   .map(function(a){return [a.date,a.heure,a.qui,a.entreprise,a.tel,a.motif,a.affaire||"",a.commune,
+     a.duree||"",a.objet,a.suite||"",a.suite?(a.suite_faite?"oui":"non"):""]});
   telecharger("pstp-appels-"+suffixePeriode()+".csv",csv(e,l),"text/csv;charset=utf-8");
+  toast(l.length+" appel(s) exporté(s) \u00b7 vérifications exclues");
+}
+function exportVerifsCSV(){
+  var e=["Date","Heure","Vérification","Écart (min)","Attendu (min)","Dans la cadence"];
+  /* on retrouve la cadence par la cle du rappel, et a defaut par son nom : les
+     verifications tracees avant la 3.32.0 ne portent que le nom. */
+  var parCle={},parNom={};
+  (rappels()||[]).forEach(function(r){
+    if(r.cle) parCle[String(r.cle)]=+r.minutes||0;
+    parNom[String(r.nom)]=+r.minutes||0;
+  });
+  var cadence=function(a){
+    if(a.rappel && parCle[String(a.rappel)]!=null) return parCle[String(a.rappel)];
+    var v=parNom[String(a.motif||"")];
+    return v==null?"":v;
+  };
+  var l=(D.appels||[]).filter(function(a){ return a.nature==="verif" && dansPeriode(a.date) })
+   .sort(function(a,b){return (a.date+a.heure).localeCompare(b.date+b.heure)});
+  /* l'interet d'une verification est sa cadence : on donne l'ecart avec la precedente
+     du meme intitule, le meme jour. La premiere du jour n'a pas de precedente. */
+  var prec={};
+  var lignes=l.map(function(a){
+    var cle=a.date+"|"+(a.rappel||String(a.motif||""));
+    var att=cadence(a);
+    var ec="",tenue="";
+    if(prec[cle]!=null){
+      ec=Math.max(0,minutes(a.heure)-prec[cle]);
+      if(att) tenue=(ec<=att)?"oui":"non";
+    }
+    prec[cle]=minutes(a.heure);
+    return [a.date,a.heure,a.motif||"Rappel",ec===""?"":String(ec),att===""?"":String(att),tenue];
+  });
+  telecharger("pstp-verifications-"+suffixePeriode()+".csv",csv(e,lignes),"text/csv;charset=utf-8");
+  toast(lignes.length+" vérification(s) exportée(s)");
 }
 function libRattachement(n){
   if(n.chantier_id){
@@ -5891,6 +6782,106 @@ function rpCourbe(mois){
     +b+'<polyline fill="none" stroke="#191C1B" stroke-width="1.6" stroke-dasharray="4 3" points="'+pts.join(" ")+'"/>'
     +'<g font-family="Consolas,monospace" font-size="8.5" fill="#4A514C">'+l+'</g></svg>';
 }
+/* ============ charge a venir ============
+   Ce que le calendrier porte deja : rendez-vous dates et taches a echeance. On ne
+   devine rien, on ne lisse rien — la ou il n'y a rien, le creux doit se voir. */
+function chargeAVenir(jours,semaines){
+  var h=auj(), parJour={}, hors={retard:0, sansEch:0}, taches=0, rdv=0, loin=0;
+  /* l'horizon dessine borne aussi les compteurs : un indicateur qui annonce une duree
+     et compte au-dela ment sur la seule chose qu'on lui demande. */
+  var fin=pIso(h); fin.setDate(fin.getDate()+jours+semaines*7);
+  var limite=iso(fin);
+  function case_(d){ return parJour[d]||(parJour[d]={rdv:0,tache:0,min:0}) }
+  (D.chantiers||[]).forEach(function(c){
+    if(estArchive(c)||estClos(c)||estAnnule(c)) return;
+    if(!c.date || c.date<h) return;
+    if(c.date>=limite){ loin++; return }
+    var k=case_(c.date); k.rdv++; k.min+=+c.duree||0; rdv++;
+  });
+  (D.notes||[]).forEach(function(n){
+    var s=n.suite; if(!s || !s.texte || s.fait) return;
+    if(n.chantier_id && estArchive(chantierPar(n.chantier_id))) return;
+    if(!s.echeance){ hors.sansEch++; return }
+    if(s.echeance<h){ hors.retard++; return }
+    if(s.echeance>=limite){ loin++; return }
+    case_(s.echeance).tache++; taches++;
+  });
+  /* la trame des jours : tous, y compris vides — c'est le creux qui informe */
+  var l=[],d=pIso(h),i;
+  for(i=0;i<jours;i++){
+    var s=iso(d), k=parJour[s]||{rdv:0,tache:0,min:0};
+    l.push({d:s,rdv:k.rdv,tache:k.tache,min:k.min,chome:motifNonOuvre(s)});
+    d.setDate(d.getDate()+1);
+  }
+  /* puis les semaines, pour voir plus loin sans allonger la page */
+  var sem=[],ds=pIso(h); ds.setDate(ds.getDate()+jours);
+  for(i=0;i<semaines;i++){
+    var r=0,t=0,j,deb=iso(ds);
+    for(j=0;j<7;j++){ var ss=iso(ds); var kk=parJour[ss];
+      if(kk){ r+=kk.rdv; t+=kk.tache } ds.setDate(ds.getDate()+1) }
+    sem.push({deb:deb,rdv:r,tache:t});
+  }
+  return {jours:l,semaines:sem,rdv:rdv,taches:taches,hors:hors,loin:loin,
+    horizon:limite,nonPilotes:nonPilotes(false).length};
+}
+function rpCharge(l){
+  if(!l.length) return "";
+  var mx=1; l.forEach(function(x){ if(x.rdv+x.tache>mx) mx=x.rdv+x.tache });
+  var x0=34,larg=(694-x0)/l.length,haut=92,base=104,b="",lab="",fond="";
+  l.forEach(function(x,i){
+    var xa=x0+i*larg, c=xa+larg/2, w=Math.min(14,larg*0.6);
+    if(x.chome) fond+='<rect x="'+xa.toFixed(1)+'" y="6" width="'+larg.toFixed(1)
+      +'" height="'+(base-6).toFixed(1)+'" fill="#EDEFEC"/>';
+    var hr=x.rdv/mx*haut, ht=x.tache/mx*haut;
+    if(ht) b+='<rect x="'+(c-w/2).toFixed(1)+'" y="'+(base-ht).toFixed(1)+'" width="'+w.toFixed(1)
+      +'" height="'+ht.toFixed(1)+'" fill="#B9BEB9"/>';
+    if(hr) b+='<rect x="'+(c-w/2).toFixed(1)+'" y="'+(base-ht-hr).toFixed(1)+'" width="'+w.toFixed(1)
+      +'" height="'+hr.toFixed(1)+'" fill="#4A514C"/>';
+    var n=x.rdv+x.tache;
+    if(n) b+='<text x="'+c.toFixed(1)+'" y="'+(base-ht-hr-3).toFixed(1)
+      +'" text-anchor="middle" font-family="Consolas,monospace" font-size="8" fill="#4A514C">'+n+'</text>';
+    var p=pIso(x.d);
+    lab+='<text x="'+c.toFixed(1)+'" y="'+(base+10)+'" text-anchor="middle">'+p.getDate()+'</text>';
+    if(p.getDate()===1 || i===0)
+      lab+='<text x="'+c.toFixed(1)+'" y="'+(base+19)+'" text-anchor="middle">'
+        +["jan","fév","mar","avr","mai","juin","juil","août","sep","oct","nov","déc"][p.getMonth()]+'</text>';
+  });
+  return '<svg viewBox="0 0 700 '+(base+24)+'" style="width:100%;height:auto">'
+    +fond
+    +'<line x1="'+x0+'" y1="6" x2="'+x0+'" y2="'+base+'" stroke="#C8CCC7"/>'
+    +'<line x1="'+x0+'" y1="'+base+'" x2="694" y2="'+base+'" stroke="#191C1B"/>'
+    +'<g font-family="Consolas,monospace" font-size="9" fill="#878D88">'
+      +'<text x="'+(x0-6)+'" y="12" text-anchor="end">'+mx+'</text>'
+      +'<text x="'+(x0-6)+'" y="'+(base+3)+'" text-anchor="end">0</text></g>'
+    +b+'<g font-family="Consolas,monospace" font-size="8" fill="#4A514C">'+lab+'</g></svg>';
+}
+function rpChargeSem(l){
+  if(!l.length) return "";
+  var mx=1; l.forEach(function(x){ if(x.rdv+x.tache>mx) mx=x.rdv+x.tache });
+  var x0=34,larg=(694-x0)/l.length,haut=56,base=66,b="",lab="";
+  l.forEach(function(x,i){
+    var xa=x0+i*larg, c=xa+larg/2, w=Math.min(26,larg*0.6);
+    var hr=x.rdv/mx*haut, ht=x.tache/mx*haut;
+    if(ht) b+='<rect x="'+(c-w/2).toFixed(1)+'" y="'+(base-ht).toFixed(1)+'" width="'+w.toFixed(1)
+      +'" height="'+ht.toFixed(1)+'" fill="#B9BEB9"/>';
+    if(hr) b+='<rect x="'+(c-w/2).toFixed(1)+'" y="'+(base-ht-hr).toFixed(1)+'" width="'+w.toFixed(1)
+      +'" height="'+hr.toFixed(1)+'" fill="#4A514C"/>';
+    var n=x.rdv+x.tache;
+    if(n) b+='<text x="'+c.toFixed(1)+'" y="'+(base-ht-hr-3).toFixed(1)
+      +'" text-anchor="middle" font-family="Consolas,monospace" font-size="8" fill="#4A514C">'+n+'</text>';
+    /* le nom du jour n'apprend rien sur une semaine : seule la date d'ouverture compte */
+    var pd=pIso(x.deb);
+    lab+='<text x="'+c.toFixed(1)+'" y="'+(base+11)+'" text-anchor="middle">'
+      +pd.getDate()+'/'+(pd.getMonth()+1)+'</text>';
+  });
+  return '<svg viewBox="0 0 700 '+(base+16)+'" style="width:100%;height:auto">'
+    +'<line x1="'+x0+'" y1="4" x2="'+x0+'" y2="'+base+'" stroke="#C8CCC7"/>'
+    +'<line x1="'+x0+'" y1="'+base+'" x2="694" y2="'+base+'" stroke="#191C1B"/>'
+    +'<g font-family="Consolas,monospace" font-size="9" fill="#878D88">'
+      +'<text x="'+(x0-6)+'" y="10" text-anchor="end">'+mx+'</text>'
+      +'<text x="'+(x0-6)+'" y="'+(base+3)+'" text-anchor="end">0</text></g>'
+    +b+'<g font-family="Consolas,monospace" font-size="8" fill="#4A514C">'+lab+'</g></svg>';
+}
 function construireRapportPDF(a,b){
   var o=statsPeriode(a,b), pa=periodeAvant(a,b), q=statsPeriode(pa[0],pa[1]);
   var P=D.parametres, h="";
@@ -5994,16 +6985,71 @@ function construireRapportPDF(a,b){
       +'<tr><td>Encore ouvertes et échues</td><td class="n">'+o.suites.echues+'</td></tr></table></div>'
   +'</div>';
   h+=rpPrevention(o);
-  h+='<div style="break-inside:avoid;page-break-inside:avoid">'
-    +'<h2>Faits marquants</h2>'
+  h+='<h2>Faits marquants</h2><p class="rp-i">Ce que les chiffres ne disent pas.</p>'
     +'<div class="rp-saisie'+(P.rap_faits?"":" vide")+'">'
     +esc(P.rap_faits||"Section à renseigner dans l\u2019onglet Données.")+'</div>';
-  h+='<h2>Objectifs et besoins</h2>'
-    +'<div class="rp-saisie'+(P.rap_objectifs?"":" vide")+'">'
-    +esc(P.rap_objectifs||"Section à renseigner dans l\u2019onglet Données.")+'</div>';
+  h+='<div style="break-inside:avoid;page-break-inside:avoid">';
   h+='<div class="rp-mention">Ce rapport est établi à partir des données saisies dans l\u2019outil de pilotage '
     +'d\u2019activité. Il ne contient aucune donnée nominative, ni aucune référence. Édité le '+esc(libDate(auj()))+'.</div></div>';
   h+='</div>';
+
+  /* ---- page 4 : la charge a venir, qui ne depend pas de la periode du rapport ---- */
+  var ch=chargeAVenir(21,8);
+  var piresJ=ch.jours.slice().sort(function(x,y){ return (y.rdv+y.tache)-(x.rdv+x.tache) })[0];
+  var ouvresVides=ch.jours.filter(function(x){ return !x.chome && !x.rdv && !x.tache }).length;
+  var ouvres=ch.jours.filter(function(x){ return !x.chome }).length;
+  var minTot=0; ch.jours.forEach(function(x){ minTot+=x.min });
+  /* l'en-tete annonce l'horizon reellement couvert, pas seulement les barres du jour */
+  var finHorizon=iso(new Date(pIso(ch.horizon).getTime()-86400000));
+  h+='<div class="rp-page">'+rpTete("Charge à venir",auj(),finHorizon,
+      "Ce qui est déjà posé au calendrier");
+  h+='<h2>Ce qui attend</h2>';
+  h+='<p class="rp-i">Décompte arrêté le '+esc(libJour(auj()))+', indépendant de la période du '
+    +'rapport : il regarde devant. Un <b>rendez-vous</b> est une activité datée non close ; '
+    +'une <b>tâche</b> est une suite à donner non faite, comptée à son échéance. '
+    +'Rien n\'est estimé ni lissé. L\'horizon s\'arrête au '+esc(libJour(ch.horizon))
+    +' : ce qui tombe au-delà est compté à part, en bas de page.</p>';
+  h+='<div class="rp-cles">'
+    +'<div class="rp-cle"><div class="v">'+(ch.rdv+ch.taches)+'</div><div class="l">éléments posés d\u2019ici le '+esc(libCourt(ch.horizon))+'</div></div>'
+    +'<div class="rp-cle"><div class="v">'+ch.rdv+'</div><div class="l">rendez-vous datés</div></div>'
+    +'<div class="rp-cle"><div class="v">'+ch.taches+'</div><div class="l">tâches à échéance</div></div>'
+    +'<div class="rp-cle"><div class="v">'+ch.hors.retard+'</div><div class="l">tâches en retard</div></div>'
+    +'<div class="rp-cle"><div class="v">'+ch.hors.sansEch+'</div><div class="l">tâches sans échéance</div></div>'
+  +'</div>';
+  h+='<h2>Jour par jour — trois semaines</h2>';
+  h+='<p class="rp-i">Barre foncée : rendez-vous. Barre claire : tâches. '
+    +'Fond grisé : jour non travaillé. Les jours vides sont laissés vides — '
+    +'c\'est le creux qui renseigne autant que la pointe.</p>';
+  h+=rpCharge(ch.jours);
+  if(ch.semaines.some(function(x){ return x.rdv||x.tache })){
+    h+='<h2>Semaines suivantes</h2>'
+      +'<p class="rp-i">Les huit semaines qui suivent, regroupées. Même lecture.</p>'
+      +rpChargeSem(ch.semaines);
+  }
+  h+='<h2>Lecture</h2><ul class="rp-l">';
+  h+='<li>Journée la plus chargée : <b>'+esc(libJour(piresJ.d))+'</b> — '
+    +(piresJ.rdv+piresJ.tache)+' élément(s)'+(piresJ.rdv?', dont '+piresJ.rdv+' rendez-vous':"")+'.</li>';
+  h+='<li>'+ouvresVides+' jour(s) ouvré(s) sur '+ouvres+' sans rien de posé.</li>';
+  if(minTot) h+='<li>'+dureeLisible(minTot)+' de rendez-vous déjà planifiés sur la période affichée.</li>';
+  if(ch.hors.retard) h+='<li><b>'+ch.hors.retard+' tâche(s) dont l\'échéance est dépassée</b> : '
+    +'elles ne figurent sur aucune barre et n\'attendent qu\'une décision.</li>';
+  if(ch.hors.sansEch) h+='<li>'+ch.hors.sansEch+' tâche(s) sans échéance : une réserve, '
+    +'invisible au calendrier tant qu\'aucune date ne leur est donnée.</li>';
+  if(ch.loin) h+='<li>'+ch.loin+' élément(s) au-delà de l\'horizon affiché.</li>';
+  h+='<li>'+ch.nonPilotes+' dossier(s) <b>non pilotés</b> : ni tâche en attente, ni date à venir. '
+    +'Ils ne pèsent sur aucune journée, et c\'est précisément le risque.</li>';
+  h+='</ul>';
+  /* « Objectifs et besoins » vivait en fin de page « Detail », deja pleine : les deux
+     blocs de texte libre y debordaient des qu'on ecrivait vraiment dedans. Il rejoint la
+     page dont il parle — ce qu'il faut pour tenir ce qui vient — ou il a de la place. */
+  h+='<h2>Objectifs et besoins</h2>'
+    +'<p class="rp-i">Ce que vous demandez pour tenir ce qui vient.</p>'
+    +'<div class="rp-saisie'+(P.rap_objectifs?"":" vide")+'">'
+    +esc(P.rap_objectifs||"Section à renseigner dans l\u2019onglet Données.")+'</div>';
+  h+='<div class="rp-mention">Cette page décrit la charge déjà engagée au '+esc(libDate(auj()))
+    +'. Elle ne préjuge ni des urgences à venir, ni du temps réellement nécessaire à chaque '
+    +'élément.</div></div>';
+
   return h;
 }
 function imprimerRapport(){
@@ -6048,6 +7094,7 @@ function rendre(){
   var sauveId=["idTitre","idNote"].map(function(i){ return $("#"+i)?$("#"+i).value:null });
   if(vueActive==="jour") m.innerHTML=vueJour();
   else if(vueActive==="suivant") m.innerHTML=vueSuivant();
+  else if(vueActive==="calendrier") m.innerHTML=vueCalendrier();
   else if(vueActive==="chantiers") m.innerHTML=vueChantiers();
   else if(vueActive==="idees") m.innerHTML=vueIdees();
   else if(vueActive==="journal") m.innerHTML=vueJournal();
@@ -6101,6 +7148,20 @@ function ajouterNote(){
 }
 
 var JOURNAL_VERSIONS = [
+ ["3.33.0","Nouvel onglet Calendrier, entre Prochain jour ouvr\u00e9 et Activit\u00e9s : une grille mensuelle des rendez-vous dat\u00e9s et du nombre d\u2019\u00e9ch\u00e9ances par jour, et le d\u00e9tail de la journ\u00e9e choisie \u00e0 c\u00f4t\u00e9."],
+ ["3.32.0","Les vérifications de permanence s\u2019exportent à part, avec l\u2019écart depuis la précédente et la cadence attendue. L\u2019export des appels ne contient plus que de vrais appels, et gagne la colonne Affaire."],
+ ["3.31.0","Chaque t\u00e2che en attente porte un bouton Reporter : raccourcis 1J, 2J, 5J, 1S, 2S, 1M, ou une date au choix. Le trait des comptes rendus est raccourci \u00e0 38 cadratins, pour ne plus casser la mise en page des applications o\u00f9 ils sont recopi\u00e9s."],
+ ["3.30.1","Correctif d\u2019impression : sur un portefeuille r\u00e9el, la page « Charge et production » d\u00e9bordait d\u2019une ligne et cr\u00e9ait une page suppl\u00e9mentaire. Le rythme vertical du rapport est resserr\u00e9, et un tableau ne se coupe plus jamais en deux."],
+ ["3.30.0","Dossiers non pilot\u00e9s : un dossier sans t\u00e2che en attente ni date \u00e0 venir est signal\u00e9 sur l\u2019\u00e9cran du jour et filtrable dans Activit\u00e9s. Le rapport PDF gagne une quatri\u00e8me page, « Charge \u00e0 venir » : jour par jour sur trois semaines, puis par semaine."],
+ ["3.29.1","Correctif : ouvrir un dossier sans date proposait la date du jour, et un simple enregistrement le faisait atterrir dans le planning. Le champ reste vide tant que vous n\u2019en mettez pas."],
+ ["3.29.0","La vue Activit\u00e9s s\u2019ouvre sur toutes les p\u00e9riodes et non plus sur « \u00c0 venir ». Une note ou une t\u00e2che saisie dans une fiche sans \u00eatre ajout\u00e9e ne se perd plus : l\u2019enregistrement est bloqu\u00e9, les autres sorties demandent confirmation."],
+ ["3.28.0","La roue dent\u00e9e d\u2019un \u00e9l\u00e9ment de la carte ouvre d\u00e9sormais tout l\u2019\u00e9l\u00e9ment : nom, dur\u00e9e, module et lien. On peut enfin renommer ce que « Parcourir un dossier » a baptis\u00e9 d\u2019apr\u00e8s les fichiers."],
+ ["3.27.0","Un module peut rendre la main lui-m\u00eame (postMessage) et signaler qu\u2019il a d\u00e9marr\u00e9. L\u2019infobulle de fermeture ne promet plus \u00c9chap, qui ne fonctionne pas quand le focus est dans le module."],
+ ["3.26.0","Chaque section de la carte dit quand elle est propos\u00e9e : pause courte, pause longue, ou jamais \u2014 sur demande. Le temps disponible choisit la section au lieu de seulement filtrer. Les accompagnements ont leur bouton dans le bandeau, et un \u00e9l\u00e9ment peut porter un lien."],
+ ["3.25.0","La fen\u00eatre d\u2019un module affiche le temps de l\u2019activit\u00e9 : d\u00e9compte en haut \u00e0 droite, puis, l\u2019\u00e9ch\u00e9ance pass\u00e9e, le d\u00e9passement en n\u00e9gatif et en rouge."],
+ ["3.24.0","Modules de pause : un \u00e9l\u00e9ment de la carte peut porter un fichier .html rang\u00e9 dans un dossier voisin de l\u2019application. R\u00e9v\u00e9ler la pause propose alors de le lancer, dans une fen\u00eatre du pilotage."],
+ ["3.23.0","Nouveau bloc « Passées sans trace » : les activités dont la date est passée sans qu\u2019aucune note leur soit rattachée. Au retour d\u2019une absence, rien ne passe inaperçu. Correctif : le pied des fenêtres sortait du cadre quand le contenu dépassait la hauteur de l’écran — la fenêtre borne désormais, et c’est son corps qui défile."],
+ ["3.22.0","Le nom complet du logiciel devient le nom par défaut. La fenêtre « Action terminée » permet d\u2019enchaîner : on y saisit la suite à donner et son échéance sans rouvrir la note."],
  ["3.21.0","Le modèle de catégories livré avec le code est désormais générique. Le modèle métier s'importe depuis une configuration, hors du code."],
  ["3.20.0","À propos : bandeau d'en-tête reprenant l'animation d'ouverture, sur le nom du logiciel."],
  ["3.19.1","Correctif : le bouton Enregistrer était invisible sur le bandeau quand l'enregistrement automatique est actif."],
@@ -6228,12 +7289,26 @@ var animApropos=null;
 function arreterAnimApropos(){
   if(animApropos){ clearInterval(animApropos); animApropos=null }
 }
+/* Le bandeau ne va pas a la ligne : on reduit le corps jusqu'a ce que le nom tienne.
+   La mesure se fait sur la suite de 0 et 1, plus large que les lettres condensees,
+   pour que l'animation ne deborde pas non plus. */
+function ajusterNomApropos(n,nom){
+  if(!n || !n.parentNode) return;
+  var max=27,min=11,garde=n.innerHTML;
+  n.style.fontSize="";
+  var base=parseFloat(getComputedStyle(n).fontSize)||max;
+  n.innerHTML=new Array(nom.length+1).join('<span class="bit">0</span>');
+  var t=base;
+  while(t>min && n.scrollWidth>n.clientWidth) { t-=0.5; n.style.fontSize=t+"px" }
+  n.innerHTML=garde;
+}
 function animerNomApropos(){
   arreterAnimApropos();
   var lg=$("#apLogo"), n=$("#apNom");
   if(!n) return;
   if(lg) lg.innerHTML=iconeSVG("#191C1B","#D8232A","#FBFBF9");
   var nom=String(NOM_DEFAUT);
+  ajusterNomApropos(n,nom);
   var poser=function(){
     n.innerHTML=esc(nom).replace(/\s+/g,'<span class="pt">\u00b7</span>');
   };
@@ -6342,7 +7417,10 @@ function crValeurChamp(f,v){
   }
   return v;
 }
-function crTitre(t){ return t+"\n"+Array(Math.min(t.length,70)+1).join("—")+"\n" }
+/* 38 cadratins au plus : un trait plus long casse la mise en page des applications
+   metier ou les comptes rendus sont recopies. Jamais plus long que son titre non plus. */
+var CR_TRAIT=38;
+function crTitre(t){ return t+"\n"+Array(Math.min(t.length,CR_TRAIT)+1).join("—")+"\n" }
 function crSection(t,corps){
   corps=String(corps||"").trim();
   return corps ? "\n"+t+"\n"+corps+"\n" : "";
@@ -7427,15 +8505,16 @@ function convertirIdeeU(id,cle){
 document.addEventListener("click",function(e){
   var t=e.target,el;
   if((el=t.closest("#nav button"))){ vueActive=el.dataset.vue; rendre(); return }
-  if(t.id==="modX"){ fermerModale(); return }
+  if(t.id==="modX"){ if(quitterFicheAutorise()) fermerModale(); return }
   if(t.id==="cdPause"){
-    if(proposer("amuse","pause demandée",(M.reglages.filtrer_duree!==false)?tempsDispo():null)){
+    if(proposerPause("pause demandée",(M.reglages.filtrer_duree!==false)?tempsDispo():null)){
       rendre(); fenetrePause(true); armerRappelJour();
     }else toast("Votre carte est vide : ouvrez Pause pour la composer",true);
     return;
   }
   /* closest, et non t.id : le libelle du bouton est dans un span, qui recoit le clic */
   if(t.closest && t.closest("#btnApropos")){ ouvrirApropos(); return }
+  if(t.closest("#btnAccomp")){ ouvrirAccompagnements(); return }
   if(t.id==="btnPause"){ ouvrirPause(); return }
   if((el=t.closest("[data-fav]"))){
     var sec=M.sections[el.dataset.sec]||[];
@@ -7453,9 +8532,51 @@ document.addEventListener("click",function(e){
     var dr=document.querySelector('[data-duree="'+c2+'"]');
     var v2=ch?ch.value.trim():"";
     if(!v2){ if(ch) ch.focus(); return }
-    (M.sections[c2]||(M.sections[c2]=[])).push({id:uid(),texte:v2,duree:+(dr?dr.value:0)||0,favori:false});
+    var mo=document.querySelector('[data-modajout="'+c2+'"]');
+    var vm=mo?cheminModuleSain(mo.value):"";
+    if(mo && mo.value.trim() && !vm){ mo.focus(); toast("Le module doit être un fichier .html du dossier des modules",true); return }
+    (M.sections[c2]||(M.sections[c2]=[])).push({id:uid(),texte:v2,duree:+(dr?dr.value:0)||0,favori:false,module:vm});
     modifieMenu(); ouvrirPause(); return;
   }
+  if((el=t.closest("[data-jouer]"))){
+    var sj=M.sections[el.dataset.sec]||[],ij=null;
+    sj.forEach(function(i){ if(i.id===el.dataset.jouer) ij=i });
+    if(ij) ouvrirModule(ij.texte,ij.module,ij.duree);
+    return;
+  }
+  if((el=t.closest("[data-lier]"))){
+    var sl=M.sections[el.dataset.sec]||[],il=null;
+    sl.forEach(function(i){ if(i.id===el.dataset.lier) il=i });
+    if(!il) return;
+    reglerElement(il).then(function(v){
+      if(!v) return;
+      var avant=il.texte;
+      il.texte=v.texte; il.duree=v.duree; il.module=v.module; il.lien=v.lien;
+      modifieMenu(); ouvrirPause();
+      toast(avant!==v.texte ? ("Renommé : "+v.texte) : ("Modifié : "+v.texte));
+    });
+    return;
+  }
+  if((el=t.closest("[data-ouvrir]"))){
+    var so=M.sections[el.dataset.sec]||[];
+    so.forEach(function(i){ if(i.id===el.dataset.ouvrir) ouvrirLien(i.lien) });
+    return;
+  }
+  if((el=t.closest("[data-quand]"))) return;    /* le select se traite au change */
+  if((el=t.closest("[data-accjouer]")) || (el=t.closest("[data-acclien]"))){
+    var ia=el.dataset.accjouer||el.dataset.acclien, oa=null;
+    (M.sections.accomp||[]).forEach(function(i){ if(i.id===ia) oa=i });
+    if(oa){ if(el.dataset.acclien) { ouvrirLien(oa.lien); toast("Accompagnement ouvert · "+oa.texte) }
+            else lancerAccomp(oa) }
+    return;
+  }
+  if((el=t.closest("[data-acchasard]"))){
+    var la=(M.sections.accomp||[]);
+    if(!la.length){ toast("Aucun accompagnement dans la carte",true); return }
+    lancerAccomp(la[Math.floor(Math.random()*la.length)]);
+    return;
+  }
+  if((el=t.closest("[data-parcourir]"))){ parcourirModules(el.dataset.parcourir); return }
   if((el=t.closest("[data-hasard]"))){
     var cs=el.dataset.hasard;
     if(proposer(cs,"au hasard dans « "+libSection(cs).toLowerCase()+" »",null)){
@@ -7471,6 +8592,24 @@ document.addEventListener("click",function(e){
   }
   if(t.id==="btnNote"){ ajouterNote(); return }
   if((el=t.closest("[data-neuf]"))){ nouveauChantier(el.dataset.neuf,el.dataset.cat); return }
+  if((el=t.closest("[data-caljour]"))){ jourCal=el.dataset.caljour; rendre(); return }
+  if((el=t.closest("[data-calmois]"))){ decalerMois(+el.dataset.calmois||0); rendre(); return }
+  if((el=t.closest("[data-calauj]"))){
+    jourCal=auj(); moisCal=auj().slice(0,7)+"-01"; rendre(); return;
+  }
+  if((el=t.closest("[data-repon]"))){ reportOuvert=el.dataset.repon; rendre(); return }
+  if((el=t.closest("[data-repoff]"))){ reportOuvert=null; rendre(); return }
+  if((el=t.closest("[data-rep]"))){
+    var idr=el.dataset.rep, pas=el.dataset.pas;
+    if(pas!=="autre"){ reporterSuite(idr,pas); return }
+    var nr=notePar(idr); if(!nr || !nr.suite) return;
+    saisirDate("Reporter au…", nr.suite.echeance||auj()).then(function(v){
+      if(!v) return;
+      nr.suite.echeance=v; reportOuvert=null; modifie(); rendre();
+      toast("Reporté au "+libCourt(v));
+    });
+    return;
+  }
   if((el=t.closest("[data-fait]"))){ cloreSuite(el.dataset.fait); return }
   if((el=t.closest("[data-note]"))){
     var dlg=$("#modale");
@@ -7655,6 +8794,26 @@ document.addEventListener("click",function(e){
     return;
   }
   if((el=t.closest("[data-hor]"))){ horizonAttente=+el.dataset.hor||0; rendre(); return }
+  if((el=t.closest("[data-pilote]"))){ editerChantier(el.dataset.pilote); return }
+  if((el=t.closest("[data-voirpilote]"))){
+    filtreCh.pilotage="non"; filtreCh.periode="tous"; filtreCh.arch="actifs"; filtreCh.q="";
+    vueActive="chantiers"; rendre();
+    toast(nonPilotes(false).length+" dossier(s) sans tâche ni date à venir");
+    return;
+  }
+  if((el=t.closest("[data-horst]"))){ horizonSansTrace=+el.dataset.horst||0; rendre(); return }
+  if((el=t.closest("[data-voirecartesst]"))){ voirEcartesST=!voirEcartesST; rendre(); return }
+  if((el=t.closest("[data-rienst]"))){
+    var cst=chantierPar(el.dataset.rienst);
+    if(cst){ cst.rien_a_noter=true; modifie(); rendre();
+      toast("Écartée : rien à noter \u00b7 " + (cst.libelle||"activité")) }
+    return;
+  }
+  if((el=t.closest("[data-reprendst]"))){
+    var crt=chantierPar(el.dataset.reprendst);
+    if(crt){ delete crt.rien_a_noter; modifie(); rendre(); toast("Remise dans la liste") }
+    return;
+  }
   if((el=t.closest("[data-per]"))){ periodeRep=el.dataset.per; rendre(); return }
   if((el=t.closest("[data-ouvrir-aff]"))){
     var cid=el.dataset.ouvrirAff;
@@ -7815,6 +8974,7 @@ document.addEventListener("click",function(e){
     else if(a==="exp-csvn") exportNotesCSV();
     else if(a==="exp-csvd") exportDtdictCSV();
     else if(a==="exp-csva") exportAppelsCSV();
+    else if(a==="exp-csvv") exportVerifsCSV();
     else if(a==="cr") compteRendu(($("#expDate")&&$("#expDate").value)||auj());
     else if(a==="cr-auj"){ dateExport=auj(); rendre() }
     else if(a==="per-raz"){ perDeb=""; perFin=""; rendre(); toast("Exports sur tout l'historique") }
@@ -7866,7 +9026,7 @@ document.addEventListener("click",function(e){
       }
     }
     else if(a==="pause-essai"){
-      if(proposer("amuse","aperçu — c'est ce que vous verrez",null)){
+      if(proposerPause("aperçu — c'est ce que vous verrez",null)){
         fermerModale(); setTimeout(function(){ fenetrePause(true) },80);
       }else toast("Votre carte est vide : ajoutez au moins un élément",true);
     }
@@ -7878,6 +9038,11 @@ document.addEventListener("click",function(e){
       majCompteurPause();
       fermerModale();
       toast("Pause reportée de "+mr+" min");
+    }
+    else if(a==="pause-jouer"){
+      if(suggestion && suggestion.item && suggestion.item.module)
+        ouvrirModule(suggestion.item.texte,suggestion.item.module,suggestion.item.duree);
+      return;
     }
     else if(a==="pause-autre"){
       if(suggestion && !proposer(suggestion.cle,suggestion.motif,suggestion.limite)) suggestion=null;
@@ -8015,6 +9180,11 @@ document.addEventListener("change",function(e){
   if(t.id==="sugEpr"){ M.reglages.sur_eprouvante=t.checked; modifieMenu(); return }
   if(t.id==="sugDur"){ M.reglages.filtrer_duree=t.checked; modifieMenu(); return }
   if(t.id==="sugJour"){ M.reglages.rappel_jour=Math.max(0,+t.value||0); armerRappelJour(); modifieMenu(); return }
+  if(t.id==="sugSeuil"){ M.reglages.seuil_long=Math.max(5,+t.value||30); modifieMenu(); return }
+  if(t.dataset && t.dataset.quand){
+    (M.reglages.quand||(M.reglages.quand={}))[t.dataset.quand]=t.value;
+    modifieMenu(); ouvrirPause(); return;
+  }
   if(t.tagName==="SELECT" && t.dataset.liste){
     var cle=t.dataset.liste, l=D.parametres[cle]||(D.parametres[cle]=[]);
     if(t.value==="__add__"){
@@ -8047,6 +9217,7 @@ document.addEventListener("change",function(e){
   if(t.id==="fcat"){ filtreCh.cat=t.value; rendre() }
   else if(t.id==="fstatut"){ filtreCh.statut=t.value; rendre() }
   else if(t.id==="fperiode"){ filtreCh.periode=t.value; rendre() }
+  else if(t.id==="fpilotage"){ filtreCh.pilotage=t.value; rendre() }
   else if(t.id==="farch"){ filtreCh.arch=t.value; rendre() }
   else if(t.dataset && t.dataset.jour!==undefined){
     var j=+t.dataset.jour,l=D.parametres.jours_ouvres||[];
@@ -8222,10 +9393,46 @@ var A = window.AIDE = [
 +'<p>Les activités datées d’aujourd’hui. Le bouton <b>Noter</b> ouvre un compte rendu déjà amorcé : '
 +'le motif de l’activité ouvre le texte, le temps prévu est pré-rempli, et vous pouvez faire avancer le statut '
 +'dans le même geste. Rien n’est enregistré si vous n’écrivez rien de plus que le motif.</p>'
++'<h4>Dossiers non pilotés</h4>'
++'<p>Un dossier est <b>piloté</b> s’il porte au moins une <b>tâche en attente</b>, ou une '
++'<b>date à venir</b> — aujourd’hui compris. Sinon rien ne le ramènera jamais sous vos yeux : '
++'il sort du radar sans que personne ne l’ait décidé. Le bloc liste les plus délaissés ; '
++'la liste déroulante <b>Non pilotés</b> de l’onglet Activités donne la totalité.</p>'
++'<p>Pour en sortir un, une seule chose suffit : une suite à donner, ou une date. Un dossier '
++'clos, annulé ou archivé n’est jamais compté. Les dossiers déjà réclamés par « Passées sans '
++'trace » ne sont pas répétés dans ce bloc — ils le sont dans le filtre et dans le rapport, '
++'où la définition est entière.</p>'
++'<h4>Passées sans trace</h4>'
++'<p>Ce bloc n’apparaît que s’il a quelque chose à dire. Il liste les activités dont la date est '
++'<b>passée</b> sans qu’aucune note ne leur soit rattachée — ni le jour dit, ni depuis. C’est le filet '
++'au retour d’une absence : un rendez-vous ou une date d’intervention qui tombe pendant un arrêt ne '
++'disparaît pas silencieusement.</p>'
++'<p>Une activité en sort de trois façons : une <b>note</b> lui est rattachée (bouton <b>Noter</b>), elle est '
++'<b>close ou annulée</b>, ou vous déclarez qu’il n’y avait <b>rien à noter</b>. Les activités écartées ne sont '
++'pas perdues : le bouton en bas du bloc les réaffiche et permet de les remettre dans la liste. '
++'Le jour même ne compte jamais — la journée n’est pas finie.</p>'
++'<h4>Une note ou une tâche saisie depuis une activité</h4>'
++'<p>Le bloc <b>+ Note</b> / <b>+ Tâche</b> d’une fiche a son propre bouton d’ajout : '
++'« Enregistrer » enregistre l’activité, pas ce bloc. Si vous quittez la fiche avec du texte '
++'encore dans le champ, l’application vous arrête — <b>Enregistrer</b> est bloqué, et Fermer, '
++'la croix ou Échap demandent confirmation. Ajoutez, ou videz le champ.</p>'
 +'<h4>En attente</h4>'
 +'<p>Les tâches ouvertes, filtrées par horizon. <b>Aujourd’hui</b> ne montre que les tâches <i>datées</i> échues '
 +'ou en retard ; les autres horizons incluent aussi les tâches sans échéance, qui forment votre réserve. '
 +'Le compteur du bouton « Aujourd’hui » reste visible depuis n’importe quel horizon.</p>'
++'<p><b>Reporter.</b> Chaque tâche porte un bouton <b>Reporter</b> qui déplie des raccourcis : '
++'1J, 2J, 5J, 1S, 2S, 1M, et <b>Autre…</b> pour choisir une date. Le report part '
++'<b>d’aujourd’hui</b> si la tâche est en retard, et <b>de son échéance</b> si elle est encore '
++'à venir — décaler d’un jour une tâche échue depuis une semaine en la laissant dans le passé '
++'n’avancerait à rien. Si la date tombe un jour non travaillé, elle glisse au jour ouvré suivant. '
++'Survolez un raccourci pour voir la date qu’il donnera.</p>'
++'<p><b>Appels et vérifications s’exportent séparément.</b> Les vérifications de permanence '
++'sont rangées avec les appels dans le fichier de données, mais ce ne sont pas des appels : '
++'elles n’ont ni interlocuteur, ni durée, ni objet. « Exporter les appels » ne contient donc '
++'que de vrais appels ; « Exporter les vérifications » donne les vérifications avec, pour '
++'chacune, l’<b>écart en minutes depuis la précédente du même intitulé ce jour-là</b>, la '
++'cadence attendue, et si elle a été tenue. C’est la cadence qui dit si la permanence a été '
++'réellement tenue, pas le nombre de lignes.</p>'
 +'<h4>Où passe le temps</h4>'
 +'<p>La répartition du temps imputé, sur la journée ou sur sept jours. Le temps vient des notes, '
 +'du chronomètre du compteur et des appels de permanence.</p>'
@@ -8268,6 +9475,23 @@ var A = window.AIDE = [
 +'<p>Les idées vivent dans votre fichier de données, comme le reste. Elles n’apparaissent pas dans le '
 +'rapport d’activité : ce sont des intentions, pas des faits.</p>'
 },
+
+{ id:"calendrier", titre:"Calendrier", vues:["calendrier"], html:
+ '<h4>Ce que la grille montre</h4>'
++'<p>Un mois entier, lundi en tête. Chaque jour porte <b>une pastille par rendez-vous</b>, '
++'à la couleur de sa catégorie — survolez-en une pour voir l’heure et le libellé. Au-delà '
++'de quatre, le reste est compté plutôt que dessiné : une case pleine de pastilles ne '
++'renseigne plus.</p>'
++'<p>L’étiquette <b>n éch.</b> compte les échéances de tâches tombant ce jour-là. Elle passe '
++'au rouge quand la date est dépassée. Les jours non travaillés sont grisés et portent leur '
++'motif ; aujourd’hui est cerclé de rouge.</p>'
++'<h4>Ouvrir une journée</h4>'
++'<p>Cliquez une case : la journée s’ouvre à côté, avec ses rendez-vous et ses échéances. '
++'Les boutons y sont ceux que vous connaissez — <b>Noter</b>, <b>Marquer fait</b>, '
++'<b>Ouvrir la note</b> — et vous pouvez créer une activité à cette date.</p>'
++'<p>Le calendrier ne contient aucune donnée propre : il lit les mêmes activités et les '
++'mêmes tâches que les autres onglets. Une activité archivée n’y figure pas, une tâche '
++'faite non plus.</p>' },
 
 { id:"activites", titre:"Activités", vues:["chantiers"], html:
  '<h4>La liste</h4>'
@@ -8491,7 +9715,44 @@ var A = window.AIDE = [
 +'<p>Vos propres idées de pause, rangées par durée : amuse-bouches, accompagnements, plats, spécialités, desserts. '
 +'Les propositions varient et tiennent compte du temps dont vous disposez.</p>'
 +'<p>La carte est enregistrée avec vos données mais n’apparaît dans aucun export d’activité ; '
-+'un bouton permet de la sortir à part.</p>' },
++'un bouton permet de la sortir à part.</p>'
++'<h4>Quand chaque section est proposée</h4>'
++'<p>Chaque section porte son propre réglage, dans son en-tête : <b>pause courte</b>, '
++'<b>pause longue</b>, ou <b>jamais — sur demande</b>. Le temps qui vous sépare de votre '
++'prochaine activité choisit alors la section : au-delà du seuil réglable, les sections '
++'« longues » passent devant ; en dessous, seules les « courtes » sont tirées.</p>'
++'<p>Une section sur <b>jamais</b> n’est tirée dans aucun cas. Elle n’est pas inutile pour '
++'autant : elle se consulte depuis cette carte. C’est la place des choses qui demandent du '
++'temps et ne se décident pas entre deux dossiers.</p>'
++'<h4>Les accompagnements</h4>'
++'<p>Un accompagnement n’est pas une pause : c’est ce qu’on met en fond <i>pendant</i> une '
++'tâche fastidieuse. Il a donc son propre bouton dans le bandeau, entre <b>Aide</b> et '
++'<b>Pause</b> — vous le déclenchez quand vous le voulez, rien ne vous l’impose.</p>'
++'<p>Un élément peut porter un <b>lien</b> autant qu\'un module : playlist, podcast, page de '
++'révision. L’application n’appelle jamais rien d’elle-même — elle passe l’adresse au système, '
++'exactement comme si vous la tapiez. Elle reste donc sans réseau.</p>'
++'<h4>Les modules</h4>'
++'<p>Un élément de la carte peut porter un <b>fichier .html</b> rangé dans un dossier voisin de '
++'l’application. Révéler la pause propose alors de le <b>lancer</b>, dans une fenêtre du pilotage : '
++'mini-jeu, appli de révision, mise en situation — ce que vous y mettez.</p>'
++'<pre class="pa-arbre">MyPilot_Pro.html\n\u21b3 module/\n   \u21b3 jeu.html</pre>'
++'<p>La durée inscrite sur l’activité sert de minuteur : le bandeau de la fenêtre affiche le temps '
++'restant, puis, l’échéance passée, <b>le dépassement en négatif et en rouge</b>. Rien ne s’interrompt — '
++'vous voyez seulement ce que la pause a réellement coûté. Sans durée, c’est le temps écoulé qui s’affiche.</p>'
++'<p><b>Sortir d’un module.</b> Le bouton <b>Fermer</b> du bandeau rend toujours la main. '
++'La touche <b>Échap</b>, elle, ne fonctionne que si le focus est resté hors du module : dès que '
++'vous cliquez dans le jeu, c’est lui qui reçoit les touches. Un module peut rendre la main '
++'lui-même en envoyant <span class="mono">postMessage({mypilot:"fermer"})</span>.</p>'
++'<p>Le bouton <b>⚙</b> d’une ligne ouvre tout l’élément — <b>nom, durée, module, lien</b>. '
++'C’est là qu’on renomme : « Parcourir un dossier » baptise les modules d’après leurs fichiers, '
++'ce qui donne rarement le bon libellé. <b>▶</b> lance le module pour l’essayer, et '
++'<b>Parcourir un dossier…</b> liste les .html d’un dossier et les ajoute d’un coup. Le nom du '
++'dossier retenu est celui que vous désignez ; par défaut <span class="mono">module</span>.</p>'
++'<p><b>Deux points à connaître.</b> Un module s’exécute isolé : il ne peut ni lire ni modifier vos '
++'données, et l’application ne peut pas entrer dans le module — c’est le navigateur qui l’impose. '
++'En revanche l’application reste sans réseau, <b>le module fait ce que son auteur a écrit</b> : s’il '
++'appelle une bibliothèque en ligne, il ne fonctionnera pas sur un poste sans accès. Pour qu’un module '
++'marche partout, tout doit tenir dans son fichier ou dans son dossier.</p>' },
 
 { id:"raccourcis", titre:"Raccourcis et questions", vues:[], html:
  '<h4>Raccourcis</h4>'

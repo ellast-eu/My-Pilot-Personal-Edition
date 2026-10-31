@@ -25,10 +25,11 @@ Trois numéros distincts coexistent :
 ## Publier
 
 1. Ajouter les changements sous `## [Non publié]` dans `CHANGELOG.md` au fil de l'eau.
-2. `scripts/release.sh 0.2.0` : lance les tests, met à jour `VERSION`, date le CHANGELOG, commit et tag `v0.2.0`.
-3. L'archive `dist/my-pilot-personal-edition-v0.2.0.zip` est créée au passage ; elle s'extrait dans un dossier `my-pilot-personal-edition-v0.2.0/` qui contient tout l'historique Git. Pour la refaire seule : `scripts/package.sh`.
-4. `git push` : le workflow GitHub **Releases** crée le tag et la release à partir du CHANGELOG.
-5. Sur le serveur : `git pull && docker compose up -d --build`. Faire un instantané avant une mise à jour majeure.
+2. Ajouter la version en tête de `web/pilot/versions.js` (une ligne : journal de la fenêtre À propos).
+3. `scripts/release.sh 0.2.0` : lance les tests, met à jour `VERSION`, date le CHANGELOG, commit et tag `v0.2.0`.
+4. L'archive `dist/my-pilot-personal-edition-v0.2.0.zip` est créée au passage ; elle s'extrait dans un dossier `my-pilot-personal-edition-v0.2.0/` qui contient tout l'historique Git. Pour la refaire seule : `scripts/package.sh`.
+5. `git push` : le workflow GitHub **Releases** crée le tag et la release à partir du CHANGELOG.
+6. Sur le serveur : `git pull`, puis `systemctl --user reload my-pilot-personal-edition` (ou `sudo systemctl reload …`, ou sans service `scripts/compose.sh up -d --build`). Faire un instantané avant une mise à jour majeure.
 
 ## Reprendre une nouvelle version de My Pilot Pro (ex-PST·PILOT)
 

@@ -12,6 +12,7 @@ var A = window.AIDE = [
 +'<h4>Les onglets</h4><dl>'
 +'<dt>Aujourd’hui</dt><dd>Votre journée : planning, points de vigilance, journal, tâches en attente.</dd>'
 +'<dt>Prochain jour</dt><dd>Ce qui vous attend au prochain jour : activités prévues, dernières notes, tâches arrivées à échéance.</dd>'
++'<dt>Calendrier</dt><dd>Le mois entier : vos activités datées et les échéances de vos tâches, jour par jour.</dd>'
 +'<dt>Activités</dt><dd>Toutes vos activités, avec leurs notes et leurs tâches.</dd>'
 +'<dt>Idées</dt><dd>Le Cristallisoir : vos idées se regroupent seules, Claude les développe, elles deviennent des activités.</dd>'
 +'<dt>Veilles</dt><dd>Des flux d’information collectés pour vous chaque jour et rangés en fiches.</dd>'
@@ -47,6 +48,18 @@ var A = window.AIDE = [
 +'<h4>Où passe le temps</h4><p>La répartition du temps noté, par catégorie et par rubrique, sur la journée ou les 7 derniers jours.</p>'
 +'<h4>Prochain jour</h4><p>Les activités prévues au prochain jour, avec leur dernière note, les points de vigilance et les tâches qui arrivent à échéance d’ici là : de quoi préparer la suite.</p>' },
 
+{ id:"calendrier", titre:"Calendrier", vues:["calendrier"], html:
+ '<h4>Ce que la grille montre</h4>'
++'<p>Un mois entier, lundi en tête. Chaque jour porte <b>une pastille par activité prévue</b>, à la couleur de sa catégorie '
++'(Projet, Maison, Formation…) ; survolez-en une pour voir l’heure et le libellé. Au-delà de quatre, le reste est compté plutôt que dessiné.</p>'
++'<p>L’étiquette <b>n éch.</b> compte les tâches qui arrivent à échéance ce jour-là ; elle passe au rouge quand la date est dépassée. '
++'Les jours non travaillés sont grisés ; aujourd’hui est cerclé de rouge.</p>'
++'<h4>Ouvrir une journée</h4>'
++'<p>Cliquez une case : la journée s’ouvre à côté, avec ses activités et ses échéances. Vous pouvez y noter, marquer une tâche faite, '
++'ouvrir une note, ou créer une activité à cette date.</p>'
++'<p class="pa-astuce">Le calendrier n’a pas de données propres : il lit les mêmes activités et les mêmes tâches que les autres onglets. '
++'Une activité archivée n’y figure pas.</p>'
+},
 { id:"activites", titre:"Activités", vues:["chantiers"], html:
  '<p>Une <b>activité</b> est tout ce que vous menez : un projet, des travaux dans la maison, une formation, une démarche administrative, un loisir. '
 +'Chacune a une catégorie, une date (facultative), un statut et une priorité.</p>'
