@@ -13,22 +13,23 @@ var A = window.AIDE = [
 +'<dt>Aujourd’hui</dt><dd>Votre journée : planning, points de vigilance, journal, tâches en attente.</dd>'
 +'<dt>Prochain jour</dt><dd>Ce qui vous attend au prochain jour : activités prévues, dernières notes, tâches arrivées à échéance.</dd>'
 +'<dt>Calendrier</dt><dd>Le mois entier : vos activités datées et les échéances de vos tâches, jour par jour.</dd>'
++'<dt>Projets</dt><dd>Les activités suivies comme des projets : échéance, jalons, avancement.</dd>'
 +'<dt>Activités</dt><dd>Toutes vos activités, avec leurs notes et leurs tâches.</dd>'
 +'<dt>Idées</dt><dd>Le Cristallisoir : vos idées se regroupent seules, Claude les développe, elles deviennent des activités.</dd>'
 +'<dt>Veilles</dt><dd>Des flux d’information collectés pour vous chaque jour et rangés en fiches.</dd>'
 +'<dt>Journal</dt><dd>Toutes vos notes, jour par jour, avec une recherche.</dd>'
 +'<dt>Contacts</dt><dd>Les personnes et les organisations, reliées à vos activités.</dd>'
-+'<dt>Données</dt><dd>Sauvegardes, synchronisation, partage, réglages et Claude.</dd></dl>'
++'<dt>Options</dt><dd>Sauvegardes, synchronisation, partage, réglages et Claude.</dd></dl>'
 +'<h4>Vos données sont enregistrées toutes seules</h4>'
 +'<p>Chaque modification est enregistrée en une ou deux secondes. L’état est affiché en haut à droite : '
 +'<b>Enregistré</b>, <b>Enregistrement…</b> ou <b>Hors ligne</b>. Hors ligne, rien n’est perdu : la saisie est gardée et envoyée au retour de la connexion. '
 +'<kbd>Ctrl</kbd>+<kbd>S</kbd> enregistre tout de suite.</p>'
 +'<h4>Pour bien démarrer</h4><ol>'
-+'<li>Dans <b>Données → Paramètres</b>, vérifiez les catégories d’activité (Projet, Maison, Formation, Démarche, Loisir) et adaptez-les.</li>'
++'<li>Dans <b>Options → Paramètres</b>, vérifiez les catégories d’activité (Projet, Maison, Formation, Démarche, Loisir) et adaptez-les.</li>'
 +'<li>Créez une première activité depuis <b>Aujourd’hui</b> (boutons « + Projet », « + Maison »…).</li>'
 +'<li>Notez ce que vous faites dans le <b>Journal du jour</b> : une ligne suffit.</li>'
 +'<li>Déposez vos envies dans l’onglet <b>Idées</b>.</li>'
-+'<li>Si vous avez plusieurs appareils, configurez la <b>synchronisation</b> (voir la rubrique Données).</li></ol>'
++'<li>Si vous avez plusieurs appareils, configurez la <b>synchronisation</b> (onglet Options).</li></ol>'
 +'<p class="pa-astuce">Cette aide s’ouvre à tout moment avec le bouton <b>Aide</b> en haut, ou la touche <kbd>F1</kbd> : elle montre alors la rubrique de l’onglet affiché.</p>' },
 
 { id:"aujourdhui", titre:"Aujourd’hui et Prochain jour", vues:["jour","suivant"], html:
@@ -59,6 +60,23 @@ var A = window.AIDE = [
 +'ouvrir une note, ou créer une activité à cette date.</p>'
 +'<p class="pa-astuce">Le calendrier n’a pas de données propres : il lit les mêmes activités et les mêmes tâches que les autres onglets. '
 +'Une activité archivée n’y figure pas.</p>'
+},
+{ id:"projets", titre:"Projets, jalons et échéance", vues:["projets"], html:
+ '<h4>Quand une activité devient un projet</h4>'
++'<p>Le suivi de projet est <b>désactivé par défaut</b>. Ouvrez une activité (une rénovation, une formation, une démarche au long cours…), '
++'section <b>Projet</b>, puis « Suivre comme un projet ». La plupart des activités n’en ont pas besoin. '
++'Désactiver le suivi n’efface rien : l’échéance et l’historique des reports restent là.</p>'
++'<h4>Les jalons</h4>'
++'<p>Un jalon est un <b>événement ou une tâche</b> de l’activité que vous marquez comme étape, avec le bouton <b>☆ Jalon</b>. '
++'Rien de nouveau à saisir. Un jalon est <i>validé</i> quand l’événement passe en « Réalisé » ou que la tâche est faite, '
++'<i>en retard</i> quand sa date est passée, et <i>annulé</i> s’il sort du projet (il ne compte plus).</p>'
++'<h4>L’avancement et l’échéance</h4>'
++'<p>L’avancement se calcule : jalons validés sur jalons retenus ; il ne se saisit pas. '
++'La première échéance se pose librement ; la <b>reporter demande un motif</b>. La ligne du projet montre alors l’échéance d’origine barrée, '
++'la nouvelle et le nombre de reports.</p>'
++'<h4>Où les voir</h4>'
++'<p>L’onglet <b>Projets</b> les liste, les plus urgents devant. Sur l’écran du jour, le bloc <b>Projets à surveiller</b> n’apparaît que '
++'pour une échéance dépassée ou proche (huit jours), ou un jalon en retard.</p>'
 },
 { id:"activites", titre:"Activités", vues:["chantiers"], html:
  '<p>Une <b>activité</b> est tout ce que vous menez : un projet, des travaux dans la maison, une formation, une démarche administrative, un loisir. '
@@ -98,7 +116,7 @@ var A = window.AIDE = [
 +'<p>« Cristalliser avec Claude » fusionne une méta-idée (ou une idée seule) en une <b>idée unifiée</b> : titre, synthèse, objectifs, premières étapes, points de vigilance. '
 +'Relisez, modifiez si besoin, puis <b>Créer l’activité</b> : elle apparaît dans Activités, et ses premières étapes deviennent des tâches. '
 +'L’onglet « Devenues activités » garde la trace du chemin.</p>'
-+'<p>Claude se règle dans <b>Données → Idées et Claude</b> (voir la rubrique Claude). Les catégories des idées sont celles des activités.</p>'
++'<p>Claude se règle dans <b>Options → Idées et Claude</b> (voir la rubrique Claude). Les catégories des idées sont celles des activités.</p>'
 +'<p class="pa-astuce">Les idées peuvent être partagées : « Partager… » dans la fenêtre d’une idée, ou « Partagée dans… » au moment de la déposer.</p>' },
 
 { id:"veilles", titre:"Veilles", vues:["veilles"], html:
@@ -116,7 +134,7 @@ var A = window.AIDE = [
 +'<h4>Lire les fiches</h4>'
 +'<p>Les fiches non lues sont signalées par une pastille sur l’onglet. Sur chaque élément : <b>→ Idée à creuser</b> le dépose dans le Cristallisoir, '
 +'<b>→ Activité à faire</b> crée une activité. Quand Claude a fait une suggestion, le bouton correspondant est mis en avant.</p>'
-+'<p class="pa-astuce">Offres France Travail : créez un accès gratuit sur francetravail.io (API « Offres d’emploi v2 ») et saisissez l’identifiant et la clé dans Données → Réglages, sur l’appareil ou le serveur qui exécute la veille.</p>' },
++'<p class="pa-astuce">Offres France Travail : créez un accès gratuit sur francetravail.io (API « Offres d’emploi v2 ») et saisissez l’identifiant et la clé dans Options → Réglages, sur l’appareil ou le serveur qui exécute la veille.</p>' },
 
 { id:"partage", titre:"Partage à plusieurs", vues:[], html:
  '<p>Partagez des idées et des activités avec une autre personne, qui garde sa propre installation : ses données privées restent chez elle, les vôtres chez vous.</p>'
@@ -124,7 +142,7 @@ var A = window.AIDE = [
 +'<li>Un <b>espace partagé</b> est hébergé par votre serveur et <b>chiffré de bout en bout</b> : le serveur ne voit que des fiches illisibles.</li>'
 +'<li>Une idée ou une activité partagée est une <b>fiche vivante</b> : la même pour tous les membres, chacun peut la modifier.</li>'
 +'<li>Si deux personnes modifient deux champs différents d’une même fiche, les deux modifications sont gardées. Pour un même champ, la plus récente l’emporte, et l’autre valeur est conservée dans le journal des conflits.</li></ul>'
-+'<h4>Mettre en place (application de bureau, onglet Données, bloc Partage)</h4><ol>'
++'<h4>Mettre en place (application de bureau, onglet Options, bloc Partage)</h4><ol>'
 +'<li>Choisissez votre <b>nom affiché</b> et une couleur.</li>'
 +'<li><b>Créer un espace</b> (votre synchronisation doit être configurée : votre serveur hébergera l’espace, joignable en HTTPS).</li>'
 +'<li><b>Inviter une personne</b> (ou en <b>lecture seule</b>, ou <b>votre autre appareil</b>) : un lien à usage unique, valable 7 jours, à transmettre par un canal sûr.</li>'
@@ -147,16 +165,16 @@ var A = window.AIDE = [
 +'<h4>Synchronisation entre vos appareils</h4>'
 +'<p>Dans le bloc <b>Synchronisation</b> : l’adresse de votre serveur et son jeton. Ensuite, tout se synchronise fiche par fiche, toutes les 30 secondes et après chaque modification. '
 +'Hors connexion, chaque appareil continue de fonctionner et se resynchronise au retour.</p>'
-+'<p>Le jeton doit être <b>défini sur le serveur</b> (Données → Réglages du serveur, ou SYNC_TOKEN) et saisi à l’identique dans chaque application ; le mot de passe de l’interface web ne sert pas à la synchronisation. '
++'<p>Le jeton doit être <b>défini sur le serveur</b> (Options → Réglages du serveur, ou SYNC_TOKEN) et saisi à l’identique dans chaque application ; le mot de passe de l’interface web ne sert pas à la synchronisation. '
 +'En cas de refus, le bloc Synchronisation affiche le motif exact : pas de jeton sur le serveur, jeton différent, authentification imposée par un proxy devant le serveur, page web au lieu du serveur.</p>'
-+'<p class="pa-astuce">Depuis un navigateur, le serveur demande l’identifiant et le mot de passe sur sa <b>page de connexion</b> ; la session dure 30 jours. « Se déconnecter » se trouve dans Données → Réglages du serveur.</p>'
++'<p class="pa-astuce">Depuis un navigateur, le serveur demande l’identifiant et le mot de passe sur sa <b>page de connexion</b> ; la session dure 30 jours. « Se déconnecter » se trouve dans Options → Réglages du serveur.</p>'
 +'<p>Le <b>journal des conflits</b> garde la valeur écartée quand un même champ a été modifié sur deux appareils ; « Remettre l’écartée » la rétablit.</p>'
 +'<h4>Réglages</h4>'
 +'<p>« Modifier les réglages » : mot de passe et jeton du serveur, jeton Claude Code, rythmes des sauvegardes, identifiants France Travail. '
 +'Ils sont appliqués sans redémarrage et ne sont jamais réaffichés en clair.</p>' },
 
 { id:"reglages", titre:"Paramètres, catégories et listes", vues:["param"], html:
- '<p>Les <b>Paramètres</b> (depuis Données) adaptent l’application à votre vie :</p><ul>'
+ '<p>Les <b>Paramètres</b> (depuis Options) adaptent l’application à votre vie :</p><ul>'
 +'<li><b>Catégories d’activité</b> : nom, couleur, symbole, champs propres, statuts. Elles servent aussi aux idées.</li>'
 +'<li><b>Rubriques</b> : pour rattacher le temps passé qui ne relève d’aucune activité (maison, administratif, formation…).</li>'
 +'<li><b>Listes</b> : types de note, natures, catégories d’organisation… Dans une liste déroulante, « + Ajouter à la liste… » ajoute une valeur sans passer par ici.</li>'
@@ -166,10 +184,10 @@ var A = window.AIDE = [
  '<p>Claude cristallise vos idées et enrichit vos veilles. Il fonctionne avec votre <b>abonnement claude.ai</b> (Pro ou Max), sans compte API payant.</p>'
 +'<h4>Deux façons de l’utiliser</h4><dl>'
 +'<dt>Claude Code (automatique)</dt><dd>Installez Claude Code sur l’ordinateur (ou le serveur) et connectez-le à votre compte : '
-+'<code>claude</code> puis <code>/login</code>, ou un jeton obtenu avec <code>claude setup-token</code>, à saisir dans Données → Réglages. '
++'<code>claude</code> puis <code>/login</code>, ou un jeton obtenu avec <code>claude setup-token</code>, à saisir dans Options → Réglages. '
 +'Les demandes partent ensuite toutes seules.</dd>'
 +'<dt>Copier-coller</dt><dd>Sans Claude Code : la demande s’affiche, vous la collez dans une conversation claude.ai, puis vous collez la réponse dans l’application.</dd></dl>'
-+'<p>Le choix et le test de connexion se font dans <b>Données → Idées et Claude → Connexion à Claude</b>. Le modèle Haiku est le plus économe en quota, Opus le plus approfondi.</p>'
++'<p>Le choix et le test de connexion se font dans <b>Options → Idées et Claude → Connexion à Claude</b>. Le modèle Haiku est le plus économe en quota, Opus le plus approfondi.</p>'
 +'<p class="pa-astuce">Pour les veilles exécutées par le serveur, Claude Code doit être connecté sur le serveur ; pour celles exécutées par un appareil, sur cet appareil.</p>' },
 
 { id:"pause", titre:"Pauses", vues:[], html:
@@ -190,12 +208,12 @@ var A = window.AIDE = [
  '<dl>'
 +'<dt>« Hors ligne, gardé dans ce navigateur »</dt><dd>Le serveur ne répond pas. Continuez : vos saisies sont gardées et envoyées automatiquement au retour de la connexion.</dd>'
 +'<dt>« Conflit : données modifiées ailleurs »</dt><dd>Les données ont changé sur un autre appareil ou onglet pendant votre saisie. Choisissez de recharger la version du serveur ou de garder la vôtre ; l’autre reste dans l’historique des versions.</dd>'
-+'<dt>Claude ne répond pas</dt><dd>Vérifiez la connexion dans Données → Idées et Claude (« Tester la connexion »). Si Claude Code n’est pas installé ou pas connecté, utilisez le copier-coller.</dd>'
++'<dt>Claude ne répond pas</dt><dd>Vérifiez la connexion dans Options → Idées et Claude (« Tester la connexion »). Si Claude Code n’est pas installé ou pas connecté, utilisez le copier-coller.</dd>'
 +'<dt>Une veille ne trouve rien</dt><dd>Ouvrez-la et cliquez « Tester » : vous verrez combien d’éléments sont collectés et combien passent les filtres. Les filtres trop stricts sont la cause la plus fréquente ; une source en erreur est signalée en rouge.</dd>'
-+'<dt>Je ne reçois pas les notifications</dt><dd>Elles n’apparaissent que si l’application est en arrière-plan. Vérifiez la case dans Données → Partage, et l’autorisation des notifications dans votre système.</dd>'
++'<dt>Je ne reçois pas les notifications</dt><dd>Elles n’apparaissent que si l’application est en arrière-plan. Vérifiez la case dans Options → Partage, et l’autorisation des notifications dans votre système.</dd>'
 +'<dt>Où sont mes données ?</dt><dd>Dans l’application de bureau : menu Fichier → « Ouvrir le dossier des données ». Sur le serveur : dans le volume Docker <code>pilot-data</code>. '
-+'Le chemin exact est affiché dans Données → Réglages.</dd>'
-+'<dt>J’ai supprimé quelque chose par erreur</dt><dd>Données → Historique des versions : choisissez une version d’avant la suppression et restaurez-la.</dd>'
++'Le chemin exact est affiché dans Options → Réglages.</dd>'
++'<dt>J’ai supprimé quelque chose par erreur</dt><dd>Options → Historique des versions : choisissez une version d’avant la suppression et restaurez-la.</dd>'
 +'</dl>' }
 ];
 

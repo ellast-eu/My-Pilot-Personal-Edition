@@ -4,6 +4,13 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+### Modifications
+- **Base My Pilot Pro 3.38.0** (au lieu de 3.33.0). Ce que la pro apporte : **suivi de projet** (désactivé par défaut ; onglet **Projets**, jalons choisis parmi les événements et les tâches, avancement calculé, échéance qui ne se reporte pas sans motif, bloc « Projets à surveiller » sur l'écran du jour), événements datés sur les activités avec leurs **types d'événement**, réglage du format des dates, boutons d'ajout dans l'en-tête de chaque section de la fiche.
+  - `scripts/build_pilot.py` : 45 patchs, appliqués l'un après l'autre sans échec ni doublon. L'ancre des listes est accrochée par la **fin** du tableau (la 3.35 a ajouté une entrée en tête) et limitée à une suite de paires `["clé","libellé"]`, pour qu'aucun autre code ne puisse être englobé.
+  - Listes modifiables : **Types d'événement** ajoutés.
+  - Aide : rubrique **Projets** (F1 depuis l'onglet).
+- L'onglet **Données s'appelle Options**, comme dans la pro depuis sa 3.36 : l'aide, les messages de l'application et du serveur, le README et la documentation suivent.
+
 ## [0.18.0] - 2026-10-30
 
 ### Modifications

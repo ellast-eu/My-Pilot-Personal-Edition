@@ -214,7 +214,7 @@ function envoyer(raison,forcer){
       else if((Sync.gen||0)===genEnvoi){ sale=false; poserSync(null) }
       /* sinon (saisie en cours) : on garde l'ancienne base ; le prochain envoi refusionnera,
          et suivreServeur() reprendra la version fusionnée dès que la saisie sera terminée */
-      if(r.body.conflicts) toast(r.body.conflicts+" fiche(s) modifiée(s) aussi ailleurs : votre saisie a été gardée (voir Données, Synchronisation)",true);
+      if(r.body.conflicts) toast(r.body.conflicts+" fiche(s) modifiée(s) aussi ailleurs : votre saisie a été gardée (voir Options, Synchronisation)",true);
       return true;
     }
     Sync.rev=r.body.rev;
@@ -303,8 +303,8 @@ majEtat=function(){
   t.title=Sync.erreur||"";
 };
 
-/* bloc de la vue Données */
-/* ---- vue Données : diagnostic, journal des versions et listes du pilotage personnel ---- */
+/* bloc de la vue Options */
+/* ---- vue Options : diagnostic, journal des versions et listes du pilotage personnel ---- */
 window.persoDiagnostic=function(){
   var etat={ok:["ok","synchronisé"],horsligne:["ko","hors ligne"],conflit:["ko","en conflit"],init:["","connexion…"]}[Sync.etat]||["",""];
   var loc=localDispo(), ko=Math.round(JSON.stringify(D).length/1024);
@@ -331,7 +331,7 @@ window.persoListes=function(){
       if(f.type==="liste" && f.liste && !vus[f.liste]){ vus[f.liste]=1; l.push([f.liste,f.lib+" ("+K.plur+")"]) }
     });
   });
-  [["types_note","Types de note (journal)"],["categories_org","Catégories d'organisation"],["civilites","Civilités"],
+  [["types_evenement","Types d'événement"],["types_note","Types de note (journal)"],["categories_org","Catégories d'organisation"],["civilites","Civilités"],
    ["types_relation","Types de relation (libellé|réciproque)"]].forEach(function(x){ if(!vus[x[0]]){ vus[x[0]]=1; l.push(x) } });
   return l;
 };
@@ -457,7 +457,7 @@ function genererJeton(){
   var e=$("#rg_sync_token"); if(!e) return;
   e.type="text"; e.value=t; e.select();
   var n=$("#rg_gen_note");
-  if(n) n.textContent="Copiez ce jeton maintenant : il ne sera plus affiché. Saisissez-le ensuite dans chaque application (Données → Synchronisation).";
+  if(n) n.textContent="Copiez ce jeton maintenant : il ne sera plus affiché. Saisissez-le ensuite dans chaque application (Options → Synchronisation).";
   try{ navigator.clipboard.writeText(t).then(function(){ if(n) n.textContent="Jeton copié dans le presse-papiers. "+n.textContent },function(){}) }catch(x){}
 }
 /* premier accès à un serveur sans mot de passe : on le fait choisir avant tout */
@@ -729,10 +729,10 @@ function inviter(espace,role){
       '<textarea id="ptLien" readonly style="width:100%;height:96px;font-family:var(--data);font-size:12.5px;word-break:break-all">'+esc(r.lien)+'</textarea>'
       +'<div class="ligne" style="margin-top:8px"><button class="b" data-pt="copier-lien">Copier le lien</button><span id="ptRes" class="note-aide" role="status" style="margin:0"></span></div>'
       +'<div class="note-aide">'
-        +(autre?'Sur votre autre appareil : Données → Partage → « Rejoindre un espace », puis collez ce lien. Il deviendra propriétaire de l\'espace comme celui-ci.'
+        +(autre?'Sur votre autre appareil : Options → Partage → « Rejoindre un espace », puis collez ce lien. Il deviendra propriétaire de l\'espace comme celui-ci.'
           :(lect?'Cette personne pourra tout lire dans l\'espace mais rien y modifier. ':'')
            +'Envoyez ce lien à la personne par un canal que vous jugez sûr (messagerie chiffrée, de vive voix…). '
-           +'Elle le colle dans son application : Données → Partage → « Rejoindre un espace ».')
+           +'Elle le colle dans son application : Options → Partage → « Rejoindre un espace ».')
         +' Le lien sert une seule fois et expire le '+esc(new Date(r.expires_at).toLocaleDateString("fr-FR"))+'. '
         +'La clé de l\'espace est remise automatiquement à la prochaine synchronisation de cet appareil, après vérification que l\'arrivant détient bien ce lien.</div>',
       [{txt:"Fermer",droite:true,fn:function(){ fermerModale(); majPartage() }}]);
@@ -1122,7 +1122,7 @@ var MODELES_VEILLE=[
   {cle:"cve",nom:"Point CVE",desc:"Avis et alertes du CERT-FR et failles activement exploitées (CISA), filtrés sur vos logiciels (liste à compléter).",v:{nom:"Point CVE",sources:[{nom:"CERT-FR avis",url:"https://cert.ssi.gouv.fr/avis/feed/"},{nom:"CERT-FR alertes",url:"https://cert.ssi.gouv.fr/alerte/feed/"},{type:"kev",nom:"CISA KEV",jours:30}],filtres:{inclure:"debian, linux, openssh, node.js, electron, firefox, qubes, xen",ageHeures:72,max:40},rythme:{type:"jour",heure:"07:30"}}},
   {cle:"kev",nom:"Failles exploitées",desc:"Catalogue CISA des failles activement exploitées (KEV) : ce qui est attaqué en ce moment.",v:{nom:"Failles exploitées",sources:[{type:"kev",nom:"CISA KEV",jours:7}],filtres:{ageHeures:0,max:40},rythme:{type:"jour",heure:"07:30"}}},
   {cle:"nvd",nom:"CVE critiques",desc:"Nouvelles CVE publiées par le NIST (NVD), score CVSS 9 ou plus.",v:{nom:"CVE critiques",sources:[{type:"nvd",nom:"NVD",jours:2}],filtres:{scoreMin:9,ageHeures:0,max:40},rythme:{type:"jour",heure:"07:30"}}},
-  {cle:"emploi",nom:"Offres d'emploi",desc:"Offres France Travail sur vos mots-clés, contrat de professionnalisation ou CDI (identifiants francetravail.io à saisir dans Données → Réglages).",
+  {cle:"emploi",nom:"Offres d'emploi",desc:"Offres France Travail sur vos mots-clés, contrat de professionnalisation ou CDI (identifiants francetravail.io à saisir dans Options → Réglages).",
     v:{nom:"Offres d'emploi",sources:[{type:"francetravail",nom:"France Travail",motsCles:"administrateur systèmes, admin sys, MCO, purple team, red team, pentest, audit sécurité, OSINT",departement:"69",jours:7}],
       filtres:{contrats:"professionnalisation, CDI",ageHeures:0,max:50},rythme:{type:"jour",heure:"08:00"},
       claude:{noter:true,critere:"proche de mon profil : alternance en administration d'infrastructures sécurisées, cybersécurité (pentest, red/purple team, audit, OSINT, MCO)",seuil:2,resumer:true,actions:true,modele:"haiku",plafond:4}}}
@@ -1288,7 +1288,7 @@ function majEtatClaudeVeille(){
   var exe=($("#veExe")||{}).value;
   if(VE.info && exe===VE.info.executeur){
     api("claude/status").then(function(r){ var ok=r.ok&&r.body.available; z.innerHTML=ok?'<b style="color:var(--vert)">Claude Code est prêt ici.</b>'
-      :'<b style="color:var(--rouge)">Claude Code n\'est pas disponible ici</b> : la veille tournera sans ces opérations (voir Données, Idées et Claude).' });
+      :'<b style="color:var(--rouge)">Claude Code n\'est pas disponible ici</b> : la veille tournera sans ces opérations (voir Options, Idées et Claude).' });
   } else z.textContent="Claude Code doit être installé et connecté sur l'exécutant choisi ; sinon la veille tourne sans ces opérations.";
 }
 function rendreSources(){
@@ -1310,7 +1310,7 @@ function rendreSources(){
       +'<div id="veSrc'+i+'" class="note-aide" style="flex-basis:100%;margin:2px 0 0"></div></div>';
   }).join(""):'<div class="note-aide" style="margin:0">Aucune source : ajoutez l\'adresse d\'un flux RSS ou Atom (souvent signalé par l\'icône orange, ou en ajoutant /feed/ à l\'adresse d\'un site), ou une source spécialisée.</div>';
   if(v.sources.some(function(s){ return s.type==="francetravail" })) z.insertAdjacentHTML("beforeend",'<div class="note-aide" style="margin:2px 0 0">Offres France Travail : '
-    +'créez un accès gratuit sur francetravail.io (API « Offres d\'emploi v2 »), puis saisissez son identifiant et sa clé dans Données → Réglages, sur l\'appareil ou le serveur qui exécute la veille.</div>');
+    +'créez un accès gratuit sur francetravail.io (API « Offres d\'emploi v2 »), puis saisissez son identifiant et sa clé dans Options → Réglages, sur l\'appareil ou le serveur qui exécute la veille.</div>');
 }
 function majRythme(){
   var t=($("#veRyt")||{}).value||"jour";
@@ -1863,7 +1863,7 @@ function accueillir(){
     +'<li><b>Aujourd’hui</b> : votre journée, vos tâches et votre journal.</li>'
     +'<li><b>Idées</b> : déposez vos envies, Claude les transforme en projets.</li>'
     +'<li><b>Veilles</b> : l’information qui vous intéresse, triée chaque jour.</li>'
-    +'<li>Tout s’enregistre seul ; <b>Données</b> regroupe sauvegardes, synchronisation et réglages.</li></ul>'
+    +'<li>Tout s’enregistre seul ; <b>Options</b> regroupe sauvegardes, synchronisation et réglages.</li></ul>'
     +'<div class="note-aide">L’aide reste disponible à tout moment : bouton <b>Aide</b> en haut, ou touche F1.</div>',
     [{txt:"Plus tard",classe:"creux",fn:function(){ vu(); fermerModale() }},
      {txt:"Découvrir l’application",droite:true,fn:function(){ vu(); fermerModale(); if(window.ouvrirAide) window.ouvrirAide("prise-en-main") }}]);
@@ -1894,7 +1894,7 @@ api("health").then(function(h){
       ouvrirModale("Modifications hors ligne en concurrence",
         '<p style="margin:0 0 10px;font-size:14px">Des modifications faites dans ce navigateur sans connexion n\'ont pas pu être envoyées, '
         +'et le serveur a reçu d\'autres changements entre-temps. La version du serveur est affichée.</p>'
-        +'<div class="note-aide">Téléchargez votre version locale pour la comparer ou la réimporter (Données, Importer et fusionner).</div>',
+        +'<div class="note-aide">Téléchargez votre version locale pour la comparer ou la réimporter (Options, Importer et fusionner).</div>',
         [{txt:"Ignorer ma version locale",classe:"creux",fn:function(){ poserSync(null); fermerModale() }},
          {txt:"Télécharger ma version locale",classe:"",droite:true,fn:function(){
            telecharger("my-pilot-personal-edition-hors-ligne.json",copie); poserSync(null); fermerModale() }}]);

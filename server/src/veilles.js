@@ -304,12 +304,12 @@ export class Veilles {
   /** Jeton d'accès à l'API France Travail (identifiants saisis dans les réglages), gardé jusqu'à son expiration. */
   async jetonFranceTravail() {
     const id = this.reglage('ft_client_id'), secret = this.reglage('ft_client_secret');
-    if (!id || !secret) throw err('bad_request', 'Identifiants France Travail manquants : Données → Réglages (compte gratuit sur francetravail.io)');
+    if (!id || !secret) throw err('bad_request', 'Identifiants France Travail manquants : Options → Réglages (compte gratuit sur francetravail.io)');
     if (this.jetonFT && this.jetonFT.id === id && this.jetonFT.fin > Date.now() + 30000) return this.jetonFT.valeur;
     const corps = new URLSearchParams({ grant_type: 'client_credentials', client_id: id, client_secret: secret, scope: 'api_offresdemploiv2 o2dsoffre' }).toString();
     let r;
     try { r = JSON.parse(await telecharger(this.urls.ftJeton, { reseauLocal: this.reseauLocal, methode: 'POST', corps, entetes: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' } })); }
-    catch (e) { throw err('ft', e.code === 'http' ? 'France Travail refuse les identifiants (Données → Réglages)' : 'France Travail : ' + e.message); }
+    catch (e) { throw err('ft', e.code === 'http' ? 'France Travail refuse les identifiants (Options → Réglages)' : 'France Travail : ' + e.message); }
     if (!r.access_token) throw err('ft', 'France Travail : jeton non délivré');
     this.jetonFT = { id, valeur: r.access_token, fin: Date.now() + (+r.expires_in || 1400) * 1000 };
     return r.access_token;

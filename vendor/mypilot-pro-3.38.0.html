@@ -590,6 +590,11 @@ button.lien{
 }
 button.lien.danger{color:var(--rouge)}
 input,select,textarea{font-family:var(--corps);font-size:14px;color:var(--encre)}
+/* Un champ gele n'est pas un champ en panne : il montre une valeur calculee ailleurs.
+   Le fond mat et le curseur par defaut disent « a lire », pas « a remplir ». */
+input:disabled,select:disabled,textarea:disabled{
+  background:var(--beton-2);color:var(--encre-2);cursor:default;border-style:dashed;
+}
 input[type=text],input[type=date],input[type=time],input[type=number],input[type=search],select{
   padding:6px 8px;border:1px solid var(--trait);border-radius:2px;background:#fff;max-width:100%;
 }
@@ -733,6 +738,12 @@ tr.arch td b{font-weight:normal}
 .rcat-f{color:var(--encre-3)}
 .rcat-l select{padding:4px 6px;font-size:12.5px;max-width:190px}
 .ok{color:var(--vert)}.ko{color:var(--rouge)}
+.chp-fr{display:inline-flex;align-items:center;gap:4px}
+.chp-fr input{min-width:0}
+.fr-cal{border:1px solid var(--trait);background:var(--beton);border-radius:4px;
+  cursor:pointer;font-size:13px;line-height:1;padding:4px 6px;color:var(--encre-2)}
+.fr-cal:hover{background:var(--beton-2)}
+input.fr-faux{border-color:var(--rouge);background:rgba(200,30,30,.06)}
 .note-aide{font-size:12.5px;color:var(--encre-2);margin-top:6px}
 hr.sep{border:0;border-top:1px solid var(--trait);margin:18px 0}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -770,11 +781,12 @@ hr.sep{border:0;border-top:1px solid var(--trait);margin:18px 0}
     <button data-vue="jour" aria-current="true">Aujourd'hui</button>
     <button data-vue="suivant">Prochain jour ouvré</button>
     <button data-vue="calendrier">Calendrier</button>
+    <button data-vue="projets">Projets</button>
     <button data-vue="chantiers">Activités</button>
     <button data-vue="idees">Idées</button>
     <button data-vue="journal">Journal</button>
     <button data-vue="contacts">Contacts</button>
-    <button data-vue="donnees">Données</button>
+    <button data-vue="donnees">Options</button>
   </nav>
 </header>
 
@@ -798,7 +810,7 @@ hr.sep{border:0;border-top:1px solid var(--trait);margin:18px 0}
 "use strict";
 
 /* ================= etat ================= */
-var APP_VERSION = "3.33.0";
+var APP_VERSION = "3.38.0";
 
 /* ============================================================
    NOM DU POSTE — a modifier ici lors du deploiement sur un
@@ -848,6 +860,216 @@ function estClos(c){
   return estMarqueClos(c.statut,K.clos);
 }
 function estAnnule(c){ return (c && c.statut)==="annule" }
+
+/* ================= evenements =================
+   Une activite n'a plus UNE date mais une liste d'evenements : un dossier peut
+   avoir une visite, puis une reunion, puis une intervention. c.date, c.heure et
+   c.duree restent renseignees et portent l'evenement de reference — le prochain
+   a venir, ou le dernier passe s'il n'y en a plus. Une trentaine de fonctions
+   les lisaient (exports, rapport, tris, import) : elles continuent de marcher
+   sans rien savoir des evenements, et les ecrans qui gagnent a tous les montrer
+   passent par evenementsDu(). */
+var TYPES_EVT=["Rendez-vous","Intervention","Session","R\u00e9union","Visite","Point t\u00e9l\u00e9phonique"];
+var ETATS_EVT=[["prevu","Pr\u00e9vu"],["realise","R\u00e9alis\u00e9"],["annule","Annul\u00e9"],["reporte","Report\u00e9"]];
+/* la categorie d'origine dit le plus souvent de quoi il s'agit : on s'en sert pour
+   la reprise des activites deja datees, et comme proposition a la saisie. */
+var TYPE_EVT_PAR_CAT={chantier:"Intervention",convocation:"Rendez-vous",
+                      animation:"Session",transverse:"R\u00e9union"};
+
+function typesEvt(){
+  var p=D.parametres||(D.parametres={});
+  if(!estTableau(p.types_evenement) || !p.types_evenement.length) p.types_evenement=TYPES_EVT.slice();
+  return p.types_evenement;
+}
+function typeEvtDeCat(cle){
+  var t=TYPE_EVT_PAR_CAT[String(cle||"")];
+  if(t) return t;
+  var l=typesEvt();
+  return l.length?l[0]:"Rendez-vous";
+}
+function libEtatEvt(v){
+  var r=String(v||"prevu");
+  for(var i=0;i<ETATS_EVT.length;i++) if(ETATS_EVT[i][0]===r) return ETATS_EVT[i][1];
+  return r;
+}
+function evenements(c){
+  if(!c) return [];
+  if(!estTableau(c.evenements)) c.evenements=[];
+  return c.evenements;
+}
+/* un evenement annule ne compte ni pour le pilotage ni pour la date de reference :
+   il reste visible dans la fiche, parce qu'effacer une annulation efface l'histoire. */
+function evtVivant(e){ return !!e && e.statut!=="annule" }
+function evtNormaliser(e,cle){
+  e=e||{};
+  return {id:e.id||("e"+uid()),
+          date:dateValide(e.date)?e.date:"",
+          heure:String(e.heure||""),
+          duree:+e.duree||0,
+          type:String(e.type||typeEvtDeCat(cle)),
+          statut:String(e.statut||"prevu"),
+          libelle:String(e.libelle||""),
+          source:String(e.source||"")};
+}
+/* L'import ne connait qu'une date d'intervention : elle pilote UN evenement, le sien,
+   marque source:"import". Les evenements ajoutes a la main ne sont jamais touches —
+   sans cela, reimporter le fichier effacerait la reunion qu'on venait de poser. */
+function evtImport(c,date){
+  var l=evenements(c),e=null;
+  l.forEach(function(x){ if(x.source==="import") e=x });
+  if(!date){
+    if(e) c.evenements=l.filter(function(x){ return x!==e });
+  }else if(e){ e.date=date }
+  else{
+    var n=evtNormaliser({date:date,type:typeEvtDeCat(c.categorie)},c.categorie);
+    n.source="import"; l.push(n);
+  }
+  return syncDates(c);
+}
+function evtsTries(c){
+  return evenements(c).slice().sort(function(a,b){
+    return (String(a.date||"9999")+String(a.heure||"99:99"))
+      .localeCompare(String(b.date||"9999")+String(b.heure||"99:99"));
+  });
+}
+/* l'evenement de reference : le prochain non annule, a defaut le dernier passe.
+   C'est lui qui alimente c.date — donc le planning, les tris et les exports. */
+function evtReference(c){
+  var h=auj(), t=evtsTries(c).filter(function(e){ return e.date });
+  var l=t.filter(evtVivant);
+  /* s'il ne reste que des annulations, la date reste celle du dernier evenement :
+     une reunion annulee a quand meme eu lieu dans l'agenda, l'effacer de la liste
+     des activites la ferait passer pour jamais datee. Le pilotage, lui, ne regarde
+     que les evenements vivants — voir evtAVenir(). */
+  if(!l.length) return t.length?t[t.length-1]:null;
+  for(var i=0;i<l.length;i++) if(l[i].date>=h) return l[i];
+  return l[l.length-1];
+}
+function evtAVenir(c){
+  var h=auj();
+  return evtsTries(c).filter(function(e){ return evtVivant(e) && e.date && e.date>=h });
+}
+/* ================= projets =================
+   Voir l'en-tete du patch 3.38.0 pour les arbitrages. En deux mots : le jalon est
+   coche et non deduit, l'avancement est calcule et non saisi, l'echeance ne bouge
+   pas sans motif. */
+
+function projet(c){ return (c && c.projet && c.projet.actif===true) ? c.projet : null }
+function estProjet(c){ return !!projet(c) }
+
+function normaliserProjet(p){
+  if(!estObjet(p)) return null;
+  return {
+    actif: p.actif===true,
+    deadline: dateValide(p.deadline) ? p.deadline : "",
+    /* Un report sans motif n'est pas un report : on ne le garde pas, sinon
+       l'historique raconterait des deplacements que personne n'a justifies. */
+    reports: (estTableau(p.reports)?p.reports:[]).map(function(r){
+      return {le:dateValide(r.le)?r.le:"", de:dateValide(r.de)?r.de:"",
+              vers:dateValide(r.vers)?r.vers:"", motif:String((r&&r.motif)||"").trim()};
+    }).filter(function(r){ return r.motif && r.vers })
+  };
+}
+/* L'echeance d'origine est LUE dans l'historique, jamais stockee a part : deux
+   champs pour une meme verite finissent toujours par diverger. */
+function deadlineInitiale(p){
+  return (p && p.reports.length && p.reports[0].de) ? p.reports[0].de : (p?p.deadline:"");
+}
+
+/* ---- les jalons ---- */
+/* Un evenement coche (e.jalon) ou une tache cochee (n.suite.jalon). On rend une
+   forme commune pour que l'affichage n'ait pas a savoir d'ou vient l'etape. */
+function jalons(c){
+  var h=auj(), l=[];
+  evenements(c).forEach(function(e){
+    if(!e.jalon) return;
+    l.push({cle:"e:"+e.id, genre:"evenement",
+            libelle:(e.libelle||e.type||"Événement"), date:e.date||"",
+            valide:e.statut==="realise", annule:e.statut==="annule"});
+  });
+  (D.notes||[]).forEach(function(n){
+    if(n.chantier_id!==c.id) return;
+    var s=n.suite; if(!s || !s.texte || !s.jalon) return;
+    l.push({cle:"t:"+n.id, genre:"tache", libelle:s.texte,
+            date:s.echeance||"", valide:!!s.fait, annule:false});
+  });
+  l.forEach(function(j){ j.retard = !j.valide && !j.annule && !!j.date && j.date<h });
+  /* sans date en dernier : une etape non datee ne s'intercale nulle part */
+  return l.sort(function(a,b){
+    return (a.date||"9999-99-99").localeCompare(b.date||"9999-99-99");
+  });
+}
+/* Un jalon annule ne compte ni au numerateur ni au denominateur : il a ete retire
+   du projet, pas rate. */
+function avancement(c){
+  var l=jalons(c).filter(function(j){ return !j.annule });
+  var ok=0, tard=0;
+  l.forEach(function(j){ if(j.valide) ok++; if(j.retard) tard++ });
+  return {total:l.length, valides:ok, retard:tard,
+          pct: l.length ? Math.round(ok*100/l.length) : 0};
+}
+/* Tout ce qu'une ligne de projet a besoin de savoir, en un appel. */
+function etatProjet(c){
+  var p=projet(c), a=avancement(c), h=auj();
+  var fini = a.total>0 && a.valides===a.total;
+  return {p:p, a:a, fini:fini,
+          depasse: !!p.deadline && p.deadline<h && !fini,
+          /* negatif = il reste des jours, positif = l'echeance est passee */
+          jours: p.deadline ? joursEcartSigne(h,p.deadline) : null,
+          reports: p.reports.length,
+          initiale: deadlineInitiale(p)};
+}
+/* joursDepuis() plafonne a zero — utile ailleurs, inutilisable ici : un projet a
+   besoin de savoir combien de jours il lui RESTE. */
+function joursEcartSigne(de,vers){
+  var a=new Date(de+"T00:00:00"), b=new Date(vers+"T00:00:00");
+  return Math.round((b-a)/86400000);
+}
+
+/* Les projets vivants, les plus urgents d'abord : depasses, puis par echeance, puis
+   ceux qui n'en ont pas encore. */
+function projets(){
+  return (D.chantiers||[]).filter(function(c){
+    return estProjet(c) && !estArchive(c) && !estAnnule(c);
+  }).sort(function(x,y){
+    var a=etatProjet(x), b=etatProjet(y);
+    if(a.fini!==b.fini) return a.fini?1:-1;
+    if(a.depasse!==b.depasse) return a.depasse?-1:1;
+    var da=a.p.deadline||"9999-99-99", db=b.p.deadline||"9999-99-99";
+    if(da!==db) return da.localeCompare(db);
+    return String(x.libelle||"").localeCompare(String(y.libelle||""));
+  });
+}
+/* Ce qui merite d'apparaitre sur l'ecran du jour : ce qui est depasse, ce qui arrive
+   sous huit jours, ou ce qui traine un jalon en retard. Le reste vit dans l'onglet. */
+function projetsARisque(){
+  return projets().filter(function(c){
+    var e=etatProjet(c);
+    if(e.fini) return false;
+    return e.depasse || e.a.retard>0 || (e.jours!==null && e.jours<=8);
+  });
+}
+
+/* ---- la barre ---- */
+function fragJauge(a){
+  return '<div class="jauge'+(a.pct>=100?" atteint":"")+'" role="img"'
+    +' aria-label="'+a.valides+' jalon(s) validé(s) sur '+a.total+'">'
+    +'<i style="width:'+a.pct+'%"></i></div>';
+}
+function libJalons(a){
+  if(!a.total) return "aucun jalon";
+  return a.valides+" / "+a.total+" jalon"+(a.total>1?"s":"")
+    +(a.retard?" · "+a.retard+" en retard":"");
+}
+
+/* a appeler apres toute modification de la liste : c.date suit, jamais l'inverse. */
+function syncDates(c){
+  if(!c) return c;
+  var e=evtReference(c);
+  if(e){ c.date=e.date; c.heure=e.heure||""; c.duree=+e.duree||0 }
+  else { c.date=""; c.heure=""; }
+  return c;
+}
 function classeStatut(c){
   if(estClos(c)) return "vert";
   var v=String(c&&c.statut||"");
@@ -1119,6 +1341,7 @@ function vierge(){
     parametres:{
       jours_ouvres:[1,2,3,4,5],absences:[],
       types_intervention:TYPES_DEFAUT.slice(),
+      types_evenement:TYPES_EVT.slice(),
       motifs_appel:MOTIFS_APPEL.slice(),
       rubriques:RUBRIQUES_DEFAUT.map(function(r){return {id:r.id,nom:r.nom,famille:r.famille,auto:r.auto}}),
       motifs_convocation:MOTIFS_CONVOC.slice(),
@@ -1136,6 +1359,7 @@ function vierge(){
       types_relation:TYPES_REL.slice(),
       categories_org:["Entreprise de travaux","Collectivité","Syndic / bailleur","Concessionnaire","Service interne","Particulier","Autre"],
       gestionnaire:"",
+      format_date:"auto",
       categories:categoriesDefaut(),
       nom_app:NOM_DEFAUT,
       titre_dtdict:"Compteur de traitement",
@@ -1271,9 +1495,26 @@ function desarchiver(c){
   return true;
 }
 function chantiersActifs(){ return D.chantiers.filter(function(c){ return !estArchive(c) }) }
+/* Une vue d'activite pour un evenement donne : une copie de surface ou date, heure et
+   duree sont celles de l'evenement. Tout ce qui lisait c.date continue de fonctionner,
+   et un dossier qui porte trois evenements le meme jour apparait trois fois — ce qui
+   est le but : c'est trois choses a faire, pas une. */
+function vueEvt(c,e){
+  var o={},k;
+  for(k in c) if(c.hasOwnProperty(k)) o[k]=c[k];
+  o.date=e.date; o.heure=e.heure||""; o.duree=+e.duree||0;
+  o.evt=e; o.evt_type=e.type; o.evt_statut=e.statut;
+  return o;
+}
 function chantiersDu(date){
-  return D.chantiers.filter(function(c){return c.date===date && !estArchive(c)})
-    .sort(function(a,b){return (a.heure||"99:99").localeCompare(b.heure||"99:99")});
+  var out=[];
+  (D.chantiers||[]).forEach(function(c){
+    if(estArchive(c)) return;
+    evenements(c).forEach(function(e){
+      if(e.date===date && evtVivant(e)) out.push(vueEvt(c,e));
+    });
+  });
+  return out.sort(function(a,b){return (a.heure||"99:99").localeCompare(b.heure||"99:99")});
 }
 function notesDu(date){
   return D.notes.filter(function(n){return n.date===date})
@@ -1471,6 +1712,23 @@ function fragBlocSansTrace(){
    Le parametre « sansLesSansTrace » sert au bloc du jour : ce qui est deja reclame
    par « Passees sans trace » n'a pas a etre reclame deux fois sur le meme ecran. Le
    filtre des Activites et le rapport, eux, prennent la definition entiere. */
+/* Ce qui pilote une activite, en un seul endroit : "tache", "evenement", ou "" si
+   rien ne la ramenera jamais sous les yeux. nonPilotes() travaille sur un lot et se
+   prepare une table des taches ouvertes ; la fiche, elle, n'en regarde qu'une. Les
+   deux passent par ici, pour qu'aucun message ne puisse plus decrire une regle
+   differente de celle qui est appliquee. */
+function pilotePar(c,aTache){
+  if(aTache) return "tache";
+  if(evtAVenir(c).length) return "evenement";
+  return "";
+}
+/* La meme question pour UNE activite. Couteux sur un lot — d'ou la table dans
+   nonPilotes() — mais exact, et c'est ce qu'il faut a un message de fiche. */
+function aTacheOuverte(c){
+  return (D.notes||[]).some(function(n){
+    return n.chantier_id===c.id && n.suite && n.suite.texte && !n.suite.fait;
+  });
+}
 function nonPilotes(sansLesSansTrace){
   var h=auj(), aTache={}, deja={};
   (D.notes||[]).forEach(function(n){
@@ -1479,8 +1737,9 @@ function nonPilotes(sansLesSansTrace){
   if(sansLesSansTrace) sansTraceListes().ouvertes.forEach(function(c){ deja[c.id]=1 });
   return (D.chantiers||[]).filter(function(c){
     if(estArchive(c) || estClos(c) || estAnnule(c)) return false;
-    if(aTache[c.id]) return false;
-    if(c.date && c.date>=h) return false;
+    /* 3.35.0 : ce n'est plus la date unique qui pilote, mais un evenement a venir et
+       non annule. Un dossier dont la seule reunion a ete annulee redevient a piloter. */
+    if(pilotePar(c,aTache[c.id])) return false;
     if(deja[c.id]) return false;
     return true;
   }).sort(function(x,y){
@@ -1519,8 +1778,8 @@ function fragBlocNonPilotes(){
     +'<div class="bloc-tete"><h2>Dossiers non pilotés</h2>'
       +'<span class="compte">'+l.length+'</span></div>'
     +'<div class="bloc-corps">'
-      +'<div class="note-aide" style="margin:0 0 10px">Ni tâche en attente, ni date à venir : '
-      +'rien ne les ramènera sous vos yeux. Posez une suite à donner, ou une date.</div>'
+      +'<div class="note-aide" style="margin:0 0 10px">Ni tâche en attente, ni événement à venir : '
+      +'rien ne les ramènera sous vos yeux. Posez une suite à donner, ou un événement.</div>'
       +lignes
       +(l.length>MAX
         ? '<div class="ligne" style="margin-top:10px">'
@@ -1800,12 +2059,17 @@ function appliquerTexte(texte,mode){
   var pb=validerDonnees(o);
   if(pb){ toast("Fichier refusé — "+pb+" Vos données actuelles sont intactes.",true); return }
   if(mode==="fusionner"){
+    /* Le fichier absorbe doit subir exactement la meme reprise que s'il remplacait
+       tout : sinon une sauvegarde d'avant la 3.35.0 entre ici avec des activites
+       datees mais sans evenement — invisibles au planning, et dedatees au premier
+       enregistrement de leur fiche. On normalise, puis on fusionne le resultat. */
+    var on=normaliser(o);
     var vusC={},vusN={};
     D.chantiers.forEach(function(c){vusC[c.id]=1});
     D.notes.forEach(function(n){vusN[n.id]=1});
     var ajC=0,ajN=0;
-    (o.chantiers||[]).forEach(function(c){ if(!vusC[c.id]){D.chantiers.push(c);ajC++} });
-    (o.notes||[]).forEach(function(n){ if(!vusN[n.id]){D.notes.push(n);ajN++} });
+    (on.chantiers||[]).forEach(function(c){ if(!vusC[c.id]){D.chantiers.push(c);ajC++} });
+    (on.notes||[]).forEach(function(n){ if(!vusN[n.id]){D.notes.push(n);ajN++} });
     toast("Fusion : "+ajC+" activité(s) et "+ajN+" note(s) ajoutées");
   }else{
     D=normaliser(o); M=D.carte;
@@ -1813,7 +2077,7 @@ function appliquerTexte(texte,mode){
     toast("Données remplacées : "+D.chantiers.length+" activité(s), "+D.notes.length+" note(s)");
     if(ORPHELINS.n) setTimeout(function(){
       toast(ORPHELINS.n+" fiche(s) portaient une catégorie inconnue et ont été rattachées à "
-        +ORPHELINS.vers+" — voir Données",true);
+        +ORPHELINS.vers+" — voir Options",true);
     },900);
   }
   modifie(); rendre();
@@ -1841,9 +2105,12 @@ function normaliser(o){
   v.parametres.civilites=p.civilites||CIVILITES.slice();
   v.parametres.actes_prevention=estTableau(p.actes_prevention)?p.actes_prevention.map(String):[];
   v.parametres.types_dossier=p.types_dossier||TYPES_DOSSIER.slice();
+  v.parametres.types_evenement=(estTableau(p.types_evenement)&&p.types_evenement.length)
+    ? p.types_evenement.map(String) : TYPES_EVT.slice();
   v.parametres.types_relation=p.types_relation||TYPES_REL.slice();
   v.parametres.categories_org=p.categories_org||["Entreprise de travaux","Collectivité","Syndic / bailleur","Concessionnaire","Service interne","Particulier","Autre"];
   v.parametres.gestionnaire=(p.gestionnaire!=null)?p.gestionnaire:"";
+  v.parametres.format_date=(p.format_date==="fr")?"fr":"auto";
   v.parametres.categories=estTableau(p.categories)?p.categories.map(normaliserCat):categoriesDefaut();
   v.parametres.nom_app=String(p.nom_app||NOM_DEFAUT);
   v.parametres.titre_dtdict=String(p.titre_dtdict||"Compteur de traitement");
@@ -1874,6 +2141,25 @@ function normaliser(o){
     /* toujours une chaine : « absente » et « vide » doivent se comporter pareil */
     if(!dateValide(c.date)) c.date="";
     var Kx=_cles[c.categorie];
+    /* 3.35.0 : la date unique devient un premier evenement. On ne peut pas appeler
+       estClos() ici — D n'est pas encore affecte — donc on refait son calcul avec la
+       categorie locale, pour qu'une activite close parte avec un evenement realise. */
+    if(!estTableau(c.evenements)) c.evenements=[];
+    if(!c.evenements.length && c.date){
+      var _clos=Kx?estMarqueClos(c.statut,Kx.clos):!!CLOS[c.statut];
+      c.evenements=[{id:"e"+uid(),date:c.date,heure:String(c.heure||""),duree:+c.duree||0,
+        type:(TYPE_EVT_PAR_CAT[String(c.categorie||"")]||"Rendez-vous"),
+        statut:(c.statut==="annule"?"annule":(_clos?"realise":"prevu")),libelle:""}];
+    }else{
+      c.evenements=c.evenements.map(function(e){
+        return {id:e.id||("e"+uid()),date:dateValide(e.date)?e.date:"",heure:String(e.heure||""),
+                duree:+e.duree||0,type:String(e.type||"Rendez-vous"),
+                statut:String(e.statut||"prevu"),libelle:String(e.libelle||""),
+                jalon:e.jalon===true,
+                source:String(e.source||"")};
+      }).filter(function(e){ return e.date });
+    }
+    c.projet=normaliserProjet(c.projet);
     if(Kx && Kx.miroir && c[Kx.miroir]) c.statut=c[Kx.miroir];
     /* la reecriture de statut heritee de la v1.17 est retiree : les categories etant
        desormais configurables, elle detruisait des statuts legitimes (« Terminé » mue
@@ -1897,6 +2183,19 @@ function normaliser(o){
     if(!aP) v.parametres.rubriques.push({id:"r-perm",nom:"Permanence téléphonique",famille:"regalien",auto:"appels"});
     v.parametres.mig_appels=true;
   }
+  /* la date derivee depend du jour courant : on la recalcule a chaque chargement,
+     sinon un dossier dont l'evenement est passe garderait une date de reference
+     perimee jusqu'a la prochaine saisie. */
+  v.chantiers.forEach(function(c){
+    var _t=(c.evenements||[]).filter(function(e){ return e.date })
+      .sort(function(a,b){ return (a.date+(a.heure||"")).localeCompare(b.date+(b.heure||"")) });
+    var _l=_t.filter(function(e){ return e.statut!=="annule" });
+    if(!_l.length) _l=_t;
+    if(!_l.length){ c.date=""; c.heure=""; return }
+    var _h=auj(), _r=_l[_l.length-1];
+    for(var i=0;i<_l.length;i++) if(_l[i].date>=_h){ _r=_l[i]; break }
+    c.date=_r.date; c.heure=_r.heure||""; c.duree=+_r.duree||0;
+  });
   v.carte=normaliserMenu(o.carte);
   var pm=o.permanence||{};
   v.permanence.actif=!!pm.actif;
@@ -2002,6 +2301,13 @@ function appelsDu(date){
     .sort(function(a,b){return (b.heure||"").localeCompare(a.heure||"")});
 }
 function vraisAppels(l){ return l.filter(function(a){return a.nature!=="verif"}) }
+/* Le rappel a pu etre renomme depuis : la cle fait foi, le motif note au moment
+   de la trace sert de secours pour les verifications d'avant la 3.32.0. */
+function nomVerification(a){
+  var r=null;
+  if(a.rappel) (rappels()||[]).forEach(function(x){ if(String(x.cle)===String(a.rappel)) r=x });
+  return r?r.nom:(a.motif||"vérification");
+}
 
 function bip(n){
   try{
@@ -2162,7 +2468,7 @@ function editerAppel(id){
   (D.appels||[]).forEach(function(x){ if(x.id===id) a=x });
   if(!a) return;
   var corps='<div class="grille">'
-   +'<label class="champ">Heure<input type="time" name="heure" value="'+esc(a.heure)+'"></label>'
+   +'<label class="champ">Heure'+inHeure('name="heure"',a.heure)+'</label>'
    +'<label class="champ">Qui appelle<input type="text" name="qui" value="'+esc(a.qui)+'"></label>'
    +'<label class="champ">Entreprise<input type="text" name="entreprise" value="'+esc(a.entreprise)+'"></label>'
    +'<label class="champ">Téléphone<input type="text" name="tel" value="'+esc(a.tel)+'"></label>'
@@ -2236,7 +2542,7 @@ function gererRappels(){
     {txt:"Ajouter un rappel",classe:"creux",fn:function(){
       lireRappels();
       rappels().push({cle:"r"+uid(),nom:"Nouveau rappel",aide:"",minutes:15,actif:true,dernier:hNow(),alerte:false});
-      $("#modCorps").innerHTML=fragRappels();
+      $("#modCorps").innerHTML=fragRappels(); armerChampsFr($("#modCorps"));
     }},
     {txt:"Annuler",fn:fermerModale},
     {txt:"Enregistrer",classe:"",droite:true,fn:function(){
@@ -2878,10 +3184,11 @@ function saisirDate(question,defaut){
     d.className="saisie-val";
     d.innerHTML='<div class="mod-tete"><h3>'+esc(question)+'</h3>'
       +'<button class="mod-fermer" data-s="non" title="Annuler">\u2715</button></div>'
-      +'<div class="mod-corps"><input type="date" id="sdDate" style="width:100%"></div>'
+      +'<div class="mod-corps">'+inDate('id="sdDate" style="width:100%"',"")+'</div>'
       +'<div class="mod-pied"><button class="b creux" data-s="non">Annuler</button>'
       +'<div class="droite"><button class="b" data-s="oui">Valider</button></div></div>';
     document.body.appendChild(d);
+    armerChampsFr(d);        /* avant toute ecriture : e.value doit deja parler ISO */
     var e=d.querySelector("#sdDate"); e.value=defaut||"";
     function clore(v){ if(fait) return; fait=true; try{ d.close() }catch(x){} d.remove(); fin(v) }
     d.addEventListener("click",function(ev){
@@ -2902,6 +3209,7 @@ function saisirDate(question,defaut){
 function ouvrirModale(titre,corps,boutons){
   $("#modTitre").textContent=titre;
   $("#modCorps").innerHTML=corps;
+  armerChampsFr($("#modCorps"));
   var g="",dte="";
   actionsModale={};
   (boutons||[]).forEach(function(b,i){
@@ -2922,6 +3230,173 @@ function fermerModale(){ $("#modale").close() }
     if(!quitterFicheAutorise()) e.preventDefault();
   });
 })();
+/* ================= saisie des dates et des heures =================
+   Un <input type="date"> s'affiche dans la langue du NAVIGATEUR, pas dans celle de la
+   page : mesure faite, poser lang="fr" sur le document n'y change rien. Sur un poste
+   anglophone la saisie se lit mm/jj/aaaa et 02:30 PM — penible, et surtout une vraie
+   source d'erreur de date quand le jour est <= 12.
+
+   Plutot que d'imposer un format, on en fait un reglage (Options > Format des dates) :
+     « auto » — les champs natifs tels que le navigateur les rend. C'est le defaut :
+                rien ne bouge pour qui est deja en francais.
+     « fr »   — nos champs, jj/mm/aaaa et 24 h, le selecteur natif conserve derriere
+                un bouton (showPicker()), pour ne pas perdre le calendrier en route.
+
+   LE CONTRAT, et c'est lui qui rend ce changement petit : en mode « fr » le champ
+   visible est un <input type="text">, mais sa propriete .value rend et accepte
+   toujours de l'ISO aaaa-mm-jj (et hh:mm pour les heures). Les quelque soixante-dix
+   lectures de l'application — valChamp(), $("#fevDate").value, perDeb.value... — n'ont
+   donc pas une ligne a changer, et un futur champ date n'a rien a savoir de tout ceci. */
+
+var DESC_VAL=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value");
+function brutVal(e){ return DESC_VAL.get.call(e) }        /* le texte reellement tape */
+function poserBrut(e,t){ DESC_VAL.set.call(e,t) }
+
+function fmtDate(){
+  return (typeof D!=="undefined" && D && D.parametres && D.parametres.format_date==="fr")
+    ? "fr" : "auto";
+}
+
+/* ISO <-> jj/mm/aaaa. Toute valeur illisible rend "" : un champ a moitie tape ne doit
+   jamais produire une date fausse — c'est exactement ce que fait un champ natif. */
+function jmaDe(iso){
+  return dateValide(iso) ? (iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(0,4)) : "";
+}
+function isoDeJma(t){
+  var s=String(t==null?"":t).trim();
+  if(!s) return "";
+  if(dateValide(s)) return s;                 /* deja de l'ISO : on laisse passer */
+  var j,mo,an;
+  var m=/^(\d{1,2})\s*[\/.\- ]\s*(\d{1,2})(?:\s*[\/.\- ]\s*(\d{2}|\d{4}))?$/.exec(s);
+  if(m){ j=+m[1]; mo=+m[2]; an=m[3]; }
+  else{
+    /* la frappe rapide, sans separateur : 12112026 ou 121126 */
+    var c=s.replace(/\D/g,"");
+    if(c.length===8){ j=+c.slice(0,2); mo=+c.slice(2,4); an=c.slice(4) }
+    else if(c.length===6){ j=+c.slice(0,2); mo=+c.slice(2,4); an=c.slice(4) }
+    else return "";
+  }
+  if(an==null || an===""){ an=new Date().getFullYear() }
+  else { an=+an; if(an<100) an+=2000 }
+  if(!(j>=1 && j<=31 && mo>=1 && mo<=12)) return "";
+  var r=String(an)+"-"+String(mo).padStart(2,"0")+"-"+String(j).padStart(2,"0");
+  return dateValide(r) ? r : "";
+}
+/* Les heures : en 24 h le format affiche et le format interne coincident, seule la
+   tolerance de saisie change (14h30, 1430, 14:30, et « 9 » pour 09:00). */
+function hmValide(t){ return /^([01]\d|2[0-3]):[0-5]\d$/.test(String(t||"")) }
+function isoDeHm(t){
+  var s=String(t==null?"":t).trim();
+  if(!s) return "";
+  if(hmValide(s)) return s;
+  var h,mi;
+  var m=/^(\d{1,2})\s*[:hH.]\s*(\d{1,2})$/.exec(s);
+  if(m){ h=+m[1]; mi=+m[2] }
+  else{
+    var c=s.replace(/\D/g,"");
+    if(c.length===4){ h=+c.slice(0,2); mi=+c.slice(2) }
+    else if(c.length===3){ h=+c.slice(0,1); mi=+c.slice(1) }
+    else if(c.length===1 || c.length===2){ h=+c; mi=0 }
+    else return "";
+  }
+  if(!(h>=0 && h<=23 && mi>=0 && mi<=59)) return "";
+  return String(h).padStart(2,"0")+":"+String(mi).padStart(2,"0");
+}
+
+/* Les deux emetteurs. « attrs » reprend tels quels les attributs du champ d'origine
+   (name=, id=, style=, disabled, title...) : en aval, personne n'a a savoir quel mode
+   est actif. */
+function inDate(attrs,val){
+  var v=dateValide(val)?val:"";
+  if(fmtDate()==="auto") return '<input type="date" '+attrs+' value="'+esc(v)+'">';
+  var off=/\bdisabled\b/.test(attrs);
+  return '<span class="chp-fr">'
+    +'<input type="text" '+attrs+' value="'+esc(jmaDe(v))+'" data-fr="date"'
+      +' inputmode="numeric" maxlength="10" autocomplete="off" placeholder="jj/mm/aaaa">'
+    +(off?"":'<button type="button" class="fr-cal" data-fr-cal tabindex="-1"'
+      +' title="Choisir dans le calendrier" aria-label="Choisir dans le calendrier">▦</button>')
+    +'</span>';
+}
+function inHeure(attrs,val){
+  var v=hmValide(val)?val:"";
+  if(fmtDate()==="auto") return '<input type="time" '+attrs+' value="'+esc(v)+'">';
+  return '<input type="text" '+attrs+' value="'+esc(v)+'" data-fr="heure"'
+    +' inputmode="numeric" maxlength="5" autocomplete="off" placeholder="hh:mm"'
+    +' style="max-width:84px">';
+}
+
+/* L'armement : on redefinit .value SUR L'ELEMENT, ce qui masque l'accesseur du
+   prototype sans y toucher. Lire rend de l'ISO, ecrire accepte de l'ISO ; le texte
+   affiche, lui, reste francais. Un champ deja arme ne l'est pas deux fois. */
+function armerChampFr(e){
+  if(e.__fr) return; e.__fr=true;
+  var genre=e.getAttribute("data-fr");
+  var lire=(genre==="heure")?isoDeHm:isoDeJma;
+  var ecrire=(genre==="heure")?function(v){ return hmValide(v)?v:"" }
+                             :function(v){ return jmaDe(dateValide(v)?v:"") };
+  Object.defineProperty(e,"value",{configurable:true,
+    get:function(){ return lire(brutVal(e)) },
+    set:function(v){ poserBrut(e,ecrire(v)); marquerChampFr(e) }});
+  e.addEventListener("input",function(){ marquerChampFr(e) });
+  e.addEventListener("blur",function(){
+    /* A la sortie du champ on remet au propre ce qui est lisible — « 3/4 » devient
+       03/04/2026 — et on laisse tel quel ce qui ne l'est pas, en rouge : effacer la
+       frappe de quelqu'un sans prevenir est pire que de lui montrer l'erreur. */
+    var v=lire(brutVal(e));
+    if(v) poserBrut(e,(genre==="heure")?v:jmaDe(v));
+    marquerChampFr(e);
+  });
+  marquerChampFr(e);
+}
+function marquerChampFr(e){
+  var t=brutVal(e).trim(), mauvais=!!t && !e.value;
+  e.classList.toggle("fr-faux",mauvais);
+  e.setAttribute("aria-invalid",mauvais?"true":"false");
+}
+/* Un seul selecteur natif cache pour toute l'application : il ne sert qu'a ouvrir le
+   calendrier du navigateur et a reverser la date choisie dans le champ visible. */
+function selecteurNatif(){
+  var e=$("#frPick");
+  if(!e){
+    e=document.createElement("input");
+    e.type="date"; e.id="frPick"; e.tabIndex=-1; e.setAttribute("aria-hidden","true");
+    e.style.cssText="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0";
+    document.body.appendChild(e);
+    e.addEventListener("change",function(){
+      var c=e.__pour;
+      if(c && dateValide(e.value)){
+        c.value=e.value;
+        c.dispatchEvent(new Event("change",{bubbles:true}));
+      }
+    });
+  }
+  return e;
+}
+function ouvrirCalendrierFr(btn){
+  var c=btn.parentNode.querySelector('[data-fr="date"]'); if(!c) return;
+  var e=selecteurNatif();
+  e.__pour=c;
+  e.value=c.value||auj();
+  try{ e.showPicker() }
+  catch(err){ c.focus() }      /* navigateur sans showPicker : on rend la main au champ */
+}
+/* Les champs arrivent par innerHTML a des dizaines d'endroits — fiches, fenetres,
+   ilots rouverts en place. Plutot que de se souvenir de chacun, on observe le document :
+   c'est une seule regle, impossible a oublier dans un futur ecran. */
+function armerChampsFr(racine){
+  var r=racine||document;
+  if(r.querySelectorAll) [].forEach.call(r.querySelectorAll("[data-fr]"),armerChampFr);
+  if(r.nodeType===1 && r.hasAttribute && r.hasAttribute("data-fr")) armerChampFr(r);
+}
+function veillerChampsFr(){
+  if(!window.MutationObserver) return;
+  new MutationObserver(function(muts){
+    muts.forEach(function(m){
+      [].forEach.call(m.addedNodes,function(n){ if(n.nodeType===1) armerChampsFr(n) });
+    });
+  }).observe(document.documentElement,{childList:true,subtree:true});
+}
+
 function valChamp(n){ var e=$("#modCorps").querySelector('[name="'+n+'"]'); return e?e.value.trim():"" }
 
 /* ================= formulaires ================= */
@@ -2943,7 +3418,7 @@ function champHtml(f,v){
   var h;
   if(f.type==="liste" && f.liste) h=selGerable('name="'+f.cle+'"',f.liste,v);
   else if(f.type==="presence") h='<select name="'+f.cle+'">'+selOpts(PRESENCES,v||"attendu")+'</select>';
-  else if(f.type==="date") h='<input type="date" name="'+f.cle+'" value="'+esc(dateValide(v)?v:"")+'">';
+  else if(f.type==="date") h=inDate('name="'+esc(f.cle)+'"',dateValide(v)?v:"");
   else if(f.type==="nombre") h='<input type="number" name="'+f.cle+'" min="0" value="'+esc(v)+'">';
   else if(f.type==="texte_long") h='<textarea name="'+f.cle+'" style="width:100%;min-height:70px;padding:8px;border:1px solid var(--trait);border-radius:2px">'+esc(v)+'</textarea>';
   else h='<input type="text" name="'+f.cle+'" value="'+esc(v)+'">';
@@ -2962,7 +3437,7 @@ function blocsGroupes(c){
   });
   return h;
 }
-function formChantier(c){
+function formChantier(c,creation){
   c=c||{};
   var K=catDe(c),cat=c.categorie||"chantier";
   var spec=champsDe(cat).filter(function(f){return !f.groupe}).map(function(f){
@@ -2976,10 +3451,21 @@ function formChantier(c){
      n'a pas de propriete « date » du tout : proposer aujourd'hui faisait atterrir le
      dossier dans le planning du jour au premier enregistrement, sans rien demander.
      Une activite creee a la main, elle, recoit sa date a la creation (chantierNeuf). */
-  +'<label class="champ">Date<input type="date" name="date" value="'+esc(c.date||"")+'">'
-    +'<span class="note-aide" style="margin:2px 0 0">Vide : le dossier reste hors planning.</span></label>'
-  +'<label class="champ">Heure<input type="time" name="heure" value="'+esc(c.heure||"08:30")+'"></label>'
-  +'<label class="champ">Durée (min)<input type="number" name="duree" min="0" step="15" value="'+esc(c.duree||60)+'"></label>'
+  +(creation
+    ? '<label class="champ">Date'+inDate('name="date"',c.date||"")
+        +'<span class="note-aide" style="margin:2px 0 0">Vide : le dossier reste hors planning.</span></label>'
+      +'<label class="champ">Heure'+inHeure('name="heure"',c.heure||"08:30")+'</label>'
+      +'<label class="champ">Durée (min)<input type="number" name="duree" min="0" step="15" value="'+esc(c.duree||60)+'"></label>'
+      +'<label class="champ">Type d\'événement'+selGerable('name="evt_type"',"types_evenement",typeEvtDeCat(cat))+'</label>'
+    /* Sur une fiche existante, ces trois champs ne sont plus la source : ils affichent
+       l'evenement de reference et se modifient dans la liste, en dessous. Les laisser
+       saisissables rouvrirait la porte a deux verites pour une meme date. */
+    : '<label class="champ">Date'+inDate('name="date" disabled',c.date||"")
+        +'<span class="note-aide" style="margin:2px 0 0">'
+        +(c.date?'Prochain événement \u2014 modifiable dans la liste ci-dessous.'
+                :'Aucun événement : le dossier reste hors planning.')+'</span></label>'
+      +'<label class="champ">Heure'+inHeure('name="heure" disabled',c.heure||"")+'</label>'
+      +'<label class="champ">Durée (min)<input type="number" name="duree" value="'+esc(c.duree||0)+'" disabled></label>')
   +'<label class="champ">'+esc(K.champ)+selGerable('name="type"',K.liste,c.type)+'</label>'
   +'<label class="champ">'+esc(K.tiers)+'<input type="text" name="tiers" value="'+esc(c.tiers)+'"></label>'
   +'<label class="champ">Contact<input type="text" name="contact_nom" value="'+esc(c.contact_nom)+'"></label>'
@@ -3004,9 +3490,22 @@ function formChantier(c){
 function lireChantier(c){
   c.libelle=valChamp("libelle")||("Sans libellé");
   c.reference=valChamp("reference");
-  c.date=valChamp("date");
-  c.heure=valChamp("heure");
-  c.duree=+valChamp("duree")||0;
+  /* Les champs date/heure/duree sont desactives sur une fiche existante : c'est la
+     liste d'evenements qui fait foi, et syncDates() en deduit c.date. A la creation,
+     ils sont actifs et composent le premier evenement. */
+  var _ed=$("#modCorps").querySelector('[name="date"]');
+  if(_ed && !_ed.disabled){
+    var _d=_ed.value.trim(), _l=evenements(c);
+    if(_d){
+      var _e=_l[0]||evtNormaliser({},c.categorie);
+      _e.date=_d; _e.heure=valChamp("heure"); _e.duree=+valChamp("duree")||0;
+      _e.type=valChamp("evt_type")||_e.type||typeEvtDeCat(c.categorie);
+      if(!_l.length) _l.push(_e);
+    }else if(_l.length===1 && _l[0].statut==="prevu"){
+      c.evenements=[];      /* on vide la date a la creation : pas d'evenement du tout */
+    }
+  }
+  syncDates(c);
   c.type=valChamp("type");
   c.tiers=valChamp("tiers");
   c.contact_nom=valChamp("contact_nom");
@@ -3029,16 +3528,243 @@ function lireChantier(c){
 }
 function nouveauChantier(date,cat){
   cat=cat||"chantier";
-  var c={date:date||auj(),categorie:cat},K=catParCle(cat)||CATS_DEFAUT.chantier;
-  ouvrirModale(K.neuf||((K.genre==="m"?"Nouveau ":"Nouvelle ")+K.lib.toLowerCase()),formChantier(c),[
+  var c={date:date||auj(),categorie:cat,evenements:[]},K=catParCle(cat)||CATS_DEFAUT.chantier;
+  ouvrirModale(K.neuf||((K.genre==="m"?"Nouveau ":"Nouvelle ")+K.lib.toLowerCase()),formChantier(c,true),[
     {txt:"Annuler",fn:fermerModale},
     {txt:"Créer",classe:"",droite:true,fn:function(){
-      var n=lireChantier({id:uid(),categorie:cat,cree_le:new Date().toISOString()});
+      c.id=uid(); c.cree_le=new Date().toISOString();
+      var n=lireChantier(c);
       D.chantiers.push(n); fermerModale(); modifie(); rendre(); toast(K.lib+" créé"+(K.genre==="m"?"":"e"));
     }}
   ]);
 }
-var ficheEnCours=null, dureeFiche=0;
+var ficheEnCours=null, dureeFiche=0, evtEnCours=null;
+/* ---- la section Projet de la fiche ---- */
+/* Meme forme que les autres sections depuis la 3.37.0 : le titre, puis ce qu'on peut
+   y faire, a gauche. Repliee a un seul bouton tant que l'activite n'est pas un projet :
+   la plupart n'en sont pas, et une section vide de plus sur chaque fiche serait du
+   bruit paye par tout le monde pour le benefice de quelques-unes. */
+function fragProjet(c){
+  var p=projet(c);
+  var t='<hr class="sep"><div class="ligne" style="margin-bottom:8px">'
+    +'<h3 style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin:0">Projet</h3>';
+  if(!p){
+    return t+'<button class="b mini creux" data-act="projet-on">Suivre comme un projet</button>'
+      +'</div><div class="note-aide" style="margin:0">Un projet porte une échéance qui ne se '
+      +'déplace pas sans motif, et des jalons choisis parmi ses événements et ses tâches.</div>';
+  }
+  var e=etatProjet(c), j=jalons(c);
+  t+='<button class="b mini creux" data-act="projet-ech">'
+      +(p.deadline?"Reporter l’échéance":"Poser une échéance")+'</button>'
+    +'<button class="b mini creux" data-act="projet-off">Ce n’est plus un projet</button>'
+    +'</div>';
+  /* L'echeance d'origine reste affichee barree : c'est ce qui donne un cout au report. */
+  var ech;
+  if(!p.deadline) ech='<span style="color:var(--encre-3)">aucune échéance posée</span>';
+  else{
+    ech=(e.reports?'<s style="color:var(--encre-3)">'+esc(libCourt(e.initiale))+'</s> → ':"")
+      +'<b'+(e.depasse?' style="color:var(--rouge)"':"")+'>'+esc(libCourt(p.deadline))+'</b>'
+      +(e.depasse?' <span style="color:var(--rouge)">dépassée de '+Math.abs(e.jours)+' j</span>'
+        :(e.fini?' <span style="color:var(--vert)">terminé</span>'
+          :' <span style="color:var(--encre-3)">dans '+e.jours+' j</span>'))
+      +(e.reports?' <span class="etiq">'+e.reports+' report'+(e.reports>1?"s":"")+'</span>':"");
+  }
+  t+='<div class="note-aide" style="margin:0 0 6px">Échéance : '+ech+'</div>'
+    +fragJauge(e.a)
+    +'<div class="note-aide" style="margin:0 0 8px">'+esc(libJalons(e.a))+'</div>';
+  if(j.length) t+='<div>'+j.map(function(x){
+      var et = x.annule ? ["annulé","var(--encre-3)"]
+             : x.valide ? ["validé","var(--vert)"]
+             : x.retard ? ["en retard","var(--rouge)"] : ["à venir","var(--encre-3)"];
+      return '<div class="item"><span class="txt">'+esc(x.libelle)
+        +' <span class="etiq gris">'+(x.genre==="evenement"?"événement":"tâche")+'</span>'
+        +(x.date?' <span class="mono" style="color:var(--encre-3)">'+esc(libCourt(x.date))+'</span>':"")
+        +'</span><span style="color:'+et[1]+';font-size:12px">'+et[0]+'</span></div>';
+    }).join("")+'</div>';
+  if(e.reports) t+='<details style="margin-top:8px"><summary class="lien">Historique des reports ('
+      +e.reports+')</summary><div style="margin-top:6px">'
+    +p.reports.map(function(r){
+      return '<div class="note-aide" style="margin:0 0 4px">'+esc(libCourt(r.le))+' : '
+        +esc(libCourt(r.de))+' → '+esc(libCourt(r.vers))+' — '+esc(r.motif)+'</div>';
+    }).join("")+'</div></details>';
+  return t;
+}
+
+/* Poser la premiere echeance est libre ; la deplacer ensuite exige un motif. On refuse
+   d'enregistrer sans, plutot que d'accepter un motif vide : une justification
+   facultative n'est pas une justification. */
+function fenetreEcheance(c){
+  var p=projet(c); if(!p) return;
+  var premiere=!p.deadline;
+  var d=document.createElement("dialog"), fait=false;
+  d.className="saisie-val";
+  d.innerHTML='<div class="mod-tete"><h3>'
+      +(premiere?"Poser l’échéance":"Reporter l’échéance")+'</h3>'
+    +'<button class="mod-fermer" data-s="non" title="Annuler">✕</button></div>'
+    +'<div class="mod-corps">'
+      +(premiere?"":'<div class="note-aide" style="margin:0 0 10px">Échéance actuelle : <b>'
+          +esc(libCourt(p.deadline))+'</b>'
+          +(p.reports.length?' — déjà reportée '+p.reports.length+' fois':"")+'</div>')
+      +'<label class="champ">'+(premiere?"Échéance":"Nouvelle échéance")
+        +inDate('id="pjDate"',p.deadline||"")+'</label>'
+      +(premiere?'<div class="note-aide" style="margin-top:8px">Une fois posée, elle ne '
+          +'pourra plus bouger sans motif.</div>'
+        :'<label class="champ" style="margin-top:10px">Motif du report'
+          +'<textarea id="pjMotif" maxlength="500" style="width:100%;min-height:72px;padding:8px;'
+          +'border:1px solid var(--trait);border-radius:2px;font-family:inherit;font-size:13px" '
+          +'placeholder="Ce qui a changé, et pourquoi la date ne tenait plus"></textarea></label>'
+          +'<div class="note-aide" style="margin-top:6px">Le motif est conservé, et l’échéance '
+          +'d’origine reste affichée sur la ligne du projet.</div>')
+    +'</div>'
+    +'<div class="mod-pied"><button class="b creux" data-s="non">Annuler</button>'
+    +'<div class="droite"><button class="b" data-s="oui">'
+      +(premiere?"Poser":"Reporter")+'</button></div></div>';
+  document.body.appendChild(d);
+  armerChampsFr(d);
+  var ed=d.querySelector("#pjDate"), em=d.querySelector("#pjMotif");
+  function clore(){ if(fait) return; fait=true; try{ d.close() }catch(x){} d.remove() }
+  d.addEventListener("click",function(ev){
+    var b=ev.target.closest("[data-s]"); if(!b) return;
+    ev.preventDefault(); ev.stopPropagation();
+    if(b.dataset.s!=="oui"){ clore(); return }
+    var nv=ed.value;
+    if(!dateValide(nv)){ ed.focus(); toast("Indiquez une échéance",true); return }
+    if(!premiere && nv===p.deadline){ clore(); return }
+    var mo=em?em.value.trim():"";
+    if(!premiere && !mo){ em.focus(); toast("Un report sans motif n’est pas un report",true); return }
+    lireChantier(c);
+    if(!premiere) p.reports.push({le:auj(),de:p.deadline,vers:nv,motif:mo});
+    p.deadline=nv;
+    modifie(); clore(); fermerModale(); editerChantier(c.id);
+    toast(premiere?"Échéance posée":"Échéance reportée, motif enregistré");
+  });
+  d.addEventListener("cancel",function(ev){ ev.preventDefault(); clore() });
+  d.showModal();
+  if(ed) ed.focus();
+}
+function basculerProjet(c,on){
+  lireChantier(c);
+  if(on){ c.projet=normaliserProjet({actif:true,deadline:"",reports:[]}) }
+  else{
+    /* On eteint sans effacer : si elle le rallume, l'echeance et ses reports sont
+       toujours la. Effacer un historique de justifications serait le pire service. */
+    if(c.projet) c.projet.actif=false;
+  }
+  modifie(); fermerModale(); editerChantier(c.id);
+  toast(on?"Suivi projet activé":"Suivi projet désactivé");
+}
+/* Cocher ou decocher un jalon, cote evenement ou cote tache. */
+function basculerJalon(cle){
+  var c=chantierPar(ficheEnCours); if(!c) return;
+  lireChantier(c);
+  if(cle.indexOf("e:")===0){
+    var id=cle.slice(2);
+    evenements(c).forEach(function(e){ if(e.id===id) e.jalon=!e.jalon });
+  }else{
+    var nid=cle.slice(2);
+    (D.notes||[]).forEach(function(n){
+      if(n.id===nid && n.suite) n.suite.jalon=!n.suite.jalon;
+    });
+  }
+  modifie(); fermerModale(); editerChantier(c.id);
+}
+
+/* La liste des evenements d'une activite. Elle remplace la date unique : un dossier
+   peut porter une visite, puis une reunion, puis l'intervention. L'etat se change sur
+   place parce que c'est le geste le plus frequent — « c'est fait ». */
+function fragEvenements(c){
+  var l=evtsTries(c), h=auj();
+  var t='<hr class="sep"><div class="ligne" style="margin-bottom:8px">'
+    +'<h3 style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin:0">'
+      +'Événements ('+l.length+')</h3>'
+    +'<button class="b mini creux" data-act="fiche-evt">+ Événement</button>'
+    +'</div>';
+  if(!l.length){
+    /* Sans evenement, seule une tache en attente peut encore piloter : on le demande
+       a pilotePar() plutot que de l'affirmer. Un dossier clos, archive ou annule n'est
+       de toute facon jamais signale — lui promettre le contraire serait un troisieme
+       mensonge. */
+    var fini=estArchive(c)||estClos(c)||estAnnule(c);
+    var m=fini ? 'Aucun événement.'
+      : (pilotePar(c,aTacheOuverte(c))==="tache"
+          ? 'Aucun événement. Cette activité reste pilotée par sa tâche en attente.'
+          : 'Aucun événement ni tâche en attente : cette activité est signalée comme non pilotée.');
+    return t+'<div class="note-aide" style="margin:0">'+m+'</div><div id="ficheEvt"></div>';
+  }
+  return t+l.map(function(e){
+    var retard=(e.date<h && e.statut==="prevu");
+    return '<div class="note">'
+      +'<div class="h">'+esc(libCourt(e.date))+(e.heure?' \u00b7 '+esc(e.heure):"")
+        +' \u00b7 '+esc(e.type)+(e.duree?' \u00b7 '+esc(dureeLisible(e.duree)):"")
+        +(retard?' \u00b7 <span style="color:var(--rouge)">date passée, toujours prévu</span>':"")+'</div>'
+      +(e.libelle?'<div class="txt">'+esc(e.libelle)+'</div>':"")
+      +'<div class="ligne">'
+        +'<select data-evtetat="'+esc(e.id)+'">'+selOpts(ETATS_EVT,e.statut||"prevu")+'</select>'
+        +'<button class="b mini creux" data-evtmod="'+esc(e.id)+'">Modifier</button>'
+        +'<button class="b mini creux" data-evtsup="'+esc(e.id)+'">Supprimer</button>'
+        /* Le marquage n'apparait que sur un projet : ailleurs il ne voudrait rien dire. */
+        +(estProjet(c)?'<button class="b mini'+(e.jalon?"":" creux")+'" data-jalon="e:'+esc(e.id)+'"'
+           +' title="Compter cet événement comme une étape du projet">'
+           +(e.jalon?"\u2605 Jalon":"\u2606 Jalon")+'</button>':"")
+      +'</div></div>';
+  }).join("")+'<div id="ficheEvt"></div>';
+}
+/* Le formulaire d'ajout ou de modification, meme ilot que « + Note ». */
+function ficheFormEvt(id){
+  var e=$("#ficheEvt"); if(!e) return;
+  var c=chantierPar(ficheEnCours); if(!c) return;
+  var v=null;
+  if(id) evenements(c).forEach(function(x){ if(x.id===id) v=x });
+  evtEnCours=v?v.id:null;
+  var d=v?v.date:auj(), hh=v?(v.heure||"08:30"):"08:30", du=v?v.duree:60;
+  e.innerHTML='<div class="saisie" style="margin-top:8px">'
+    +'<div class="ligne">'
+      +inDate('id="fevDate" title="Date"',d)
+      +inHeure('id="fevHeure" title="Heure"',hh)
+      +'<input type="number" id="fevDuree" min="0" step="15" value="'+esc(du)+'" style="width:84px" title="Durée (min)">'
+      +selGerable('id="fevType"',"types_evenement",v?v.type:typeEvtDeCat(c.categorie))
+      +'<select id="fevEtat">'+selOpts(ETATS_EVT,v?v.statut:"prevu")+'</select>'
+    +'</div>'
+    +'<div class="ligne" style="margin-top:6px">'
+      +'<input type="text" id="fevLib" placeholder="Précision (facultatif)" value="'+esc(v?v.libelle:"")+'" style="flex:1;min-width:180px">'
+      +'<button class="b mini" data-act="fiche-add-evt">'+(v?"Enregistrer l\u2019événement":"Ajouter l\u2019événement")+'</button>'
+    +'</div></div>';
+  armerChampsFr(e);
+  var f=$("#fevDate"); if(f) f.focus();
+}
+function ajouterEvtDepuisFiche(){
+  var c=chantierPar(ficheEnCours); if(!c) return;
+  var d=$("#fevDate")?$("#fevDate").value.trim():"";
+  if(!dateValide(d)){ if($("#fevDate")) $("#fevDate").focus();
+    toast("Un événement a forcément une date",true); return }
+  var v={date:d,heure:($("#fevHeure")?$("#fevHeure").value:""),
+         duree:+($("#fevDuree")?$("#fevDuree").value:0)||0,
+         type:($("#fevType")?$("#fevType").value:""),
+         statut:($("#fevEtat")?$("#fevEtat").value:"prevu"),
+         libelle:($("#fevLib")?$("#fevLib").value.trim():"")};
+  lireChantier(c);                 /* on conserve les modifications en cours de la fiche */
+  var l=evenements(c), trouve=null;
+  if(evtEnCours) l.forEach(function(x){ if(x.id===evtEnCours) trouve=x });
+  if(trouve){ for(var k in v) if(v.hasOwnProperty(k)) trouve[k]=v[k] }
+  else l.push(evtNormaliser(v,c.categorie));
+  evtEnCours=null; syncDates(c); modifie();
+  fermerModale(); editerChantier(c.id);
+  toast(trouve?"Événement modifié":"Événement ajouté");
+}
+function supprimerEvt(id){
+  var c=chantierPar(ficheEnCours); if(!c) return;
+  lireChantier(c);
+  c.evenements=evenements(c).filter(function(e){ return e.id!==id });
+  syncDates(c); modifie();
+  fermerModale(); editerChantier(c.id);
+  toast("Événement supprimé");
+}
+function etatEvt(id,v){
+  var c=chantierPar(ficheEnCours); if(!c) return;
+  evenements(c).forEach(function(e){ if(e.id===id) e.statut=v });
+  syncDates(c); modifie();
+  fermerModale(); editerChantier(c.id);
+}
 function ficheFormNote(){
   var e=$("#ficheAjout");
   if(!e) return;
@@ -3061,10 +3787,11 @@ function ficheFormTache(){
   e.innerHTML='<div class="saisie" style="margin-top:8px">'
     +'<div class="ligne">'
       +'<input type="text" id="ftTxt" placeholder="Tâche à faire sur ce dossier…" style="flex:1;min-width:180px">'
-      +'<input type="date" id="ftEch" value="'+iso(d)+'" title="Échéance">'
+      +inDate('id="ftEch" title="Échéance"',iso(d))
       +'<button class="b mini" data-act="fiche-add-tache">Ajouter la tâche</button>'
     +'</div>'
     +'<div class="note-aide">Elle apparaîtra dans « En attente » jusqu\'à ce que vous la marquiez faite.</div></div>';
+  armerChampsFr(e);
   var f=$("#ftTxt"); if(f) f.focus();
 }
 function ajouterDepuisFiche(kind){
@@ -3126,20 +3853,30 @@ function editerChantier(id){
   var c=chantierPar(id); if(!c) return;
   var liees=D.notes.filter(function(n){return n.chantier_id===id})
     .sort(function(a,b){return (b.date+b.heure).localeCompare(a.date+a.heure)});
-  var outils='<hr class="sep"><div class="ligne">'
+  var evts=fragEvenements(c);
+  /* Meme forme que l'en-tete des evenements : le titre, puis ce qu'on peut ajouter.
+     Le titre est affiche meme a zero note — c'est la qu'on en ajoute une premiere. */
+  var histo='<hr class="sep"><div class="ligne" style="margin-bottom:8px">'
+      +'<h3 style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin:0">Notes liées ('+liees.length+')</h3>'
       +'<button class="b mini creux" data-act="fiche-note">+ Note</button>'
       +'<button class="b mini creux" data-act="fiche-tache">+ Tâche</button>'
       +'<span class="note-aide" style="margin:0">rattachée à cette activité</span>'
-    +'</div><div id="ficheAjout"></div>';
-  var histo=liees.length? '<hr class="sep"><h3 style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Notes liées ('+liees.length+')</h3>'
-      +liees.map(function(n){
+    +'</div><div id="ficheAjout"></div>'
+    +(liees.length? liees.map(function(n){
+        var jal=estProjet(c) && n.suite && n.suite.texte;
         return '<div class="note" data-note="'+esc(n.id)+'" style="cursor:pointer"><div class="h">'+libCourt(n.date)+' · '+esc(n.heure)+(n.type?' · '+esc(n.type):"")+'</div>'
           +(n.contenu?'<div class="txt">'+esc(n.contenu)+'</div>':"")
-          +fragSuite(n)+'</div>';
-      }).join("") : "";
+          +fragSuite(n)
+          +(jal?'<div class="ligne" style="margin-top:4px">'
+             +'<button class="b mini'+(n.suite.jalon?"":" creux")+'" data-jalon="t:'+esc(n.id)+'"'
+             +' title="Compter cette tâche comme une étape du projet">'
+             +(n.suite.jalon?"\u2605 Jalon":"\u2606 Jalon")+'</button></div>':"")
+        +'</div>';
+      }).join("")
+      : '<div class="note-aide" style="margin:0">Aucune note rattachée à cette activité.</div>');
   ficheEnCours=id;
   ouvrirModale(catDe(c).lib+" — "+(c.reference||c.libelle)
-      +(estArchive(c)?"  · archivé le "+libCourt(c.archive):""),formChantier(c)+outils+histo,[
+      +(estArchive(c)?"  · archivé le "+libCourt(c.archive):""),formChantier(c)+fragProjet(c)+evts+histo,[
     (estArchive(c)
       ? {txt:"Désarchiver",classe:"creux",fn:function(){
           desarchiver(c); fermerModale(); modifie(); rendre(); toast("Dossier réactivé");
@@ -3181,8 +3918,8 @@ function editerNote(id){
   var s=n.suite||{};
   var corps=''
    +'<div class="grille">'
-   +'<label class="champ">Date<input type="date" name="date" value="'+esc(n.date)+'"></label>'
-   +'<label class="champ">Heure<input type="time" name="heure" value="'+esc(n.heure)+'"></label>'
+   +'<label class="champ">Date'+inDate('name="date"',n.date)+'</label>'
+   +'<label class="champ">Heure'+inHeure('name="heure"',n.heure)+'</label>'
    +'<label class="champ">Type'+selGerable('name="type"',"types_note",n.type)+'</label>'
    +'<label class="champ">Rattachée à<select name="lien">'+optionsLien(lienDe(n))+'</select>'
      +(lienRompu(n)?'<span class="note-aide" style="margin:2px 0 0;color:var(--rouge)">lien perdu \u2014 '
@@ -3193,7 +3930,7 @@ function editerNote(id){
    +'<hr class="sep">'
    +'<div class="grille">'
    +'<label class="champ">Suite à donner<input type="text" name="suite_txt" value="'+esc(s.texte)+'" placeholder="Ex : relancer l\'entreprise"></label>'
-   +'<label class="champ">Échéance<input type="date" name="suite_ech" value="'+esc(s.echeance)+'"></label>'
+   +'<label class="champ">Échéance'+inDate('name="suite_ech"',s.echeance)+'</label>'
    +'</div>'
    +'<div class="ligne"><label style="font-size:13.5px;display:flex;gap:6px;align-items:center">'
    +'<input type="checkbox" name="suite_fait" '+(s.fait?"checked":"")+'> Action terminée</label></div>';
@@ -3485,7 +4222,7 @@ function cloreSuite(id,retour){
     +'<div class="grille">'
       +'<label class="champ">Et ensuite<input type="text" id="suiteSuivTxt" '
         +'placeholder="Ex : relancer si pas de retour"></label>'
-      +'<label class="champ">Échéance<input type="date" id="suiteSuivEch"></label>'
+      +'<label class="champ">Échéance'+inDate('id="suiteSuivEch"',"")+'</label>'
     +'</div>'
     +'<div class="note-aide" style="margin:2px 0 0">Laissez vide si l\u2019action est close.</div>';
   ouvrirModale("Action terminée",corps,[
@@ -3583,6 +4320,30 @@ function fragReport(id,s){
     +'<button class="lien" data-repoff="1">Annuler</button>'
   +'</div>';
 }
+/* La meme ligne d'echeance etait dessinee a trois endroits — En attente, Prochain jour
+   ouvre, Calendrier — avec a chaque fois un sous-ensemble different de boutons. Une
+   seule fonction : ce qu'on peut faire d'une tache ne depend pas de l'ecran ou on la lit.
+   « entete » laisse chaque vue dire ce qu'elle sait deja : inutile de repeter l'echeance
+   dans une colonne du jour concerne. */
+function fragEcheance(n,entete){
+  var s=n.suite; if(!s) return "";
+  var c=n.chantier_id?chantierPar(n.chantier_id):null;
+  var retard=s.echeance && s.echeance<auj();
+  var h=(entete!=null) ? entete
+    : (s.echeance?(retard?'<span style="color:var(--rouge)">échéance '+libCourt(s.echeance)
+          +' \u2014 en retard</span>':'échéance '+libCourt(s.echeance)):'sans échéance')
+      +' \u00b7 noté le '+libCourt(n.date);
+  return '<div class="note"><div class="h">'+h+'</div>'
+    +'<div class="txt">'+esc(s.texte)+'</div>'
+    +(c?'<div class="lien">\u21b3 '+esc(c.libelle)+'</div>':"")
+    +'<div class="ligne">'
+      +'<button class="b mini creux" data-fait="'+esc(n.id)+'">Marquer fait</button>'
+      +(reportOuvert===n.id?"":'<button class="b mini creux" data-repon="'+esc(n.id)+'">Reporter</button>')
+      +'<button class="lien" data-note="'+esc(n.id)+'">Ouvrir la note</button>'
+    +'</div>'
+    +(reportOuvert===n.id?fragReport(n.id,s):"")
+  +'</div>';
+}
 function fragAttente(){
   var l=suitesHorizon(),tot=suitesOuvertes().length;
   var barre='<div class="ligne" style="margin:0 0 10px">'
@@ -3598,20 +4359,7 @@ function fragAttente(){
   if(!l.length) return barre+'<div class="vide"><b>'
     +(horizonAttente===-1?'Rien à échéance aujourd\u2019hui':'Rien dans cet horizon')+'</b>'
     +(tot?'Élargissez le filtre pour voir les '+tot+' tâche(s) en attente.':'Les tâches à faire apparaîtront ici.')+'</div>';
-  return barre+l.map(function(n){
-    var s=n.suite,retard=s.echeance&&s.echeance<auj();
-    var c=n.chantier_id?chantierPar(n.chantier_id):null;
-    return '<div class="note"><div class="h">'
-      +(s.echeance?(retard?'<span style="color:var(--rouge)">échéance '+libCourt(s.echeance)+' — en retard</span>'
-                          :'échéance '+libCourt(s.echeance)):'sans échéance')
-      +' · noté le '+libCourt(n.date)+'</div>'
-      +'<div class="txt">'+esc(s.texte)+'</div>'
-      +(c?'<div class="lien">↳ '+esc(c.libelle)+'</div>':"")
-      +'<div class="ligne"><button class="b mini creux" data-fait="'+esc(n.id)+'">Marquer fait</button>'
-      +(reportOuvert===n.id?"":'<button class="b mini creux" data-repon="'+esc(n.id)+'">Reporter</button>')
-      +'<button class="lien" data-note="'+esc(n.id)+'">Ouvrir la note</button></div>'
-      +(reportOuvert===n.id?fragReport(n.id,s):"")+'</div>';
-  }).join("");
+  return barre+l.map(function(n){ return fragEcheance(n,null) }).join("");
 }
 function fragVigilances(date){
   var l=vigilancesDu(date);
@@ -3647,7 +4395,7 @@ function editerVigilance(id){
   var corps='<label class="champ">Point de vigilance<textarea name="texte" style="width:100%;min-height:90px;padding:8px;border:1px solid var(--trait);border-radius:2px">'+esc(v.texte)+'</textarea></label>'
    +'<div class="grille" style="margin-top:12px">'
    +'<label class="champ">Niveau<select name="niveau">'+selOpts([["info","Information"],["attention","Attention"],["critique","Critique"]],v.niveau)+'</select></label>'
-   +'<label class="champ">Valable jusqu\'au<input type="date" name="date" value="'+esc(v.date)+'"></label>'
+   +'<label class="champ">Valable jusqu\'au'+inDate('name="date"',v.date)+'</label>'
    +'<label class="champ">Origine<input type="text" name="origine" value="'+esc(v.origine)+'" placeholder="Consigne agence, exploitation…"></label>'
    +'</div>'
    +'<div class="ligne"><label style="font-size:13.5px;display:flex;gap:6px;align-items:center">'
@@ -3762,7 +4510,7 @@ function editerSessions(){
     {txt:"Ajouter un créneau",classe:"creux",fn:function(){
       lireSessions(c);
       c.sessions.push({debut:hNow(),fin:hNow()});
-      $("#modCorps").innerHTML=fragSessions(c);
+      $("#modCorps").innerHTML=fragSessions(c); armerChampsFr($("#modCorps"));
     }},
     {txt:"Annuler",fn:fermerModale},
     {txt:"Enregistrer",classe:"",droite:true,fn:function(){
@@ -3779,9 +4527,9 @@ function fragSessions(c){
   return '<div id="listeSess">'+c.sessions.map(function(x,i){
       return '<div class="item">'
         +'<span class="dur">'+(i+1)+'</span>'
-        +'<input type="time" data-se="'+i+'" data-k="debut" value="'+esc(x.debut||"")+'">'
+        +inHeure('data-se="'+i+'" data-k="debut"',x.debut||"")
         +'<span class="puce-lbl">à</span>'
-        +'<input type="time" data-se="'+i+'" data-k="fin" value="'+esc(x.fin||"")+'">'
+        +inHeure('data-se="'+i+'" data-k="fin"',x.fin||"")
         +'<span class="txt" style="color:var(--encre-3);font-family:var(--data);font-size:12px">'
           +(x.fin?dureeLisible(Math.max(0,minutes(x.fin)-minutes(x.debut))):"en cours")+'</span>'
         +'<button class="sup" data-sesup="'+i+'">✕</button>'
@@ -3902,6 +4650,61 @@ function boutonsNeuf(d,gras){
       }).join("")
   +'</div>';
 }
+/* ---- l'onglet Projets ---- */
+/* Une ligne par projet : l'echeance avec son histoire, les jalons, la barre. Le tri
+   met devant ce qui va mal — c'est un ecran de pilotage, pas un annuaire. */
+function ligneProjet(c){
+  var e=etatProjet(c), p=e.p, K=catDe(c);
+  var ech;
+  if(!p.deadline) ech='<span style="color:var(--encre-3)">sans échéance</span>';
+  else ech=(e.reports?'<s style="color:var(--encre-3)">'+esc(libCourt(e.initiale))+'</s> → ':"")
+      +'<b'+(e.depasse?' style="color:var(--rouge)"':"")+'>'+esc(libCourt(p.deadline))+'</b>'
+      +(e.reports?' <span class="etiq">'+e.reports+' report'+(e.reports>1?"s":"")+'</span>':"");
+  var reste = e.fini ? '<span style="color:var(--vert)">terminé</span>'
+    : (p.deadline
+        ? (e.depasse?'<span style="color:var(--rouge)">dépassée de '+Math.abs(e.jours)+' j</span>'
+                    :'dans '+e.jours+' j')
+        : "");
+  return '<div class="note" data-proj="'+esc(c.id)+'" style="cursor:pointer">'
+    /* Le symbole de categorie accompagne le libelle, pas la date : en tete de ligne
+       il se lisait comme une croix de fermeture. */
+    +'<div class="h">'+ech+(reste?' · '+reste:"")+'</div>'
+    +'<div class="txt">'+esc(K.sym)+' '+esc(c.libelle||c.reference||"(sans libellé)")+'</div>'
+    +fragJauge(e.a)
+    +'<div class="lien">'+esc(libJalons(e.a))+'</div>'
+  +'</div>';
+}
+function vueProjets(){
+  var l=projets();
+  var enCours=l.filter(function(c){ return !etatProjet(c).fini });
+  var tard=enCours.filter(function(c){ return etatProjet(c).depasse }).length;
+  return '<div class="bloc"><div class="bloc-tete"><h2>Projets</h2>'
+      +'<span class="compte">'+enCours.length+(tard?' · '+tard+' dépassé(s)':"")+'</span></div>'
+    +'<div class="bloc-corps">'
+      +(l.length
+        ? l.map(ligneProjet).join("")
+        : '<div class="carte-vide"><b>Aucun projet</b><div class="note-aide" style="margin-top:6px">'
+          +'Ouvrez une activité et choisissez « Suivre comme un projet ». Elle gagnera une '
+          +'échéance qui ne se déplace pas sans motif, et des jalons à cocher parmi ses '
+          +'événements et ses tâches.</div></div>')
+    +'</div></div>';
+}
+/* Sur l'ecran du jour, seulement ce qui va mal ou ce qui arrive : le reste a son onglet. */
+function fragBlocProjets(){
+  var l=projetsARisque();
+  if(!l.length) return "";
+  return '<div class="bloc" style="margin-bottom:18px">'
+    +'<div class="bloc-tete"><h2>Projets à surveiller</h2>'
+      +'<span class="compte">'+l.length+'</span></div>'
+    +'<div class="bloc-corps">'
+      +'<div class="note-aide" style="margin:0 0 10px">Échéance dépassée, proche, ou jalon en '
+      +'retard. Les autres projets sont dans l’onglet Projets.</div>'
+      +l.map(ligneProjet).join("")
+      +'<div class="ligne" style="margin-top:8px">'
+      +'<button class="b mini creux" data-act="voir-projets">Voir tous les projets</button></div>'
+    +'</div></div>';
+}
+
 function vueJour(){
   var d=auj(),ch=chantiersDu(d),fait=ch.filter(estClos).length;
   var m=motifNonOuvre(d),nv=vigilancesDu(d);
@@ -3909,6 +4712,7 @@ function vueJour(){
     +(nv.length?';border-left:4px solid '+(nv[0].niveau==="critique"?"var(--rouge)":(nv[0].niveau==="attention"?"var(--jaune)":"var(--ardoise)")):"")+'">'
     +'<div class="bloc-tete"><h2>Points de vigilance</h2><span class="compte">'+nv.length+(nv.filter(vigilanceEnRetard).length?' · '+nv.filter(vigilanceEnRetard).length+' dépassé(s)':'')+'</span></div>'
     +'<div class="bloc-corps">'+fragVigilances(d)+'</div></div>'
+  +fragBlocProjets()
   +fragBlocSansTrace()
   +fragBlocNonPilotes()
   +'<div class="duo">'
@@ -3980,9 +4784,10 @@ function vueSuivant(){
   +'<div class="bloc" style="margin-top:18px"><div class="bloc-tete"><h2>Actions échues d\'ici là</h2>'
     +'<span class="compte">'+suites.length+'</span></div><div class="bloc-corps">'
     +(suites.length?suites.map(function(n){
-        return '<div class="note"><div class="h">échéance '+libCourt(n.suite.echeance)+'</div>'
-          +'<div class="txt">'+esc(n.suite.texte)+'</div>'
-          +'<div class="ligne"><button class="b mini creux" data-fait="'+esc(n.id)+'">Marquer fait</button></div></div>';
+        var rt=n.suite.echeance && n.suite.echeance<auj();
+        return fragEcheance(n,(rt?'<span style="color:var(--rouge)">échéance '
+            +libCourt(n.suite.echeance)+' \u2014 en retard</span>'
+          :'échéance '+libCourt(n.suite.echeance))+' \u00b7 noté le '+libCourt(n.date));
       }).join(""):'<div class="vide"><b>Aucune échéance</b>Rien à solder avant ce jour.</div>')
     +'</div></div>'
   +'</div></div>';
@@ -4037,8 +4842,11 @@ var MOIS_LONG=["janvier","février","mars","avril","mai","juin",
 function indexCalendrier(){
   var rdv={}, ech={};
   (D.chantiers||[]).forEach(function(c){
-    if(!c.date || estArchive(c)) return;
-    (rdv[c.date]||(rdv[c.date]=[])).push(c);
+    if(estArchive(c)) return;
+    evenements(c).forEach(function(e){
+      if(!e.date || !evtVivant(e)) return;
+      (rdv[e.date]||(rdv[e.date]=[])).push(vueEvt(c,e));
+    });
   });
   suitesOuvertes().forEach(function(n){
     if(!n.suite.echeance) return;
@@ -4110,14 +4918,9 @@ function fragJourCal(){
     +'Échéances du jour</div>';
   corps+= ec.length
     ? ec.map(function(n){
-        var c=n.chantier_id?chantierPar(n.chantier_id):null;
-        return '<div class="note"><div class="h">'
-          +(s<auj()?'<span style="color:var(--rouge)">en retard</span> · ':"")
-          +'noté le '+libCourt(n.date)+'</div>'
-          +'<div class="txt">'+esc(n.suite.texte)+'</div>'
-          +(c?'<div class="lien">↳ '+esc(c.libelle)+'</div>':"")
-          +'<div class="ligne"><button class="b mini creux" data-fait="'+esc(n.id)+'">Marquer fait</button>'
-          +'<button class="lien" data-note="'+esc(n.id)+'">Ouvrir la note</button></div></div>';
+        /* la colonne porte deja la date : on ne la repete pas, on dit seulement le retard */
+        return fragEcheance(n,(s<auj()?'<span style="color:var(--rouge)">en retard</span> \u00b7 ':"")
+          +'noté le '+libCourt(n.date));
       }).join("")
     : '<div class="vide"><b>Aucune échéance</b>Rien n\u2019est attendu ce jour-là.</div>';
   corps+=boutonsNeuf(s);
@@ -4297,18 +5100,18 @@ function vueDonnees(){
     +'</div>'
     +'<div class="ligne" style="margin-top:8px">'
       +'<span class="puce-lbl">Période des CSV</span>'
-      +'<input type="date" id="perDeb" value="'+esc(perDeb)+'">'
+      +inDate('id="perDeb"',perDeb)
       +'<span style="font-size:13px;color:var(--encre-2)">au</span>'
-      +'<input type="date" id="perFin" value="'+esc(perFin)+'">'
+      +inDate('id="perFin"',perFin)
       +((perDeb||perFin)?'<button class="lien" data-act="per-raz">tout l\'historique</button>'
         :'<span class="note-aide" style="margin:0">vide = tout l\'historique</span>')
     +'</div>'
     +'<hr class="sep" style="margin:14px 0 10px">'
     +'<div class="ligne">'
       +'<span class="puce-lbl">Rapport de période</span>'
-      +'<input type="date" id="rapDeb" value="'+esc(rapDeb||moisIso(0)[0])+'">'
+      +inDate('id="rapDeb"',rapDeb||moisIso(0)[0])
       +'<span style="font-size:13px;color:var(--encre-2)">au</span>'
-      +'<input type="date" id="rapFin" value="'+esc(rapFin||moisIso(0)[1])+'">'
+      +inDate('id="rapFin"',rapFin||moisIso(0)[1])
       +'<button class="b creux" data-act="rapport">Rapport texte</button>'
       +'<button class="b" data-act="rapport-pdf">Rapport PDF</button>'
     +'</div>'
@@ -4338,7 +5141,7 @@ function vueDonnees(){
     +'<hr class="sep" style="margin:14px 0 10px">'
     +'<div class="ligne">'
       +'<span class="puce-lbl">Compte-rendu du</span>'
-      +'<input type="date" id="expDate" value="'+esc(dateExport||auj())+'">'
+      +inDate('id="expDate"',dateExport||auj())
       +'<button class="b" data-act="cr">Établir le compte-rendu</button>'
       +((dateExport&&dateExport!==auj())?'<button class="lien" data-act="cr-auj">revenir à aujourd\'hui</button>':"")
     +'</div>'
@@ -4422,6 +5225,16 @@ function vueDonnees(){
       +'<button class="b" data-act="param">Configurer les catégories d\'activité</button>'
       +'<span class="note-aide" style="margin:0">apparence, champs, statuts</span></div>'
     +'<hr class="sep">'
+    +'<label class="champ">Format des dates et des heures'
+      +'<select id="fmtDate">'
+        +'<option value="auto"'+(fmtDate()==="auto"?" selected":"")+'>Celui du navigateur</option>'
+        +'<option value="fr"'+(fmtDate()==="fr"?" selected":"")+'>jj/mm/aaaa et 24 h</option>'
+      +'</select></label>'
+    +'<div class="note-aide">Un champ de date natif s\'affiche dans la langue du navigateur, '
+      +'pas dans celle de l\'application : sur un poste en anglais, la saisie se lit mm/jj/aaaa '
+      +'et 02:30 PM. Le second choix remplace ces champs par les nôtres — le calendrier du '
+      +'navigateur reste accessible par le bouton \u25a6 à côté de chaque date.</div>'
+    +'<hr class="sep">'
     +'<label class="champ">Gestionnaire retenu à l\'import Excel'
       +'<input type="text" id="gestFiltre" value="'+esc(D.parametres.gestionnaire||"")+'" placeholder="vide = toutes les lignes"></label>'
     +'<div class="note-aide">Seules les lignes dont la colonne Gestionnaire correspond seront importées.</div>'
@@ -4447,7 +5260,7 @@ function vueDonnees(){
       +'La rubrique DT-DICT récupère automatiquement le temps chronométré des sessions.</div>'
     +'<hr class="sep">'
     +'<label class="champ">Absences (congés, formations)</label>'
-    +'<div class="ligne" style="margin-top:4px"><input type="date" id="absDate"><button class="b mini" data-act="abs-add">Ajouter</button></div>'
+    +'<div class="ligne" style="margin-top:4px">'+inDate('id="absDate"',"")+'<button class="b mini" data-act="abs-add">Ajouter</button></div>'
     +'<div class="ligne" style="margin-top:8px">'
       +(abs.length?abs.map(function(a){
         return '<span class="etiq">'+esc(libCourt(a))+' <button class="lien danger" data-abs="'+esc(a)+'" style="font-size:11px">✕</button></span>';
@@ -4455,7 +5268,8 @@ function vueDonnees(){
     +'</div>'
     +'<div class="note-aide">Les week-ends, jours fériés et absences sont exclus du calcul du prochain jour ouvré.</div>'
     +'<hr class="sep">'
-    +[["types_intervention","Types d'intervention (dossiers)"],
+    +[["types_evenement","Types d'événement (dates posées sur une activité)"],
+      ["types_intervention","Types d'intervention (dossiers)"],
       ["motifs_appel","Motifs d'appel (assistance)"],
       ["motifs_convocation","Motifs de convocation"],
       ["themes_animation","Thèmes d'animation"],
@@ -4740,8 +5554,8 @@ function appliquerDesh(c,o,garderLib){
   if(st) c.statut=st;
   /* la colonne date sert aussi de marqueur. Une vraie date planifie ; « FAIT » et
      consorts retirent la fiche du planning ; tout autre texte laisse la date en place. */
-  if(dateValide(o.date_interv)) c.date=o.date_interv;
-  else if(estMarqueFait(o.date_interv)) c.date="";
+  if(dateValide(o.date_interv)) evtImport(c,o.date_interv);
+  else if(estMarqueFait(o.date_interv)) evtImport(c,"");
   return c;
 }
 function ecranImport(r){
@@ -5138,6 +5952,24 @@ function libRattachement(n){
   return "";
 }
 function compteRendu(jour){
+  var d=jour||auj();
+  ouvrirModale("Compte-rendu — "+libDate(d),
+    '<textarea id="crTxt" style="width:100%;min-height:340px;padding:10px;border:1px solid var(--trait);border-radius:2px;font-family:var(--data);font-size:12.5px">'+esc(texteCompteRendu(d))+'</textarea>'
+    +'<div class="note-aide">Prêt à coller dans un mail ou un compte-rendu.</div>',
+    [{txt:"Fermer",fn:fermerModale},
+     {txt:"Télécharger en .txt",classe:"creux",droite:true,fn:function(){
+       telecharger("pstp-compte-rendu-"+d+".txt",$("#crTxt").value,"text/plain;charset=utf-8");
+     }},
+     {txt:"Copier",classe:"",droite:true,fn:function(){
+       var e=$("#crTxt"); e.select();
+       try{ document.execCommand("copy"); toast("Copié dans le presse-papiers") }
+       catch(x){ toast("Copie impossible — sélectionnez le texte",true) }
+     }}]);
+}
+/* Le texte est rendu par une fonction qui ne fait que ca : tant qu'il n'etait
+   produit qu'en ouvrant une fenetre, aucun banc ne pouvait le lire, et une
+   verification comptee comme un appel y est restee de la 3.32.0 a la 3.34.1. */
+function texteCompteRendu(jour){
   var d=jour||auj(),ch=chantiersDu(d),no=notesDu(d).slice().reverse();
   var t="Compte-rendu d'activité — "+libDate(d)+"\n"+"=".repeat(46)+"\n\n";
   var vg=vigilancesDu(d,d!==auj());
@@ -5176,7 +6008,8 @@ function compteRendu(jour){
         +(c.tiers?" — "+c.tiers:"")+"  ["+libStatut(c.statut)+"]"+sup;
     }).join("\n")+"\n\n";
   });
-  var ap=appelsDu(d).slice().reverse();
+  var tout=appelsDu(d),ap=vraisAppels(tout).slice().reverse();
+  var vf=tout.filter(function(a){ return a.nature==="verif" });
   if(D.parametres.mod_permanence!==false && ap.length){
     var tt=0; ap.forEach(function(a){ tt+=+a.duree||0 });
     t+="ASSISTANCE TÉLÉPHONIQUE ("+ap.length+" appel(s)"+(tt?", "+dureeLisible(tt)+" cumulées":"")+")\n";
@@ -5184,6 +6017,14 @@ function compteRendu(jour){
       return "- "+(a.heure||"")+"  "+(a.qui||"appelant non précisé")
         +(a.motif?" ["+a.motif+"]":"")+(a.objet?" : "+a.objet:"")
         +(a.suite?"  → "+a.suite+(a.suite_faite?" (traité)":""):"");
+    }).join("\n")+"\n\n";
+  }
+  /* Une verification n'est pas un appel : personne n'a telephone. Elle reste
+     tracee — c'est du travail fait — mais comptee, pas deroulee ligne a ligne. */
+  if(D.parametres.mod_permanence!==false && vf.length){
+    t+="VÉRIFICATIONS DE PERMANENCE ("+vf.length+")\n";
+    t+=compterPar(vf,nomVerification).map(function(x){
+      return "- "+x[0]+" \u00d7 "+x[1];
     }).join("\n")+"\n\n";
   }
   t+="JOURNAL ("+no.length+" note(s))\n";
@@ -5201,18 +6042,7 @@ function compteRendu(jour){
   t+= cs.length? cs.map(function(c){
     return "- "+(c.heure||"--:--")+"  ["+catDe(c).lib+"] "+c.libelle+(c.commune?" ("+c.commune+")":"");
   }).join("\n") : "- rien de positionné";
-  ouvrirModale("Compte-rendu — "+libDate(d),
-    '<textarea id="crTxt" style="width:100%;min-height:340px;padding:10px;border:1px solid var(--trait);border-radius:2px;font-family:var(--data);font-size:12.5px">'+esc(t)+'</textarea>'
-    +'<div class="note-aide">Prêt à coller dans un mail ou un compte-rendu.</div>',
-    [{txt:"Fermer",fn:fermerModale},
-     {txt:"Télécharger en .txt",classe:"creux",droite:true,fn:function(){
-       telecharger("pstp-compte-rendu-"+d+".txt",$("#crTxt").value,"text/plain;charset=utf-8");
-     }},
-     {txt:"Copier",classe:"",droite:true,fn:function(){
-       var e=$("#crTxt"); e.select();
-       try{ document.execCommand("copy"); toast("Copié dans le presse-papiers") }
-       catch(x){ toast("Copie impossible — sélectionnez le texte",true) }
-     }}]);
+  return t;
 }
 
 /* ================= parametrage des categories ================= */
@@ -5954,7 +6784,7 @@ function editerContact(id){
     +'<label class="champ">Courriel<input type="email" name="mail" value="'+esc(c.mail)+'"></label>'
     +'<label class="champ">Fiche interne<input type="text" name="fiche" value="'+esc(c.fiche)+'" placeholder="lien ou identifiant"></label>'
     +'<label class="champ">Nature de la relation<select name="niveau">'+selOpts(NIVEAUX_REL,c.niveau)+'</select></label>'
-    +'<label class="champ">Première rencontre<input type="date" name="premiere_date" value="'+esc(c.premiere_date)+'"></label>'
+    +'<label class="champ">Première rencontre'+inDate('name="premiere_date"',c.premiere_date)+'</label>'
     +'<label class="champ">Lieu de rencontre<input type="text" name="premiere_lieu" value="'+esc(c.premiere_lieu)+'"></label>'
   +'</div>'
   +'<label class="champ" style="margin-top:10px">Ma relation avec ce contact'
@@ -5977,7 +6807,7 @@ function editerContact(id){
       }).join("")+'</div>'
     : '<div class="carte-vide">Aucun échange enregistré.</div>')
   +'<div class="ligne" style="margin-top:8px">'
-    +'<input type="date" id="rencDate" value="'+auj()+'" style="flex:0 1 150px">'
+    +inDate('id="rencDate" style="flex:0 1 150px"',auj())
     +'<input type="text" id="rencLieu" placeholder="Lieu" style="flex:1;min-width:100px">'
     +'<input type="text" id="rencObj" placeholder="Objet" style="flex:1.4;min-width:120px">'
     +'<button class="b mini" data-act="renc-add">Ajouter une rencontre</button>'
@@ -6794,7 +7624,7 @@ function rpPrevention(o){
     +'<p class="rp-i">Interventions dont l\'objet est de faire cesser ou d\'éviter une mise en danger '
     +'de tiers, et actions de sensibilisation menées auprès des entreprises intervenantes.'
     +(P.regle==="auto"?' Périmètre déterminé automatiquement d\'après le type d\'intervention ; '
-       +'il est ajustable dans Données.':"")+'</p>'
+       +'il est ajustable dans Options.':"")+'</p>'
     +'<div class="rp-duo">'
       +'<div><table class="rp-tab">'
         +'<tr><th>Indicateur</th><th style="text-align:right">Période</th></tr>'
@@ -6890,9 +7720,13 @@ function chargeAVenir(jours,semaines){
   function case_(d){ return parJour[d]||(parJour[d]={rdv:0,tache:0,min:0}) }
   (D.chantiers||[]).forEach(function(c){
     if(estArchive(c)||estClos(c)||estAnnule(c)) return;
-    if(!c.date || c.date<h) return;
-    if(c.date>=limite){ loin++; return }
-    var k=case_(c.date); k.rdv++; k.min+=+c.duree||0; rdv++;
+    /* chaque evenement a venir compte pour lui-meme : un dossier qui revient trois
+       fois dans le mois, c'est trois creneaux a tenir. */
+    evenements(c).forEach(function(e){
+      if(!e.date || e.date<h || !evtVivant(e) || e.statut==="realise") return;
+      if(e.date>=limite){ loin++; return }
+      var k=case_(e.date); k.rdv++; k.min+=+e.duree||0; rdv++;
+    });
   });
   (D.notes||[]).forEach(function(n){
     var s=n.suite; if(!s || !s.texte || s.fait) return;
@@ -7010,7 +7844,7 @@ function construireRapportPDF(a,b){
       +'<b>À vérifier avant diffusion</b> \u2014 aucune activité n\u2019est comptée comme menée à terme pour : '
       +esc(o.sansCloture.join(", "))+'. Qualifiez vos archives en « traité » (bouton dans Activités), '
       +'ou vérifiez que le statut de clôture de ces catégories correspond à un statut '
-      +'réellement utilisé. Corrigez-le dans Données \u203a Configurer les catégories.</p>';
+      +'réellement utilisé. Corrigez-le dans Options \u203a Configurer les catégories.</p>';
   }
   if(o.mois.length>1){
     h+='<h2>Activité mois par mois</h2><p class="rp-i">Entrées de planning menées à terme. '
@@ -7085,7 +7919,7 @@ function construireRapportPDF(a,b){
   h+=rpPrevention(o);
   h+='<h2>Faits marquants</h2><p class="rp-i">Ce que les chiffres ne disent pas.</p>'
     +'<div class="rp-saisie'+(P.rap_faits?"":" vide")+'">'
-    +esc(P.rap_faits||"Section à renseigner dans l\u2019onglet Données.")+'</div>';
+    +esc(P.rap_faits||"Section à renseigner dans l\u2019onglet Options.")+'</div>';
   h+='<div style="break-inside:avoid;page-break-inside:avoid">';
   h+='<div class="rp-mention">Ce rapport est établi à partir des données saisies dans l\u2019outil de pilotage '
     +'d\u2019activité. Il ne contient aucune donnée nominative, aucune référence de dossier et aucun '
@@ -7135,7 +7969,7 @@ function construireRapportPDF(a,b){
   if(ch.hors.sansEch) h+='<li>'+ch.hors.sansEch+' tâche(s) sans échéance : une réserve, '
     +'invisible au calendrier tant qu\'aucune date ne leur est donnée.</li>';
   if(ch.loin) h+='<li>'+ch.loin+' élément(s) au-delà de l\'horizon affiché.</li>';
-  h+='<li>'+ch.nonPilotes+' dossier(s) <b>non pilotés</b> : ni tâche en attente, ni date à venir. '
+  h+='<li>'+ch.nonPilotes+' dossier(s) <b>non pilotés</b> : ni tâche en attente, ni événement à venir. '
     +'Ils ne pèsent sur aucune journée, et c\'est précisément le risque.</li>';
   h+='</ul>';
   /* « Objectifs et besoins » vivait en fin de page « Detail », deja pleine : les deux
@@ -7144,7 +7978,7 @@ function construireRapportPDF(a,b){
   h+='<h2>Objectifs et besoins</h2>'
     +'<p class="rp-i">Ce que vous demandez pour tenir ce qui vient.</p>'
     +'<div class="rp-saisie'+(P.rap_objectifs?"":" vide")+'">'
-    +esc(P.rap_objectifs||"Section à renseigner dans l\u2019onglet Données.")+'</div>';
+    +esc(P.rap_objectifs||"Section à renseigner dans l\u2019onglet Options.")+'</div>';
   h+='<div class="rp-mention">Cette page décrit la charge déjà engagée au '+esc(libDate(auj()))
     +'. Elle ne préjuge ni des urgences à venir, ni du temps réellement nécessaire à chaque '
     +'élément.</div></div>';
@@ -7183,6 +8017,7 @@ function ouvrirRapport(){
 }
 /* ================= rendu global ================= */
 function rendre(){
+  if(!rendre.__veille){ rendre.__veille=true; veillerChampsFr() }
   var m=$("#vue");
   if(!fichierCharge && vueActive!=="donnees" && vueActive!=="param") vueActive="donnees";
   var sauveNote=$("#noteRapide")?$("#noteRapide").value:null;
@@ -7194,6 +8029,7 @@ function rendre(){
   if(vueActive==="jour") m.innerHTML=vueJour();
   else if(vueActive==="suivant") m.innerHTML=vueSuivant();
   else if(vueActive==="calendrier") m.innerHTML=vueCalendrier();
+  else if(vueActive==="projets") m.innerHTML=vueProjets();
   else if(vueActive==="chantiers") m.innerHTML=vueChantiers();
   else if(vueActive==="idees") m.innerHTML=vueIdees();
   else if(vueActive==="journal") m.innerHTML=vueJournal();
@@ -7210,6 +8046,7 @@ function rendre(){
   ["idTitre","idNote"].forEach(function(i,k){
     if(sauveId[k] && $("#"+i)) $("#"+i).value=sauveId[k];
   });
+  armerChampsFr(document);        /* les vues viennent d'etre reecrites : on arme ce qui existe */
   if(vueActive==="idees") dessinerBulles();   /* la carte a besoin de la largeur reelle */
   var d=new Date();
   $("#version").textContent="v"+APP_VERSION;
@@ -7247,6 +8084,14 @@ function ajouterNote(){
 }
 
 var JOURNAL_VERSIONS = [
+  ["3.38.0","Suivi de projet, d\u00e9sactiv\u00e9 par d\u00e9faut : une activit\u00e9 devient un projet quand on l\u2019active. Elle gagne une \u00e9ch\u00e9ance qui ne se d\u00e9place pas sans motif \u2014 l\u2019\u00e9ch\u00e9ance d\u2019origine reste affich\u00e9e barr\u00e9e, avec le nombre de reports et leur historique \u2014 et des jalons choisis parmi ses \u00e9v\u00e9nements et ses t\u00e2ches. L\u2019avancement est calcul\u00e9 sur les jalons valid\u00e9s, jamais saisi. Nouvel onglet Projets, une ligne par projet, et un bloc \u00ab Projets \u00e0 surveiller \u00bb sur l\u2019\u00e9cran du jour."],
+  ["3.37.1","Correctif de texte : la fiche d\u2019une activit\u00e9 sans \u00e9v\u00e9nement annon\u00e7ait qu\u2019elle \u00e9tait signal\u00e9e comme non pilot\u00e9e, alors qu\u2019une t\u00e2che en attente suffit \u00e0 la piloter. Le message consulte d\u00e9sormais la r\u00e8gle au lieu de la r\u00e9citer, et dit l\u2019\u00e9tat r\u00e9el de ce dossier-l\u00e0. Deux autres textes parlaient encore de \u00ab date \u00e0 venir \u00bb l\u00e0 o\u00f9 il s\u2019agit d\u2019un \u00e9v\u00e9nement."],
+  ["3.37.0","Fiche d\u2019activit\u00e9 : les boutons d\u2019ajout suivent d\u00e9sormais le titre de leur propre section, \u00e0 gauche. \u00ab + \u00c9v\u00e9nement \u00bb n\u2019est plus rejet\u00e9 \u00e0 droite, et \u00ab + Note \u00bb et \u00ab + T\u00e2che \u00bb ne flottent plus dans une bande pos\u00e9e avant le titre \u00ab Notes li\u00e9es \u00bb. Ce titre est maintenant affich\u00e9 m\u00eame sans aucune note."],
+  ["3.36.1","Correctif interne : les champs de date et d\u2019heure sont pr\u00e9par\u00e9s au moment m\u00eame o\u00f9 ils sont cr\u00e9\u00e9s, et non plus par un rattrapage diff\u00e9r\u00e9. La fen\u00eatre \u00ab Choisir une date \u00bb affichait sa date par d\u00e9faut au format interne."],
+  ["3.36.0","L\u2019onglet Donn\u00e9es s\u2019appelle d\u00e9sormais Options. Nouveau r\u00e9glage : le format des dates et des heures. Un champ de date natif suit la langue du navigateur et non celle de l\u2019application \u2014 sur un poste en anglais la saisie se lisait mm/jj/aaaa et 02:30 PM. Le mode \u00ab jj/mm/aaaa et 24 h \u00bb remplace ces champs par les n\u00f4tres, qui acceptent aussi la frappe rapide (121126, 14h30), tout en gardant le calendrier du navigateur derri\u00e8re un bouton."],
+ ["3.35.0","Une activit\u00e9 n'a plus une date unique mais une liste d'\u00e9v\u00e9nements : visite, r\u00e9union, intervention\u2026 chacun avec son type, sa dur\u00e9e et son propre \u00e9tat (pr\u00e9vu, r\u00e9alis\u00e9, annul\u00e9, report\u00e9). Les activit\u00e9s d\u00e9j\u00e0 dat\u00e9es sont reprises en un premier \u00e9v\u00e9nement, de type d\u00e9duit de leur cat\u00e9gorie. Le planning, le prochain jour ouvr\u00e9 et le calendrier listent chaque \u00e9v\u00e9nement ; un dossier est non pilot\u00e9 lorsqu'il n'a ni t\u00e2che en attente ni \u00e9v\u00e9nement \u00e0 venir non annul\u00e9. Les champs Date, Heure et Dur\u00e9e de la fiche affichent d\u00e9sormais l'\u00e9v\u00e9nement de r\u00e9f\u00e9rence et ne se saisissent plus."],
+ ["3.34.1","Correctif : le compte rendu du jour comptait les v\u00e9rifications de permanence parmi les appels, et les d\u00e9roulait une \u00e0 une sous la mention \u00ab appelant non pr\u00e9cis\u00e9 \u00bb. Les appels ne comptent plus que de vrais appels ; les v\u00e9rifications ont leur propre ligne, regroup\u00e9es par intitul\u00e9."],
+ ["3.34.0","Reporter une t\u00e2che et ouvrir sa note sont possibles depuis les trois \u00e9crans qui les listent : En attente, Prochain jour ouvr\u00e9 et Calendrier. La ligne d\u2019\u00e9ch\u00e9ance est d\u00e9sormais dessin\u00e9e par une seule fonction."],
  ["3.33.0","Nouvel onglet Calendrier, entre Prochain jour ouvr\u00e9 et Activit\u00e9s : une grille mensuelle des rendez-vous dat\u00e9s et du nombre d\u2019\u00e9ch\u00e9ances par jour, et le d\u00e9tail de la journ\u00e9e choisie \u00e0 c\u00f4t\u00e9."],
  ["3.32.0","Les vérifications de permanence s\u2019exportent à part, avec l\u2019écart depuis la précédente et la cadence attendue. L\u2019export des appels ne contient plus que de vrais appels, et gagne la colonne Affaire."],
  ["3.31.0","Chaque t\u00e2che en attente porte un bouton Reporter : raccourcis 1J, 2J, 5J, 1S, 2S, 1M, ou une date au choix. Le trait des comptes rendus est raccourci \u00e0 38 cadratins, pour ne plus casser la mise en page des applications o\u00f9 ils sont recopi\u00e9s."],
@@ -8704,6 +9549,11 @@ document.addEventListener("click",function(e){
     return;
   }
   if((el=t.closest("[data-fait]"))){ cloreSuite(el.dataset.fait); return }
+  if((el=t.closest("[data-proj]"))){ editerChantier(el.getAttribute("data-proj")); return }
+  if((el=t.closest("[data-jalon]"))){ basculerJalon(el.getAttribute("data-jalon")); return }
+  if((el=t.closest("[data-fr-cal]"))){ ouvrirCalendrierFr(el); return }
+  if((el=t.closest("[data-evtmod]"))){ ficheFormEvt(el.getAttribute("data-evtmod")); return }
+  if((el=t.closest("[data-evtsup]"))){ supprimerEvt(el.getAttribute("data-evtsup")); return }
   if((el=t.closest("[data-note]"))){
     var dlg=$("#modale");
     if(dlg && dlg.open){                       /* on vient d'une fiche : on la sauvegarde d'abord */
@@ -9024,6 +9874,12 @@ document.addEventListener("click",function(e){
     else if(a==="rap-param") gererRappels();
     else if(a==="fiche-note") ficheFormNote();
     else if(a==="fiche-tache") ficheFormTache();
+    else if(a==="fiche-evt") ficheFormEvt(null);
+    else if(a==="projet-on"){ var cp=chantierPar(ficheEnCours); if(cp) basculerProjet(cp,true) }
+    else if(a==="projet-off"){ var cq=chantierPar(ficheEnCours); if(cq) basculerProjet(cq,false) }
+    else if(a==="projet-ech"){ var cr=chantierPar(ficheEnCours); if(cr) fenetreEcheance(cr) }
+    else if(a==="voir-projets"){ vueActive="projets"; rendre() }
+    else if(a==="fiche-add-evt") ajouterEvtDepuisFiche();
     else if(a==="fiche-add-note") ajouterDepuisFiche("note");
     else if(a==="fiche-add-tache") ajouterDepuisFiche("tache");
     else if(a==="imp-xlsx") $("#fichierXlsx").click();
@@ -9215,6 +10071,7 @@ function rendreEtRendreLeFocus(id){
 }
 document.addEventListener("change",function(e){
   var t=e.target;
+  if(t.dataset && t.dataset.evtetat!==undefined){ etatEvt(t.dataset.evtetat,t.value); return }
   if(t.dataset && t.dataset.idsel!==undefined){
     if(t.checked) selIdees[t.dataset.idsel]=true; else delete selIdees[t.dataset.idsel];
     rendre(); return;
@@ -9267,6 +10124,13 @@ document.addEventListener("change",function(e){
     return;
   }
   if(t.id==="gestFiltre"){ D.parametres.gestionnaire=t.value.trim(); modifie(); toast("Filtre mis à jour"); return }
+  if(t.id==="fmtDate"){
+    /* Le mode change la nature meme des champs : on redessine tout, sinon la moitie
+       de l'ecran resterait dans l'ancien format jusqu'au prochain rendu. */
+    D.parametres.format_date=(t.value==="fr")?"fr":"auto"; modifie(); rendre();
+    toast(D.parametres.format_date==="fr"?"Dates en jj/mm/aaaa et 24 h":"Format du navigateur rétabli");
+    return;
+  }
   if(t.id==="sugOn"){ M.reglages.suggerer=t.checked; modifieMenu(); return }
   if(t.id==="sugClo"){ M.reglages.sur_cloture=t.checked; modifieMenu(); return }
   if(t.id==="sugEpr"){ M.reglages.sur_eprouvante=t.checked; modifieMenu(); return }
@@ -9462,16 +10326,16 @@ var A = window.AIDE = [
 +'<dt>Activités</dt><dd>L’ensemble de vos dossiers, avec recherche et filtres.</dd>'
 +'<dt>Journal</dt><dd>Toutes vos notes et vos appels, du plus récent au plus ancien.</dd>'
 +'<dt>Contacts</dt><dd>Les personnes et les organisations, leur historique et leurs liens.</dd>'
-+'<dt>Données</dt><dd>Le fichier, les imports et exports, le rapport d’activité, les paramètres.</dd></dl>'
++'<dt>Options</dt><dd>Le fichier, les imports et exports, le rapport d’activité, les paramètres.</dd></dl>'
 +'<h4>Le fichier de données</h4>'
 +'<p>Tout vit dans un seul fichier, <code>pstp-data.json</code>, que vous choisissez au premier lancement. '
-+'Tant qu’il n’est pas lié, seul l’onglet Données est accessible : c’est volontaire, pour ne pas saisir dans le vide. '
++'Tant qu’il n’est pas lié, seul l’onglet Options est accessible : c’est volontaire, pour ne pas saisir dans le vide. '
 +'Une fois lié, chaque modification y est écrite toute seule, une seconde après la saisie.</p>'
 +'<p class="pa-astuce">L’application ne fait aucun appel réseau. Rien ne sort de votre poste, et elle fonctionne '
 +'sans connexion. C’est ce qui la rend utilisable sur un poste professionnel.</p>'
 +'<h4>Pour bien démarrer</h4><ol>'
-+'<li><b>Données</b> → « Ouvrir ou créer un fichier ». Choisissez son emplacement une fois pour toutes.</li>'
-+'<li>Vérifiez vos <b>catégories d’activité</b> dans Données → Configurer les catégories.</li>'
++'<li><b>Options</b> → « Ouvrir ou créer un fichier ». Choisissez son emplacement une fois pour toutes.</li>'
++'<li>Vérifiez vos <b>catégories d’activité</b> dans Options → Configurer les catégories.</li>'
 +'<li>Créez une activité depuis <b>Aujourd’hui</b>, avec les boutons « + » sous le planning.</li>'
 +'<li>Notez ce que vous faites au fil de la journée : une ligne suffit, le temps se cumule tout seul.</li></ol>' },
 
@@ -9586,6 +10450,42 @@ var A = window.AIDE = [
 +'mêmes tâches que les autres onglets. Une activité archivée n’y figure pas, une tâche '
 +'faite non plus.</p>' },
 
+{ id:"projets", titre:"Projets, jalons et \u00e9ch\u00e9ance", vues:["projets"], html:
+'<h4>Quand une activit\u00e9 devient un projet</h4>'
++'<p>Le suivi de projet est <b>d\u00e9sactiv\u00e9 par d\u00e9faut</b>. Ouvrez une activit\u00e9, section '
++'<b>Projet</b>, puis \u00ab Suivre comme un projet \u00bb. La plupart des activit\u00e9s n\u2019en sont pas : '
++'les suivre toutes ne piloterait rien.</p>'
++'<p>D\u00e9sactiver le suivi n\u2019efface rien. Si vous le rallumez, l\u2019\u00e9ch\u00e9ance et '
++'l\u2019historique des reports sont toujours l\u00e0.</p>'
++'<h4>Les jalons</h4>'
++'<p>Un jalon est un \u00e9v\u00e9nement ou une t\u00e2che de l\u2019activit\u00e9 que vous <b>cochez</b> '
++'comme \u00e9tape, avec le bouton \u2606 Jalon. Rien de nouveau \u00e0 saisir, et surtout : la barre '
++'d\u2019avancement ne bouge que sur ce qui compte. Si tout comptait, une visite de routine p\u00e8serait '
++'autant qu\u2019une \u00e9tape cl\u00e9, et trente micro-t\u00e2ches noieraient les cinq vraies.</p>'
++'<dl><dt>valid\u00e9</dt><dd>\u00e9v\u00e9nement pass\u00e9 en \u00ab R\u00e9alis\u00e9 \u00bb, '
++'ou t\u00e2che marqu\u00e9e faite.</dd>'
++'<dt>en retard</dt><dd>sa date est pass\u00e9e et il n\u2019est pas valid\u00e9.</dd>'
++'<dt>annul\u00e9</dt><dd>sort du compte, au num\u00e9rateur comme au d\u00e9nominateur : il a \u00e9t\u00e9 '
++'retir\u00e9 du projet, pas rat\u00e9.</dd></dl>'
++'<h4>L\u2019avancement</h4>'
++'<p>Il est <b>calcul\u00e9</b> : jalons valid\u00e9s sur jalons retenus. Il ne se saisit pas. Un '
++'pourcentage qu\u2019on tape \u00e0 la main est un chiffre qu\u2019on s\u2019arrange ; celui-l\u00e0 ne '
++'peut que refl\u00e9ter ce qui est r\u00e9ellement fait.</p>'
++'<h4>L\u2019\u00e9ch\u00e9ance ne flotte pas</h4>'
++'<p>La premi\u00e8re \u00e9ch\u00e9ance se pose librement. <b>Toute modification ensuite exige un '
++'motif</b>, et l\u2019application refuse d\u2019enregistrer sans : une justification facultative '
++'n\u2019est pas une justification.</p>'
++'<p>Une fois report\u00e9e, la ligne du projet affiche l\u2019\u00e9ch\u00e9ance d\u2019origine '
++'<b>barr\u00e9e</b>, la nouvelle, et le nombre de reports. Le motif de chacun reste consultable dans la '
++'fiche. C\u2019est l\u2019int\u00e9r\u00eat m\u00eame d\u2019en demander un : que le report co\u00fbte '
++'quelque chose.</p>'
++'<h4>O\u00f9 les voir</h4>'
++'<p>L\u2019onglet <b>Projets</b> les liste tous, une ligne chacun, les plus urgents devant : '
++'d\u00e9pass\u00e9s, puis par \u00e9ch\u00e9ance.</p>'
++'<p>Sur l\u2019\u00e9cran du jour, le bloc <b>Projets \u00e0 surveiller</b> ne montre que '
++'l\u2019\u00e9ch\u00e9ance d\u00e9pass\u00e9e, proche (huit jours), ou le jalon en retard. Un projet qui '
++'va bien ne vous encombre pas le matin.</p>'
+},
 { id:"activites", titre:"Activités", vues:["chantiers"], html:
  '<h4>La liste</h4>'
 +'<p>Recherche libre, puis quatre filtres : catégorie, statut, période, et <b>actives / archivées</b>. '
@@ -9593,6 +10493,22 @@ var A = window.AIDE = [
 +'<h4>La fiche</h4>'
 +'<p>Un clic ouvre la fiche : champs de la catégorie, notes liées, ajout d’une note ou d’une tâche sans quitter la fenêtre. '
 +'Les notes liées s’ouvrent d’un clic.</p>'
++'<h4>Les événements</h4>'
++'<p>Une activité n’a plus une date unique, mais <b>autant d’événements que nécessaire</b> : une visite, '
++'puis une réunion, puis l’intervention. Chacun porte sa date, son heure, sa durée, son type '
++'(rendez-vous, intervention, session, réunion…) et son <b>propre état</b> — prévu, réalisé, annulé, reporté.</p>'
++'<p>Les champs <b>Date</b>, <b>Heure</b> et <b>Durée</b> en haut de la fiche ne se saisissent plus : ils '
++'affichent le <b>prochain événement à venir</b>, ou le dernier passé s’il n’y en a plus. Ils sont grisés '
++'parce qu’il n’y a qu’une source de vérité, la liste d’événements. À la création d’une activité, en '
++'revanche, ils sont actifs : ils composent le premier événement.</p>'
++'<p>Un événement passé encore marqué « prévu » est signalé en rouge : c’est une date que vous n’avez pas soldée.</p>'
++'<p>Le planning du jour, le prochain jour ouvré et le calendrier listent désormais <b>chaque événement</b> : '
++'un dossier qui revient trois fois dans la journée y figure trois fois, parce que ce sont trois choses à faire. '
++'Les événements annulés n’apparaissent nulle part, mais restent dans la fiche — effacer une annulation efface l’histoire.</p>'
++'<p>L’import conserve son propre événement, et ne touche jamais ceux que vous avez posés à la main.</p>'
++'<h4>Ce qu’est un dossier non piloté</h4>'
++'<p>Un dossier est <b>non piloté</b> quand il n’a ni tâche en attente, ni événement à venir non annulé. '
++'Une réunion annulée ne pilote donc plus rien : le dossier revient dans la liste à traiter.</p>'
 +'<h4>Archiver plutôt que supprimer</h4>'
 +'<p>L’archivage sort un dossier des vues courantes <b>sans rien perdre</b> : notes, tâches, temps imputé et '
 +'rattachements sont conservés, et le dossier reste consultable par le filtre « Archivés ».</p>'
@@ -9614,7 +10530,7 @@ var A = window.AIDE = [
 
 { id:"desherences", titre:"Dossiers et import Excel", vues:[], html:
  '<h4>L’import</h4>'
-+'<p><b>Données</b> → « Importer des dossiers (Excel) ». Le fichier <code>.xlsm</code> est lu directement, '
++'<p><b>Options</b> → « Importer des dossiers (Excel) ». Le fichier <code>.xlsm</code> est lu directement, '
 +'sans logiciel tiers. Les lignes sont rapprochées par leur PRM : ce qui existe est mis à jour, le reste est ajouté.</p>'
 +'<p>Un écran récapitule tout <b>avant</b> d’appliquer : lignes lues, nouvelles, modifiées, identiques, '
 +'et le détail champ par champ des modifications proposées.</p>'
@@ -9629,7 +10545,7 @@ var A = window.AIDE = [
 +'<h4>Dates particulières</h4>'
 +'<p>La colonne date d’intervention accepte autre chose qu’une date. Un <b>marqueur de réalisation</b> '
 +'(FAIT, OK, Réalisé, Terminé…) retire la fiche du planning ; tout autre texte est conservé dans le champ sans toucher '
-+'à la date. La liste des marqueurs est modifiable dans Données.</p>'
++'à la date. La liste des marqueurs est modifiable dans Options.</p>'
 +'<h4>Dossiers absents du fichier</h4>'
 +'<p>Un dossier que vous suivez mais qui ne figure plus dans le reportinge vous est proposé à l’archivage, '
 +'case par case, rien n’étant coché par défaut. À l’inverse, un dossier archivé qui réapparaît vous est proposé '
@@ -9663,7 +10579,7 @@ var A = window.AIDE = [
 +'<i>lien perdu</i> suivi du dossier d’origine, au lieu de vous laisser deviner.</p>'
 +'<h4>Rubriques</h4>'
 +'<p>Pour les notes qui ne relèvent d’aucun dossier daté. Leur ordre d’affichage se règle avec les flèches '
-+'dans Données, et il est respecté partout.</p>'
++'dans Options, et il est respecté partout.</p>'
 +'<h4>Transmettre une note ou un appel</h4>'
 +'<p>La fiche d’une note et celle d’un appel portent un bouton <b>Compte rendu</b> : il en écrit '
 +'le résumé en texte brut — date, durée, dossier rattaché, contenu, suite à donner — à copier dans un mail. '
@@ -9755,10 +10671,10 @@ var A = window.AIDE = [
 +'et <b>prévention et réduction du risque</b> : interventions à enjeu sécurité, convocations tenues, '
 +'animations, entreprises rencontrées, personnes sensibilisées.</dd></dl>'
 +'<h4>Les deux sections à écrire</h4>'
-+'<p><b>Faits marquants</b> et <b>Objectifs et besoins</b> se renseignent dans Données. Ce sont les seules '
++'<p><b>Faits marquants</b> et <b>Objectifs et besoins</b> se renseignent dans Options. Ce sont les seules '
 +'sections rédigées, et ce sont elles qu’on lit en premier : les chiffres ne font que les étayer.</p>' },
 
-{ id:"donnees", titre:"Données, fichier et exports", vues:["donnees"], html:
+{ id:"donnees", titre:"Options, fichier et exports", vues:["donnees"], html:
  '<h4>Le fichier</h4>'
 +'<p>« Lier un fichier » ou « Ouvrir un fichier » : après ce clic unique, tout s’enregistre seul. '
 +'L’état en haut à droite indique où en est l’enregistrement.</p>'
@@ -9874,7 +10790,7 @@ var A = window.AIDE = [
 +'N’appliquez pas l’import avant.</dd>'
 +'<dt>Où sont mes données ?</dt>'
 +'<dd>Dans le fichier que vous avez lié, à l’emplacement que vous avez choisi. Le nom du fichier courant '
-+'est affiché dans Données.</dd>'
++'est affiché dans Options.</dd>'
 +'</dl>' }
 ];
 
