@@ -487,7 +487,7 @@ function spBox(kind,x){
         :`<div class="row"><button class="btn small" data-act="sp-retirer" data-k="${kind}" data-id="${x.id}">Retirer du partage</button></div>`}</div>`;
   }
   const l=espacesEcriture();
-  if(!l.length) return `<div class="spbox muted">Pour partager ${lib}, créez ou rejoignez un espace : onglet Données, bloc Partage.</div>`;
+  if(!l.length) return `<div class="spbox muted">Pour partager ${lib}, créez ou rejoignez un espace : onglet Options, bloc Partage.</div>`;
   return `<div class="spbox">Partager ${lib} dans
     <div class="row"><select class="field" id="spDest" style="flex:1">${l.map(e=>`<option value="${e.id}">${esc(e.nom)} (${e.membres.filter(m=>m.status!=='retire').length} membres)</option>`).join('')}</select>
     <button class="btn small primary" data-act="sp-partager" data-k="${kind}" data-id="${x.id}">Partager</button></div></div>`;
@@ -965,7 +965,7 @@ function renderFoot(){
     <label class="muted" for="thr">Sensibilité : ${S.settings.threshold<.18?'large':S.settings.threshold>.3?'stricte':'moyenne'}</label>
     <input id="thr" class="slider" type="range" min="0.1" max="0.45" step="0.01" value="${S.settings.threshold}">
     <p class="muted" style="margin:10px 0 0"><span class="status" style="--c:${SRV.ok&&!SRV.conflict?'#1F7A4D':'#E8A400'}"><i></i>${sync}</span>
-    <br>Claude, export et import : onglet Données.</p>`;
+    <br>Claude, export et import : onglet Options.</p>`;
     const ec=etatClaude(); if(ec!==renderFoot.last){ renderFoot.last=ec; tellPilot({type:'etat-claude',claude:ec}); }
     return;
   }

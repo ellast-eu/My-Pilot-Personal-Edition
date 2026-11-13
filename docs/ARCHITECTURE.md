@@ -32,7 +32,7 @@ applyRemote ◀─────────────────────�
 curseurs « envoyé » et « reçu » mis à jour
 ```
 
-- Échange toutes les 30 s, 2,5 s après une modification, et à la demande (onglet Données).
+- Échange toutes les 30 s, 2,5 s après une modification, et à la demande (onglet Options).
 - Une fiche locale envoyée ou en attente, remplacée par une version plus récente venue d'ailleurs, est copiée dans le **journal des conflits** avant d'être écrasée.
 - Les suppressions voyagent comme des fiches marquées supprimées.
 - Le hub authentifie les appareils par le jeton `SYNC_TOKEN`.

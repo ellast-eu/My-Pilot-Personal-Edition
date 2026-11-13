@@ -13,12 +13,12 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SOURCE = ROOT / 'vendor' / 'mypilot-pro-3.33.0.html'
+SOURCE = ROOT / 'vendor' / 'mypilot-pro-3.38.0.html'
 TARGET = ROOT / 'web' / 'pilot' / 'index.html'
 
 PATCHES = [
     # (description, motif, remplacement, regex?)
-    # --- reprise de My Pilot Pro (3.21.0, puis 3.33.0) ---
+    # --- reprise de My Pilot Pro (3.21.0, 3.33.0, 3.38.0) ---
     ("titre de l'onglet",
      r'<title>My Pilot Professional Edition</title>',
      '<title>My Pilot Personal Edition</title>', True),
@@ -76,7 +76,9 @@ PATCHES = [
      "      +'La rubrique DT-DICT récupère automatiquement le temps chronométré des sessions.</div>'",
      "'Les rubriques servent à rattacher les notes qui ne relèvent d\\'aucune activité datée.</div>'", False),
     ("listes : seulement celles du pilotage personnel",
-     r"\+\[\[\"types_intervention\",\"Types d'intervention \(dossiers\)\"\],.*?\[\"ouvrages\",\"Ouvrages\"\]\]\.map",
+     # ancré par la FIN du tableau (la 3.35 a ajouté « Types d'événement » en tête), et limité à une suite
+     # de paires ["clé","libellé"] : un « +[[ » ailleurs dans le code ne peut pas être englobé
+     r"\+\[(?:\[\"[a-z_]+\",\"[^\"\n]*\"\],\s*)*\[\"ouvrages\",\"Ouvrages\"\]\]\.map",
      "+(window.persoListes?window.persoListes():[]).map", True),
     ("catégories : modèle personnel au lieu du modèle Enedis",
      "charger le modèle fourni (dossier, convocation, animation, transverse)",

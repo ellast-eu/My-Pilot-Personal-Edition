@@ -69,7 +69,7 @@ export function createApp(opts = {}) {
   const store = opts.store ?? new Store(opts.dbFile ?? path.join(dataDir, 'pilot.db'));
   const snapDir = opts.snapshotDir ?? process.env.SNAPSHOT_DIR ?? path.join(dataDir, 'snapshots');
   const mode = opts.mode || 'serveur';
-  // Réglages : valeurs de départ = .env (ou options), modifiables ensuite depuis l'onglet Données
+  // Réglages : valeurs de départ = .env (ou options), modifiables ensuite depuis l'onglet Options
   const base = { ...baseFromEnv() };
   if (opts.user !== undefined) base.app_user = opts.user;
   if (opts.password !== undefined) base.app_password = opts.password;
@@ -422,7 +422,7 @@ export function createApp(opts = {}) {
         if (url.pathname === '/api/sync') {
           // motif précis : l'application l'affiche tel quel
           if (!syncToken()) return send(res, 401, { error: 'no_sync_token',
-            message: 'Ce serveur n\'a pas de jeton de synchronisation : définissez-le sur le serveur (Données → Réglages, ou SYNC_TOKEN dans .env), puis saisissez le même dans l\'application.' });
+            message: 'Ce serveur n\'a pas de jeton de synchronisation : définissez-le sur le serveur (Options → Réglages, ou SYNC_TOKEN dans .env), puis saisissez le même dans l\'application.' });
           if (req.headers.authorization) garde.echec(ip, 'jeton de synchronisation');
           return send(res, 401, { error: 'bad_token', message: 'Jeton de synchronisation refusé : il ne correspond pas à celui du serveur.' });
         }

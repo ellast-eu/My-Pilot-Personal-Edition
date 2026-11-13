@@ -4,6 +4,7 @@
  * Une ligne par version, de la plus récente à la plus ancienne ; le détail est dans CHANGELOG.md.
  */
 window.persoVersions=[
+ ["0.19.0","Base My Pilot Pro 3.38.0 : suivi de projet (onglet Projets, jalons, avancement, échéance qui ne se reporte pas sans motif), types d'événement ; l'onglet Données s'appelle Options."],
  ["0.18.0","Base My Pilot Pro 3.33.0 : onglet Calendrier, bouton Accompagnement, Reporter sur les tâches, rapport « Charge à venir ». Nom My Pilot Personal Edition partout."],
  ["0.17.1","Service systemd compatible Podman (service utilisateur sans root) ; « reload » reconstruit l'image."],
  ["0.17.0","Démarrage automatique par systemd, avec Docker Compose ou directement avec Node.js."],
