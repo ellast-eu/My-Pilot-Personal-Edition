@@ -4,6 +4,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+## [0.20.0] - 2026-11-23
+
 ### Modifications
 - **Base My Pilot Pro 1.12-public** (au lieu de 3.38.0 ; la pro a changé de numérotation). Ce que la pro apporte : **Options** devient un bouton du bandeau, découpé en six sections (Fichier, Import et export, Organisation, Catégories, Listes, Affichage) ; la date d'une tâche dit si c'est un **engagement** ou un **rappel** (les données existantes restent des engagements) ; **calcul de charge** pour étaler les rappels ; jeux de statuts dans leur propre bloc ; profils d'import par catégorie ; écran d'ouverture animé.
   - `scripts/build_pilot.py` : 48 patchs, appliqués l'un après l'autre sans échec ni doublon. Chaque ancre en `.*?` se ferme sur la fin de **son propre bloc** : l'ancienne ancre du diagnostic courait jusqu'au prochain `</div><div>`, 381 lignes plus loin, et effaçait au passage « Tout effacer » et d'autres réglages.
