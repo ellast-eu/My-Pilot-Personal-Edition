@@ -19,7 +19,7 @@ var A = window.AIDE = [
 +'<dt>Veilles</dt><dd>Des flux d’information collectés pour vous chaque jour et rangés en fiches.</dd>'
 +'<dt>Journal</dt><dd>Toutes vos notes, jour par jour, avec une recherche.</dd>'
 +'<dt>Contacts</dt><dd>Les personnes et les organisations, reliées à vos activités.</dd>'
-+'<dt>Options</dt><dd>Sauvegardes, synchronisation, partage, réglages et Claude.</dd></dl>'
++'<dt>Options</dt><dd>Bouton du bandeau, en haut : sauvegardes, synchronisation, partage, réglages et Claude (section Fichier), puis import et export, organisation, catégories, listes, affichage.</dd></dl>'
 +'<h4>Vos données sont enregistrées toutes seules</h4>'
 +'<p>Chaque modification est enregistrée en une ou deux secondes. L’état est affiché en haut à droite : '
 +'<b>Enregistré</b>, <b>Enregistrement…</b> ou <b>Hors ligne</b>. Hors ligne, rien n’est perdu : la saisie est gardée et envoyée au retour de la connexion. '
@@ -29,7 +29,7 @@ var A = window.AIDE = [
 +'<li>Créez une première activité depuis <b>Aujourd’hui</b> (boutons « + Projet », « + Maison »…).</li>'
 +'<li>Notez ce que vous faites dans le <b>Journal du jour</b> : une ligne suffit.</li>'
 +'<li>Déposez vos envies dans l’onglet <b>Idées</b>.</li>'
-+'<li>Si vous avez plusieurs appareils, configurez la <b>synchronisation</b> (onglet Options).</li></ol>'
++'<li>Si vous avez plusieurs appareils, configurez la <b>synchronisation</b> (bouton Options du bandeau).</li></ol>'
 +'<p class="pa-astuce">Cette aide s’ouvre à tout moment avec le bouton <b>Aide</b> en haut, ou la touche <kbd>F1</kbd> : elle montre alors la rubrique de l’onglet affiché.</p>' },
 
 { id:"aujourdhui", titre:"Aujourd’hui et Prochain jour", vues:["jour","suivant"], html:
@@ -142,7 +142,7 @@ var A = window.AIDE = [
 +'<li>Un <b>espace partagé</b> est hébergé par votre serveur et <b>chiffré de bout en bout</b> : le serveur ne voit que des fiches illisibles.</li>'
 +'<li>Une idée ou une activité partagée est une <b>fiche vivante</b> : la même pour tous les membres, chacun peut la modifier.</li>'
 +'<li>Si deux personnes modifient deux champs différents d’une même fiche, les deux modifications sont gardées. Pour un même champ, la plus récente l’emporte, et l’autre valeur est conservée dans le journal des conflits.</li></ul>'
-+'<h4>Mettre en place (application de bureau, onglet Options, bloc Partage)</h4><ol>'
++'<h4>Mettre en place (application de bureau, Options, bloc Partage)</h4><ol>'
 +'<li>Choisissez votre <b>nom affiché</b> et une couleur.</li>'
 +'<li><b>Créer un espace</b> (votre synchronisation doit être configurée : votre serveur hébergera l’espace, joignable en HTTPS).</li>'
 +'<li><b>Inviter une personne</b> (ou en <b>lecture seule</b>, ou <b>votre autre appareil</b>) : un lien à usage unique, valable 7 jours, à transmettre par un canal sûr.</li>'

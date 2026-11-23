@@ -4,6 +4,7 @@
  * Une ligne par version, de la plus récente à la plus ancienne ; le détail est dans CHANGELOG.md.
  */
 window.persoVersions=[
+ ["0.20.0","Base My Pilot Pro 1.12-public : Options dans le bandeau et en six sections, échéance qui dit si c'est un engagement ou un rappel, calcul de charge, profils d'import ; plus d'onglet Rapport."],
  ["0.19.0","Base My Pilot Pro 3.38.0 : suivi de projet (onglet Projets, jalons, avancement, échéance qui ne se reporte pas sans motif), types d'événement ; l'onglet Données s'appelle Options."],
  ["0.18.0","Base My Pilot Pro 3.33.0 : onglet Calendrier, bouton Accompagnement, Reporter sur les tâches, rapport « Charge à venir ». Nom My Pilot Personal Edition partout."],
  ["0.17.1","Service systemd compatible Podman (service utilisateur sans root) ; « reload » reconstruit l'image."],

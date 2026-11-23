@@ -34,8 +34,6 @@ MOTIFS_CONVOC = [];
 THEMES_ANIM = [];
 TYPES_TRANSV = [];
 ETATS_AFFAIRE = [];
-STATUTS_DESH = [];
-SEGMENTS = [];
 TYPES_DOSSIER = [];
 FAMILLES = [["essentiel","Essentiel"],["entretien","Entretien"],["progres","Progrès"]];
 RUBRIQUES_DEFAUT = [
@@ -322,7 +320,15 @@ window.persoDiagnostic=function(){
 };
 /* listes modifiables : celles des catégories actives, plus les listes communes */
 var LISTES_PRO={types_intervention:1,motifs_appel:1,motifs_convocation:1,themes_animation:1,types_transverse:1,
-  etats_affaire:1,statuts_desherence:1,segments:1,types_dossier:1,marqueurs_fait:1,actes_prevention:1,ouvrages:1};
+  etats_affaire:1,statuts_desherence:1,statuts_dossier:1,segments:1,types_dossier:1,marqueurs_fait:1,actes_prevention:1,ouvrages:1};
+/* jeux de statuts (bloc à part depuis la pro 1.11) : ceux des catégories de la perso et ceux créés ici ;
+   les jeux livrés par la pro et qu'aucune catégorie n'emploie restent cachés */
+window.persoJeux=function(){
+  var pris={};
+  categories().forEach(function(K){ if(K.statuts) pris[K.statuts]=1 });
+  return listesDispo().map(function(x){ return x[0] })
+    .filter(function(k){ return estJeuStatuts(k) && (pris[k] || !LISTES_PRO[k]) }).sort();
+};
 window.persoListes=function(){
   var l=[],vus={};
   categories().forEach(function(K){
@@ -684,7 +690,7 @@ window.persoBlocPartage=function(){
     +'<input type="checkbox" id="ptNotif"'+(st.notifications&&st.notifications.systeme===false?"":" checked")+'> '
     +'Notification du système quand un membre partage, modifie ou cristallise une idée (application en arrière-plan)</label></div>':"")
   +'<div class="note-aide">Un espace partagé est hébergé par votre serveur et chiffré de bout en bout : le serveur ne voit que des fiches illisibles. '
-    +'La personne invitée garde ses données privées chez elle. Le partage d\'idées depuis l\'onglet Idées arrive avec la prochaine version.</div>';
+    +'La personne invitée garde ses données privées chez elle. Idées et activités se partagent depuis leur fenêtre, bouton « Partager… ».</div>';
   return titre+h+'<div class="note-aide"><button class="pp-aide-lien" style="margin:0" data-aide="partage">Comment fonctionne le partage ?</button></div></div></div>';
 };
 function resPartage(z,msg,ok){ z.textContent=msg; z.style.color=ok?"var(--vert)":"var(--rouge)" }
@@ -1937,7 +1943,8 @@ window.addEventListener("focus",reessayer);
   +'#etat .b{flex:none}'
   +'nav{scrollbar-width:thin;scrollbar-color:#4A514C transparent}'
   +'nav::-webkit-scrollbar{height:4px}nav::-webkit-scrollbar-thumb{background:#4A514C}'
-  +'.diag b{min-width:0;overflow-wrap:anywhere;text-align:right}'      /* chemins longs : jamais de débordement */
+  +'.diag b{min-width:0;overflow-wrap:anywhere;text-align:right}'
+  +'.rub-auto,#rubAuto{display:none}'      /* rubriques : pas de récupération automatique (compteur, appels de la pro) */      /* chemins longs : jamais de débordement */
   /* sous 1500 px, l'en-tête (cinq boutons depuis la pro 3.26) ne tient plus sur une ligne :
      la ligne d'état prend une deuxième ligne fixe, au lieu de flotter à droite sous la date */
   +'@media (max-width:1499px){'

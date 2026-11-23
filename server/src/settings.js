@@ -1,4 +1,4 @@
-// Réglages modifiables depuis l'application (onglet Options → Réglages).
+// Réglages modifiables depuis l'application (Options → Réglages).
 //
 // Valeur effective = valeur saisie dans l'application (table meta, propre à cette machine,
 // jamais synchronisée) ?? valeur de départ (.env ou options) ?? valeur par défaut.
