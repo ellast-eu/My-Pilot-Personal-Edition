@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.MyPilot" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/fond</item>
+        <item name="android:colorPrimary">@color/bandeau</item>
+        <item name="android:colorPrimaryDark">@color/bandeau</item>
+        <item name="android:colorAccent">@color/accent</item>
+        <item name="android:statusBarColor">@color/bandeau</item>
+        <item name="android:navigationBarColor">@color/bandeau</item>
+    </style>
+    <color name="bandeau">#191C1B</color>
+    <color name="fond">#E6E7E3</color>
+    <color name="accent">#D8232A</color>
+</resources>

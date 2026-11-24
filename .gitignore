@@ -10,3 +10,8 @@ deploy/keys/*
 !deploy/keys/.gitkeep
 dist/
 desktop/node_modules/
+
+# clés de signature Android : jamais dans le dépôt
+*.p12
+*.jks
+*.keystore

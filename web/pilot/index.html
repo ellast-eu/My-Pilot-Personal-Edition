@@ -1470,7 +1470,7 @@ var CLE = "pst-pilot-v1";
 
 function vierge(){
   return {
-    meta:{app:"My Pilot Professional Edition",version:VERSION,modifie_le:new Date().toISOString()},
+    meta:{app:"My Pilot Personal Edition",version:VERSION,modifie_le:new Date().toISOString()},
     parametres:{
       jours_ouvres:[1,2,3,4,5],absences:[],
       types_intervention:TYPES_DEFAUT.slice(),
@@ -2183,13 +2183,14 @@ function majEtat(){
   if(!fsaDispo()){ e.classList.add("sale"); p.classList.add("sale") }
 }
 function serialise(format){
-  D.meta.app="My Pilot Professional Edition";
+  D.meta.app="My Pilot Personal Edition";
   D.meta.app_version=APP_VERSION;
   D.meta.version=VERSION;
   var t=JSON.stringify(D,null,2);
   return format==="js" ? ("window.PST_DATA = "+t+";\n") : t;
 }
 function telecharger(nom,contenu,mime){
+  nom=String(nom).replace(/^mypilot-pro-/,"my-pilot-personal-edition-");
   var b=new Blob([contenu],{type:mime||"application/json;charset=utf-8"});
   var u=URL.createObjectURL(b),a=document.createElement("a");
   a.href=u;a.download=nom;document.body.appendChild(a);a.click();
@@ -6035,7 +6036,6 @@ function sectionEchanges(){
       +'<button class="b creux" data-act="exp-json">Exporter en JSON</button>'
       +'<button class="b creux" data-act="exp-csv">Exporter les activités (CSV)</button>'
       +'<button class="b creux" data-act="exp-csvn">Exporter les notes (CSV)</button>'
-      +'<button class="b creux" data-act="exp-csvv">Exporter les vérifications (CSV)</button>'
     +'</div>'
     +'<div class="ligne" style="margin-top:8px">'
       +'<span class="puce-lbl">Période des CSV</span>'

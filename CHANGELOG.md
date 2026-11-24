@@ -4,6 +4,12 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+### Ajouts
+- **Application Android** (`android/`, APK construit par `android/build.sh` avec les outils Android de Debian, sans Android Studio ni Gradle) : l'interface de votre serveur en plein écran, avec la page de connexion et la session de 30 jours. Adresse du serveur demandée au premier lancement ; exports (JSON, CSV, idées du Cristallisoir) enregistrés là où Android le propose ; imports par le sélecteur de fichiers ; bouton Retour qui ferme d'abord la fenêtre ouverte ; liens extérieurs ouverts dans le navigateur. Android 6 minimum. Pas d'espaces partagés ni de travail hors ligne (voir la v2 envisagée : application autonome).
+
+### Corrections
+- **Exports au nom de la perso** : les fichiers exportés s'appelaient `mypilot-pro-…` et leur en-tête annonçait « My Pilot Professional Edition » ; l'export des vérifications (CSV), propre à la pro, est retiré.
+
 ## [0.20.0] - 2026-11-23
 
 ### Modifications

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">My Pilot</string>
+    <!-- Adresse proposée au premier lancement (modifiable dans l'application). -->
+    <string name="serveur_defaut">https://mypilot.ellast.eu</string>
+</resources>

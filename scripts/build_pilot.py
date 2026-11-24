@@ -185,6 +185,19 @@ PATCHES = [
     ("à propos : bouton du journal de la perso",
      'else if(a==="ap-versions") ouvrirApropos("versions");',
      'else if(a==="ap-versions") ouvrirApropos("versions");\n    else if(a==="ap-versions-perso") ouvrirApropos("versions-perso");', False),
+    # --- exports : au nom de la perso (1.12-public) ---
+    ("exports : nom de l'application dans l'en-tête du fichier",
+     'meta:{app:"My Pilot Professional Edition",',
+     'meta:{app:"My Pilot Personal Edition",', False),
+    ("exports : nom de l'application à l'enregistrement",
+     'D.meta.app="My Pilot Professional Edition";',
+     'D.meta.app="My Pilot Personal Edition";', False),
+    ("exports : noms de fichiers de la perso (mypilot-pro-… → my-pilot-personal-edition-…)",
+     'function telecharger(nom,contenu,mime){\n',
+     'function telecharger(nom,contenu,mime){\n  nom=String(nom).replace(/^mypilot-pro-/,"my-pilot-personal-edition-");\n', False),
+    ("exports : pas d'export des vérifications (CSV)",
+     "      +'<button class=\"b creux\" data-act=\"exp-csvv\">Exporter les vérifications (CSV)</button>'\n",
+     '', False),
     # --- rapport : pas de rapport dans la perso (1.12-public) ---
     ("rapport : rubriques du compteur et de l'assistance retirées de la liste",
      '  ["compteur","Compteur de traitement","Charge et production"],\n'

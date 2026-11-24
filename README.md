@@ -120,6 +120,26 @@ Protections de l'application :
 - **seules routes sans mot de passe** : `/api/health` (répond `{"ok":true}`, rien d'autre), la page `/connexion/`, la page `/rejoindre/` qui explique les liens d'invitation, et les routes des espaces, protégées par les jetons de membre ;
 - les scripts peuvent toujours s'authentifier en « Basic » (`curl -u identifiant:motdepasse`).
 
+## Application Android
+
+`android/` contient une petite application Android (« My Pilot ») qui ouvre l'interface de **votre serveur** en plein écran : page de connexion, puis pilotage, session gardée 30 jours. Les données restent sur le serveur ; il faut donc du réseau. Les espaces partagés n'y apparaissent pas (ils ne se déchiffrent que dans l'application de bureau), comme dans un navigateur.
+
+- Au premier lancement, elle demande l'adresse du serveur (`https://…`, la racine, sans `/pilot`). En cas de serveur injoignable : Réessayer, Changer l'adresse ou Quitter.
+- Exports (JSON, CSV, idées) : Android demande où enregistrer le fichier. Imports : sélecteur de fichiers du système.
+- Bouton Retour : ferme d'abord la fenêtre ouverte dans la page, puis revient en arrière.
+- Liens vers d'autres sites : ouverts dans le navigateur.
+- Android 6 minimum. Installation hors Play Store : autoriser « Installer des applications inconnues » pour l'application qui ouvre l'APK (Fichiers, navigateur…).
+
+Construction, sans Android Studio ni Gradle, avec les outils Android de Debian / Ubuntu :
+
+```bash
+sudo apt install aapt apksigner zipalign android-sdk-platform-23 dalvik-exchange openjdk-17-jdk-headless
+ANDROID_KEYSTORE=~/cles/mypilot.p12 ANDROID_KEYSTORE_PASS=… android/build.sh
+# → dist/my-pilot-personal-edition-v<VERSION>.apk
+```
+
+**La clé de signature ne se perd pas** : une mise à jour doit être signée avec la même clé, sinon Android refuse de l'installer par-dessus (il faudrait désinstaller, et se reconnecter). Elle reste hors du dépôt (`*.p12` est ignoré par git).
+
 ## Démarrage automatique (systemd)
 
 Deux unités prêtes dans [deploy/systemd](deploy/systemd), à copier dans `/etc/systemd/system/`. Le dépôt est supposé dans `/opt/my-pilot-personal-edition` (sinon : `sudo systemctl edit <unité>`, puis `WorkingDirectory=…`).
