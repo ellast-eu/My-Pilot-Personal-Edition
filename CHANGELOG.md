@@ -4,6 +4,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versionnage :
 
 ## [Non publié]
 
+## [0.21.0] - 2026-11-24
+
 ### Ajouts
 - **Application Android** (`android/`, APK construit par `android/build.sh` avec les outils Android de Debian, sans Android Studio ni Gradle) : l'interface de votre serveur en plein écran, avec la page de connexion et la session de 30 jours. Adresse du serveur demandée au premier lancement ; exports (JSON, CSV, idées du Cristallisoir) enregistrés là où Android le propose ; imports par le sélecteur de fichiers ; bouton Retour qui ferme d'abord la fenêtre ouverte ; liens extérieurs ouverts dans le navigateur. Android 6 minimum. Pas d'espaces partagés ni de travail hors ligne (voir la v2 envisagée : application autonome).
 
