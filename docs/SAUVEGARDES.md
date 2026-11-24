@@ -12,7 +12,7 @@ Cet historique protège des erreurs de saisie, pas d'une panne du serveur : il e
 
 ## 2. Instantanés (dans le volume)
 
-Une copie complète et cohérente de la base (`VACUUM INTO`) est faite toutes les `SNAPSHOT_HOURS` heures dans `/data/snapshots`, en gardant les `KEEP_SNAPSHOTS` plus récentes. Bouton « Instantané de la base » dans l'onglet Options pour en faire une à la demande, par exemple avant un import.
+Une copie complète et cohérente de la base (`VACUUM INTO`) est faite toutes les `SNAPSHOT_HOURS` heures dans `/data/snapshots`, en gardant les `KEEP_SNAPSHOTS` plus récentes. Bouton « Instantané de la base » dans Options pour en faire une à la demande, par exemple avant un import.
 
 Lister : `docker compose exec app ls -l /data/snapshots`
 Restaurer : `scripts/restore.sh snapshot pilot-2026-10-08T12-00-00-000Z.db`

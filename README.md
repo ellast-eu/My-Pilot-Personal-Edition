@@ -2,7 +2,7 @@
 
 Pilotage des activités personnelles, dérivé de PST·PILOT, avec le Cristallisoir intégré pour faire mûrir les idées jusqu'aux projets.
 
-- **Pilotage** : la journée, le prochain jour, les activités, le journal, les contacts — le moteur de My Pilot Pro 3.38.0 (ex-PST·PILOT), réglé pour la vie hors travail (catégories Projet, Maison, Formation, Démarche, Loisir ; modules professionnels désactivés).
+- **Pilotage** : la journée, le prochain jour, les activités, le journal, les contacts — le moteur de My Pilot Pro 1.12-public (ex-PST·PILOT), réglé pour la vie hors travail (catégories Projet, Maison, Formation, Démarche, Loisir ; modules professionnels désactivés).
 - **Idées** : boîte à idées en bulles ou en tableau, regroupement automatique en méta-idées, cristallisation par Claude, puis conversion en activité du pilotage avec ses tâches.
 - **Application de bureau** (.deb, .exe) : fonctionne seule, sans navigateur ni réseau, avec sa propre base ; elle se synchronise fiche par fiche avec le serveur.
 - **Données** : une base SQLite, avec un historique des versions, des instantanés quotidiens et une réplication continue vers un stockage distant.
@@ -23,7 +23,7 @@ docker compose up -d --build
 
 Ouvrir http://localhost:8080. Le premier lancement crée une base vide avec le profil personnel.
 
-Pour reprendre des données PST·PILOT existantes : onglet **Options**, « Importer un fichier (remplacer) » puis choisir le `pstp-data.json`. Les réglages et catégories du fichier sont conservés ; seuls les modules professionnels sont coupés au premier import (réactivables dans les paramètres).
+Pour reprendre des données PST·PILOT existantes : bouton **Options** du bandeau, « Importer un fichier (remplacer) » puis choisir le `pstp-data.json`. Les réglages et catégories du fichier sont conservés ; seuls les modules professionnels sont coupés au premier import (réactivables dans les paramètres).
 
 Sans Docker, pour développer : `cd server && npm start` (Node 22.13 ou plus récent), puis http://localhost:8080.
 
@@ -41,7 +41,7 @@ Les données restent dans le dossier de l'utilisateur (`~/.config/My Pilot Perso
 1. Sur le serveur : définir `SYNC_TOKEN` dans `.env` (par exemple `openssl rand -hex 32`), puis `docker compose up -d`. Le serveur doit être joignable en HTTPS depuis les appareils (proxy ou VPN, voir plus bas).
 2. Dans l'application : **Options → Synchronisation → Configurer**, saisir l'adresse du serveur et le jeton, puis « Enregistrer et synchroniser ».
 
-**Comment ça fusionne** : chaque activité, note, contact, point de vigilance, idée… est une fiche avec sa date de modification. Deux appareils qui modifient des fiches différentes, même hors ligne, retrouvent les deux changements. Si la même fiche a changé des deux côtés, la plus récente l'emporte et l'autre version va dans le **journal des conflits** (onglet Options), d'où on peut la remettre en place. Les réglages globaux (paramètres, carte Pause, réglages des idées) sont chacun une fiche.
+**Comment ça fusionne** : chaque activité, note, contact, point de vigilance, idée… est une fiche avec sa date de modification. Deux appareils qui modifient des fiches différentes, même hors ligne, retrouvent les deux changements. Si la même fiche a changé des deux côtés, la plus récente l'emporte et l'autre version va dans le **journal des conflits** (Options), d'où on peut la remettre en place. Les réglages globaux (paramètres, carte Pause, réglages des idées) sont chacun une fiche.
 
 **Construire les paquets** (Node 22 ou plus récent) : `cd desktop && npm ci && npm run dist`. Le .deb et le .exe arrivent dans `dist/desktop/`. Depuis Linux, l'installateur Windows est construit sans wine.
 
@@ -168,7 +168,7 @@ Un plantage est relancé après 5 s ; une configuration incorrecte (`TRUST_PROXY
 Partager avec une personne qui a sa propre installation, chiffré de bout en bout. Conception : [docs/PARTAGE.md](docs/PARTAGE.md).
 
 - L'espace est hébergé par **votre serveur** (celui de votre synchronisation privée), qui doit être joignable en HTTPS (Caddy ci-dessus).
-- Tout se gère dans l'**application de bureau**, onglet Options, bloc **Partage** :
+- Tout se gère dans l'**application de bureau**, Options, bloc **Partage** :
   - **votre nom affiché** ;
   - **créer un espace** ;
   - **inviter** : un lien à usage unique, valable 7 jours, à transmettre par le canal de votre choix ;
@@ -218,7 +218,7 @@ Trois niveaux, détaillés dans [docs/SAUVEGARDES.md](docs/SAUVEGARDES.md) :
 
 | Niveau | Où | Rythme | Restauration |
 |---|---|---|---|
-| Historique des versions | dans la base | toutes les 5 min pendant la saisie, et à chaque « Enregistrer » | onglet Options, « Historique des versions » |
+| Historique des versions | dans la base | toutes les 5 min pendant la saisie, et à chaque « Enregistrer » | Options, « Historique des versions » |
 | Instantanés | volume `pilot-data`, dossier `snapshots` | quotidien, et à la demande | `scripts/restore.sh snapshot FICHIER.db` |
 | Réplication distante | S3 compatible ou SFTP, via Litestream | continu (quelques secondes) | `scripts/restore.sh replica [horodatage]` |
 

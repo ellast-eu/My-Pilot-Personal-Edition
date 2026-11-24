@@ -69,7 +69,7 @@ export function createApp(opts = {}) {
   const store = opts.store ?? new Store(opts.dbFile ?? path.join(dataDir, 'pilot.db'));
   const snapDir = opts.snapshotDir ?? process.env.SNAPSHOT_DIR ?? path.join(dataDir, 'snapshots');
   const mode = opts.mode || 'serveur';
-  // Réglages : valeurs de départ = .env (ou options), modifiables ensuite depuis l'onglet Options
+  // Réglages : valeurs de départ = .env (ou options), modifiables ensuite depuis Options
   const base = { ...baseFromEnv() };
   if (opts.user !== undefined) base.app_user = opts.user;
   if (opts.password !== undefined) base.app_password = opts.password;
